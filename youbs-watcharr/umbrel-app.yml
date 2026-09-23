@@ -1,24 +1,25 @@
 manifestVersion: 1
 id: youbs-watcharr
 name: Watcharr
-tagline: L'outil open-source pour centraliser tout ce que vous regardez et jouez.
-icon: https://github.com/sbondCo/Watcharr/blob/dev/static/logo-col.png
-category: Media
-version: "4.2.2"
+tagline: Suivez tout ce que vous regardez et jouez, au même endroit
+icon: https://raw.githubusercontent.com/sbondCo/Watcharr/dev/static/logo-col.png
+category: media
+version: "4.2.1"
 port: 3080
 description: >-
-  Watcharr est le carnet de bord multimédia ultime pour votre serveur personnel. Cette application open-source et auto-hébergée vous permet de suivre vos films, séries et jeux vidéo préférés en un seul endroit. Grâce à son interface intuitive et moderne, planifiez vos prochains visionnages, notez vos œuvres favorites et gardez un contrôle total sur vos données personnelles.Add your app's description here.
+  Watcharr est un carnet de bord multimédia open-source et auto-hébergé. Il permet de suivre vos films, séries, animés et jeux vidéo en un seul endroit, de planifier vos prochains visionnages et de noter vos œuvres favorites, en gardant un contrôle total sur vos données.
 
 
-developer: Umbrel
-website: https://umbrel.com
-submitter: Umbrel
-submission: https://github.com/getumbrel/umbrel-hello-world-app
-repo: https://github.com/getumbrel/umbrel-hello-world-app
-support: https://github.com/getumbrel/umbrel-hello-world-app/issues
+  Le premier utilisateur créé devient administrateur : pensez à créer votre compte dès l'installation.
+developer: sbondCo
+website: https://watcharr.app
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/sbondCo/Watcharr
+support: https://github.com/sbondCo/Watcharr/issues
 gallery: []
 releaseNotes: >-
-  Add what's new in the latest version of your app here.
+  Première version dans le store communautaire youbs.
 dependencies: []
 path: ""
 defaultUsername: ""

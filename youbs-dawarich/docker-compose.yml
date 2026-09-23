@@ -3,13 +3,12 @@ version: "3.7"
 services:
   app_proxy:
     environment:
-      APP_HOST: youbs-dawarich_app_1
-      APP_PORT: 3080
+      APP_HOST: youbs-dawarich_dawarich_app_1
+      APP_PORT: 3000
       PROXY_AUTH_ADD: "false"
     
   dawarich_redis:
     image: redis:7.4-alpine
-    container_name: dawarich_redis
     command: >
       redis-server
       --save 900 1
@@ -29,17 +28,16 @@ services:
     image: postgis/postgis:17-3.5-alpine
     # image: imresamu/postgis:17-3.5-alpine # If you're on ARM architecture, use this image instead
     shm_size: 1G
-    container_name: dawarich_db
     volumes:
       - ${APP_DATA_DIR}/data/db_data:/var/lib/postgresql/data
       - ${APP_DATA_DIR}/data/shared:/var/shared
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-dawarich_development}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${APP_SEED}
+      POSTGRES_DB: dawarich_production
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-dawarich_development}" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d dawarich_production" ]
       interval: 10s
       retries: 5
       start_period: 30s
@@ -47,15 +45,12 @@ services:
     # command: postgres -c config_file=/etc/postgresql/postgresql.conf # Use custom config, uncomment if you want to use a custom config
 
   dawarich_app:
-    image: freikin/dawarich:latest
-    container_name: dawarich_app
+    image: freikin/dawarich:1.15.0
     volumes:
       - ${APP_DATA_DIR}/data/public:/var/app/public
       - ${APP_DATA_DIR}/data/watched:/var/app/tmp/imports/watched
       - ${APP_DATA_DIR}/data/storage:/var/app/storage
       - ${APP_DATA_DIR}/data/db_data:/dawarich_db_data
-    ports:
-      - "${DAWARICH_APP_PORT:-3000}:3000"
     stdin_open: true
     tty: true
     entrypoint: web-entrypoint.sh
@@ -70,13 +65,13 @@ services:
       DATABASE_HOST: ${DATABASE_HOST:-dawarich_db}
       DATABASE_PORT: ${DATABASE_PORT:-5432}
       DATABASE_USERNAME: ${DATABASE_USERNAME:-postgres}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
-      DATABASE_NAME: ${DATABASE_NAME:-dawarich_development}
-      APPLICATION_HOSTS: ${APPLICATION_HOSTS:-localhost,::1,127.0.0.1}
-      TIME_ZONE: ${TIME_ZONE:-Europe/London}
+      DATABASE_PASSWORD: ${APP_SEED}
+      DATABASE_NAME: dawarich_production
+      APPLICATION_HOSTS: localhost,::1,127.0.0.1,umbrel.local,${DEVICE_DOMAIN_NAME}
+      TIME_ZONE: Europe/Paris
       APPLICATION_PROTOCOL: ${APPLICATION_PROTOCOL:-http}
       PROMETHEUS_EXPORTER_ENABLED: ${PROMETHEUS_EXPORTER_ENABLED:-false}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-"CHANGE_ME"}
+      SECRET_KEY_BASE: ${APP_SEED}
       RAILS_LOG_TO_STDOUT: ${RAILS_LOG_TO_STDOUT:-true}
       SELF_HOSTED: ${SELF_HOSTED:-true}
       STORE_GEODATA: ${STORE_GEODATA:-true}
@@ -112,8 +107,7 @@ services:
           memory: ${APP_MEMORY_LIMIT:-4G}
 
   dawarich_sidekiq:
-    image: freikin/dawarich:latest
-    container_name: dawarich_sidekiq
+    image: freikin/dawarich:1.15.0
     volumes:
       - ${APP_DATA_DIR}/data/public:/var/app/public
       - ${APP_DATA_DIR}/data/watched:/var/app/tmp/imports/watched
@@ -132,15 +126,15 @@ services:
       DATABASE_HOST: ${DATABASE_HOST:-dawarich_db}
       DATABASE_PORT: ${DATABASE_PORT:-5432}
       DATABASE_USERNAME: ${DATABASE_USERNAME:-postgres}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
-      DATABASE_NAME: ${DATABASE_NAME:-dawarich_development}
-      APPLICATION_HOSTS: ${APPLICATION_HOSTS:-localhost,::1,127.0.0.1}
+      DATABASE_PASSWORD: ${APP_SEED}
+      DATABASE_NAME: dawarich_production
+      APPLICATION_HOSTS: localhost,::1,127.0.0.1,umbrel.local,${DEVICE_DOMAIN_NAME}
       # 3 job threads keep idle memory and DB connections low; raise
       # temporarily for large imports.
       BACKGROUND_PROCESSING_CONCURRENCY: ${BACKGROUND_PROCESSING_CONCURRENCY:-3}
       APPLICATION_PROTOCOL: ${APPLICATION_PROTOCOL:-http}
       PROMETHEUS_EXPORTER_ENABLED: ${PROMETHEUS_EXPORTER_ENABLED:-false}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-"CHANGE_ME"}
+      SECRET_KEY_BASE: ${APP_SEED}
       RAILS_LOG_TO_STDOUT: ${RAILS_LOG_TO_STDOUT:-true}
       SELF_HOSTED: ${SELF_HOSTED:-true}
       STORE_GEODATA: ${STORE_GEODATA:-true}

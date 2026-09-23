@@ -1,14 +1,14 @@
 version: "3.7"
 
 services:
-
   app_proxy:
     environment:
-      # The format here is: <app-id>_<docker-service-name>_1
-      APP_HOST: youbs-app_watcharr_1
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-watcharr_server_1
       APP_PORT: 3080
-    
+
   server:
-    image: getumbrel/community-app-store-hello-world:latest
-    user: "1000:1000"
-    init: true
+    image: ghcr.io/sbondco/watcharr:v4.2.1
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data:/data

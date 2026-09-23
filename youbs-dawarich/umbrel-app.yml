@@ -3,8 +3,8 @@ id: youbs-dawarich
 name: Dawarich
 tagline: A Location History Tracker
 icon: https://raw.githubusercontent.com/dennysubke/dennys-umbrel-app-gallery/main/denny-dawarich/logo.png
-category: files & productivity
-version: "1.15.2"
+category: files
+version: "1.15.0"
 port: 8955
 description: >-
   🌍 Dawarich is an application that enables you to capture, explore and relive your personal location history in a private and meaningful way. It works by continuously collecting your movement data and transforming it into a rich, interactive representation of your journeys. Every place you visit becomes part of a visual timeline, allowing you to see exactly where you have been and when you were there. This timeline can be navigated effortlessly, letting you jump to specific dates or periods to revisit the paths you took and the places you explored.
@@ -20,15 +20,13 @@ description: >-
 developer: ZeitFlow UG
 website: https://dawarich.app/
 submitter: youbs
-submission: https://github.com/getumbrel/umbrel-hello-world-app
-repo: https://github.com/getumbrel/umbrel-hello-world-app
-support: https://github.com/getumbrel/umbrel-hello-world-app/issues
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/Freika/dawarich
+support: https://github.com/Freika/dawarich/issues
 gallery:
   - https://i.imgur.com/yyVG0Jb.jpeg
-  - https://i.imgur.com/yyVG0Jb.jpeg
-  - https://i.imgur.com/yyVG0Jb.jpeg
 releaseNotes: >-
-  Add what's new in the latest version of your app here.
+  Première version dans le store communautaire youbs.
 dependencies: []
 path: ""
 defaultUsername: "demo@dawarich.app"
