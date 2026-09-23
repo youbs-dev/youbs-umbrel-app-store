@@ -1,0 +1,32 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-rclone_rclone_1
+      APP_PORT: 5572
+
+  rclone:
+    image: rclone/rclone:1.75.1
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - ${APP_DATA_DIR}/config/rclone:/config/rclone
+      - ${APP_DATA_DIR}/mnt/seedbox:/mnt/seedbox:shared
+    command: >
+      mount seedbox:/ /mnt/seedbox
+      --config /config/rclone/rclone.conf
+      --vfs-cache-mode off
+      --allow-other
+      --allow-non-empty
+      --rc
+      --rc-addr :5572
+      --rc-no-auth
+      --rc-web-gui
+      --rc-web-gui-no-open-browser

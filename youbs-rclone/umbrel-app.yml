@@ -1,0 +1,26 @@
+manifestVersion: 1
+id: youbs-rclone
+name: Rclone Seedbox
+tagline: Monte votre seedbox comme un dossier local
+icon: https://raw.githubusercontent.com/rclone/rclone/master/graphics/logo/logo_symbol/logo_symbol_color.svg
+category: files
+version: "1.75.1"
+port: 8957
+description: >-
+  Rclone Seedbox monte le remote `seedbox` défini dans votre fichier `rclone.conf` sur le dossier `/mnt/seedbox` de l'application, avec FUSE. Le point de montage est partagé (`shared`) pour que d'autres conteneurs puissent y accéder.
+
+
+  Avant le premier démarrage, placez votre fichier `rclone.conf` (avec un remote nommé `seedbox`) dans le dossier de données de l'app, sous `config/rclone/rclone.conf`. L'interface web de rclone est exposée derrière la connexion Umbrel.
+developer: rclone
+website: https://rclone.org
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/rclone/rclone
+support: https://github.com/rclone/rclone/issues
+gallery: []
+releaseNotes: >-
+  Première version dans le store communautaire youbs.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
