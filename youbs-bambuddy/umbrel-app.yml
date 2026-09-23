@@ -1,0 +1,26 @@
+manifestVersion: 1
+id: youbs-bambuddy
+name: Bambuddy
+tagline: Gérez vos imprimantes Bambu Lab, sans cloud
+icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/bambuddy_logo_dark.png
+category: automation
+version: "1.2.5"
+port: 8956
+description: >-
+  Bambuddy est un centre de contrôle open-source et auto-hébergé pour les imprimantes 3D Bambu Lab. Il permet de suivre vos impressions, d'archiver vos fichiers, de gérer une file d'attente et de surveiller vos imprimantes en local, sans passer par le cloud de Bambu.
+
+
+  Chaque imprimante doit être sur le même réseau local que votre Umbrel, avec le mode développeur activé. La découverte automatique (SSDP) ne fonctionne pas depuis un conteneur Umbrel : ajoutez vos imprimantes manuellement à partir de leur adresse IP. L'accès à l'application est protégé par la connexion Umbrel.
+developer: maziggy
+website: https://github.com/maziggy/bambuddy
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/maziggy/bambuddy
+support: https://github.com/maziggy/bambuddy/issues
+gallery: []
+releaseNotes: >-
+  Première version dans le store communautaire youbs.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

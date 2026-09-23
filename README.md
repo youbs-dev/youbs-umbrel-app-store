@@ -8,6 +8,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | --- | --- | --- |
 | Watcharr | `youbs-watcharr` | 4.2.1 |
 | Dawarich | `youbs-dawarich` | 1.15.0 |
+| Bambuddy | `youbs-bambuddy` | 1.2.5 |
 
 ## Ajouter ce store dans Umbrel
 

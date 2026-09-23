@@ -1,0 +1,21 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-bambuddy_server_1
+      APP_PORT: 8000
+
+  server:
+    image: ghcr.io/maziggy/bambuddy:1.2.5
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      TZ: Europe/Paris
+      PUID: 1000
+      PGID: 1000
+      PORT: 8000
+    volumes:
+      - ${APP_DATA_DIR}/data/data:/app/data
+      - ${APP_DATA_DIR}/data/logs:/app/logs
