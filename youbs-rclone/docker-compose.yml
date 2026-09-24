@@ -19,7 +19,14 @@ services:
     volumes:
       - ${APP_DATA_DIR}/config/rclone:/config/rclone
       # Monte la seedbox dans le dossier Downloads d'Umbrel, deja visible par Lidarr (/seedbox)
-      - ${UMBREL_ROOT}/home/Downloads/ftp_share:/mnt/seedbox:rshared
+      # Syntaxe longue : la propagation rshared est indispensable pour que
+      # le montage FUSE soit visible hors du conteneur (Umbrel, Lidarr...)
+      - type: bind
+        source: ${UMBREL_ROOT}/home/Downloads/ftp_share
+        target: /mnt/seedbox
+        bind:
+          propagation: rshared
+          create_host_path: true
     command: >
       mount seedbox:/ /mnt/seedbox
       --config /config/rclone/rclone.conf

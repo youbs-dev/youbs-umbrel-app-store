@@ -4,7 +4,7 @@ name: Rclone Seedbox
 tagline: Monte votre seedbox comme un dossier local
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/rclone.png
 category: files
-version: "1.75.1.1"
+version: "1.75.1.2"
 port: 8957
 description: >-
   Rclone Seedbox monte le remote `seedbox` défini dans votre fichier `rclone.conf` sur le dossier `/mnt/seedbox` de l'application, avec FUSE. Le point de montage est partagé (`shared`) pour que d'autres conteneurs puissent y accéder.
