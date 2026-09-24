@@ -18,13 +18,18 @@ services:
       - apparmor:unconfined
     volumes:
       - ${APP_DATA_DIR}/config/rclone:/config/rclone
-      - ${APP_DATA_DIR}/mnt/seedbox:/mnt/seedbox:shared
+      # Monte la seedbox dans le dossier Downloads d'Umbrel, deja visible par Lidarr (/seedbox)
+      - ${UMBREL_ROOT}/home/Downloads/ftp_share:/mnt/seedbox:rshared
     command: >
       mount seedbox:/ /mnt/seedbox
       --config /config/rclone/rclone.conf
-      --vfs-cache-mode off
       --allow-other
       --allow-non-empty
+      --uid 1000
+      --gid 1000
+      --umask 002
+      --vfs-cache-mode writes
+      --dir-cache-time 1m
       --rc
       --rc-addr :5572
       --rc-no-auth

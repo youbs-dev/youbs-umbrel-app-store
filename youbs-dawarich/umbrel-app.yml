@@ -17,6 +17,7 @@ description: >-
 
 
   The result is a beautifully designed, data-rich environment that gives you full ownership of your location information. It turns raw movement records into an insightful, personal story that you can explore at any time, preserving your journeys and experiences in a form that is both private and visually compelling.
+  Identifiants par défaut : demo@dawarich.app / safepassword. Pensez à changer le mot de passe après votre première connexion.
 developer: ZeitFlow UG
 website: https://dawarich.app/
 submitter: youbs
@@ -26,8 +27,8 @@ support: https://github.com/Freika/dawarich/issues
 gallery:
   - https://i.imgur.com/yyVG0Jb.jpeg
 releaseNotes: >-
-  Première version dans le store communautaire youbs.
+  Première version dans le store communautaire youbs. Identifiants par défaut : demo@dawarich.app / safepassword (à changer après la première connexion).
 dependencies: []
 path: ""
 defaultUsername: "demo@dawarich.app"
-defaultPassword: "password"
+defaultPassword: "safepassword"

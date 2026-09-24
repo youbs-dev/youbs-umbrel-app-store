@@ -4,7 +4,7 @@ name: Rclone Seedbox
 tagline: Monte votre seedbox comme un dossier local
 icon: https://raw.githubusercontent.com/rclone/rclone/master/graphics/logo/logo_symbol/logo_symbol_color.svg
 category: files
-version: "1.75.1"
+version: "1.75.1.1"
 port: 8957
 description: >-
   Rclone Seedbox monte le remote `seedbox` défini dans votre fichier `rclone.conf` sur le dossier `/mnt/seedbox` de l'application, avec FUSE. Le point de montage est partagé (`shared`) pour que d'autres conteneurs puissent y accéder.
@@ -19,7 +19,7 @@ repo: https://github.com/rclone/rclone
 support: https://github.com/rclone/rclone/issues
 gallery: []
 releaseNotes: >-
-  Première version dans le store communautaire youbs.
+  La seedbox est désormais montée dans Downloads/ftp_share (dossier Home d'Umbrel), pour que les autres apps puissent y accéder. Fichiers attribués à l'utilisateur 1000 et cache d'écriture activé.
 dependencies: []
 path: ""
 defaultUsername: ""
