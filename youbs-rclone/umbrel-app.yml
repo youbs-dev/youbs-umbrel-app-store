@@ -4,13 +4,13 @@ name: Rclone Seedbox
 tagline: Monte votre seedbox comme un dossier local
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/rclone.png
 category: files
-version: "1.75.1.2"
+version: "1.75.1.3"
 port: 8957
 description: >-
   Rclone Seedbox monte le remote `seedbox` défini dans votre fichier `rclone.conf` sur le dossier `/mnt/seedbox` de l'application, avec FUSE. Le point de montage est partagé (`shared`) pour que d'autres conteneurs puissent y accéder.
 
 
-  Avant le premier démarrage, placez votre fichier `rclone.conf` (avec un remote nommé `seedbox`) dans le dossier de données de l'app, sous `config/rclone/rclone.conf`. L'interface web de rclone est exposée derrière la connexion Umbrel.
+  Avant le premier démarrage, placez votre fichier `rclone.conf` (avec un remote nommé `seedbox`) dans le dossier de données de l'app, sous `config/rclone/rclone.conf`. L'interface web de rclone est protégée par la connexion Umbrel et par ses propres identifiants (utilisateur `umbrel`, mot de passe affiché par Umbrel).
 developer: rclone
 website: https://rclone.org
 submitter: youbs
@@ -19,8 +19,8 @@ repo: https://github.com/rclone/rclone
 support: https://github.com/rclone/rclone/issues
 gallery: []
 releaseNotes: >-
-  La seedbox est désormais montée dans Downloads/ftp_share (dossier Home d'Umbrel), pour que les autres apps puissent y accéder. Fichiers attribués à l'utilisateur 1000 et cache d'écriture activé.
+  Sécurité : l'API rclone exige désormais un identifiant (utilisateur `umbrel`, mot de passe généré par Umbrel). Le cache d'écriture est conservé dans le dossier de l'app et l'arrêt laisse le temps de démonter proprement.
 dependencies: []
 path: ""
-defaultUsername: ""
-defaultPassword: ""
+defaultUsername: "umbrel"
+deterministicPassword: true

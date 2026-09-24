@@ -1,23 +1,22 @@
 manifestVersion: 1
 id: youbs-dawarich
 name: Dawarich
-tagline: A Location History Tracker
+tagline: Votre historique de localisation, en privé
 icon: https://raw.githubusercontent.com/dennysubke/dennys-umbrel-app-gallery/main/denny-dawarich/logo.png
 category: files
-version: "1.15.0"
+version: "1.15.0.1"
 port: 8955
 description: >-
-  🌍 Dawarich is an application that enables you to capture, explore and relive your personal location history in a private and meaningful way. It works by continuously collecting your movement data and transforming it into a rich, interactive representation of your journeys. Every place you visit becomes part of a visual timeline, allowing you to see exactly where you have been and when you were there. This timeline can be navigated effortlessly, letting you jump to specific dates or periods to revisit the paths you took and the places you explored.
+  Dawarich permet d'enregistrer, d'explorer et de revivre votre historique de localisation, de façon privée. Vos déplacements sont collectés en continu et transformés en une chronologie interactive : chaque lieu visité y apparaît, et vous pouvez naviguer vers n'importe quelle date pour retrouver vos trajets.
 
 
-  The application provides detailed statistics about your movements, including total distances traveled, time spent in specific locations and the number of cities and countries visited. These insights are presented in a visually engaging way, turning your travels into a living record. A scratch-map style view allows you to highlight visited countries and regions, offering a clear picture of your travel footprint. Interactive maps show your routes and stops, helping you rediscover the small details of each journey, from long trips abroad to everyday movements close to home.
+  L'application fournit des statistiques détaillées (distances parcourues, temps passé sur place, villes et pays visités), une carte « à gratter » des pays visités et des cartes interactives de vos itinéraires.
 
 
-  Dawarich also supports the import of existing location data from various sources, allowing you to integrate years of past travel into your personal history. Whether the data comes from other tracking tools, fitness applications, GPX files or geotagged photos, it can be merged seamlessly into the timeline. This means your location history is not only a record of recent activities but also a complete archive of your past movements.
+  Vous pouvez importer vos données existantes depuis d'autres outils de suivi, applications sportives, fichiers GPX ou photos géolocalisées, pour réunir tout votre historique au même endroit, sous votre seul contrôle.
 
 
-  The result is a beautifully designed, data-rich environment that gives you full ownership of your location information. It turns raw movement records into an insightful, personal story that you can explore at any time, preserving your journeys and experiences in a form that is both private and visually compelling.
-  Identifiants par défaut : demo@dawarich.app / safepassword. Pensez à changer le mot de passe après votre première connexion.
+  Identifiants par défaut : demo@dawarich.app / safepassword. Changez le mot de passe dès votre première connexion.
 developer: ZeitFlow UG
 website: https://dawarich.app/
 submitter: youbs
@@ -27,7 +26,7 @@ support: https://github.com/Freika/dawarich/issues
 gallery:
   - https://i.imgur.com/yyVG0Jb.jpeg
 releaseNotes: >-
-  Première version dans le store communautaire youbs. Identifiants par défaut : demo@dawarich.app / safepassword (à changer après la première connexion).
+  Description traduite en français et fuseau horaire ajouté au service de tâches de fond. Identifiants par défaut : demo@dawarich.app / safepassword (à changer après la première connexion).
 dependencies: []
 path: ""
 defaultUsername: "demo@dawarich.app"

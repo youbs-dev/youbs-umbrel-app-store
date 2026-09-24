@@ -10,6 +10,8 @@ services:
   rclone:
     image: rclone/rclone:1.75.1
     restart: unless-stopped
+    # Laisse a rclone le temps de vider le cache d'ecriture et de demonter proprement
+    stop_grace_period: 1m
     cap_add:
       - SYS_ADMIN
     devices:
@@ -36,9 +38,11 @@ services:
       --gid 1000
       --umask 002
       --vfs-cache-mode writes
+      --cache-dir /config/rclone/cache
       --dir-cache-time 1m
       --rc
       --rc-addr :5572
-      --rc-no-auth
+      --rc-user umbrel
+      --rc-pass ${APP_PASSWORD}
       --rc-web-gui
       --rc-web-gui-no-open-browser

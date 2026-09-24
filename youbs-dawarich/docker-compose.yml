@@ -132,6 +132,7 @@ services:
       # 3 job threads keep idle memory and DB connections low; raise
       # temporarily for large imports.
       BACKGROUND_PROCESSING_CONCURRENCY: ${BACKGROUND_PROCESSING_CONCURRENCY:-3}
+      TIME_ZONE: Europe/Paris
       APPLICATION_PROTOCOL: ${APPLICATION_PROTOCOL:-http}
       PROMETHEUS_EXPORTER_ENABLED: ${PROMETHEUS_EXPORTER_ENABLED:-false}
       SECRET_KEY_BASE: ${APP_SEED}
