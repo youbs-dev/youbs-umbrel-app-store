@@ -67,7 +67,8 @@ services:
       DATABASE_USERNAME: ${DATABASE_USERNAME:-postgres}
       DATABASE_PASSWORD: ${APP_SEED}
       DATABASE_NAME: dawarich_production
-      APPLICATION_HOSTS: localhost,::1,127.0.0.1,192.168.31.144,umbrel.local,${DEVICE_DOMAIN_NAME}
+      # Adresses autorisees : reseau local, Tailscale (IP et noms MagicDNS en .ts.net)
+      APPLICATION_HOSTS: localhost,::1,127.0.0.1,192.168.31.144,192.168.31.145,umbrel.local,umbrel,100.107.61.84,.ts.net,${DEVICE_DOMAIN_NAME}
       TIME_ZONE: Europe/Paris
       APPLICATION_PROTOCOL: ${APPLICATION_PROTOCOL:-http}
       PROMETHEUS_EXPORTER_ENABLED: ${PROMETHEUS_EXPORTER_ENABLED:-false}
@@ -128,7 +129,7 @@ services:
       DATABASE_USERNAME: ${DATABASE_USERNAME:-postgres}
       DATABASE_PASSWORD: ${APP_SEED}
       DATABASE_NAME: dawarich_production
-      APPLICATION_HOSTS: localhost,::1,127.0.0.1,192.168.31.144,umbrel.local,${DEVICE_DOMAIN_NAME}
+      APPLICATION_HOSTS: localhost,::1,127.0.0.1,192.168.31.144,192.168.31.145,umbrel.local,umbrel,100.107.61.84,.ts.net,${DEVICE_DOMAIN_NAME}
       # 3 job threads keep idle memory and DB connections low; raise
       # temporarily for large imports.
       BACKGROUND_PROCESSING_CONCURRENCY: ${BACKGROUND_PROCESSING_CONCURRENCY:-3}

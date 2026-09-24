@@ -4,7 +4,7 @@ name: Dawarich
 tagline: Votre historique de localisation, en privé
 icon: https://raw.githubusercontent.com/dennysubke/dennys-umbrel-app-gallery/main/denny-dawarich/logo.png
 category: files
-version: "1.15.0.1"
+version: "1.15.0.2"
 port: 8955
 description: >-
   Dawarich permet d'enregistrer, d'explorer et de revivre votre historique de localisation, de façon privée. Vos déplacements sont collectés en continu et transformés en une chronologie interactive : chaque lieu visité y apparaît, et vous pouvez naviguer vers n'importe quelle date pour retrouver vos trajets.
@@ -26,7 +26,7 @@ support: https://github.com/Freika/dawarich/issues
 gallery:
   - https://i.imgur.com/yyVG0Jb.jpeg
 releaseNotes: >-
-  Description traduite en français et fuseau horaire ajouté au service de tâches de fond. Identifiants par défaut : demo@dawarich.app / safepassword (à changer après la première connexion).
+  Accès via Tailscale : l'adresse Tailscale et les noms MagicDNS (.ts.net) sont désormais autorisés. Identifiants par défaut : demo@dawarich.app / safepassword (à changer après la première connexion).
 dependencies: []
 path: ""
 defaultUsername: "demo@dawarich.app"
