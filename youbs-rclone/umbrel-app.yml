@@ -2,7 +2,7 @@ manifestVersion: 1
 id: youbs-rclone
 name: Rclone Seedbox
 tagline: Monte votre seedbox comme un dossier local
-icon: https://raw.githubusercontent.com/rclone/rclone/master/graphics/logo/logo_symbol/logo_symbol_color.svg
+icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/rclone.png
 category: files
 version: "1.75.1.1"
 port: 8957
