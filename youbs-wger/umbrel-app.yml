@@ -1,0 +1,35 @@
+manifestVersion: 1.1
+id: youbs-wger
+name: wger
+tagline: Suivi de vos entraînements et de votre nutrition
+icon: https://getumbrel.github.io/umbrel-apps-gallery/wger/icon.svg
+category: files
+version: "2.7"
+port: 8451
+description: >-
+  wger est un gestionnaire de fitness open source pour planifier, suivre et optimiser vos entraînements, votre nutrition et votre progression physique.
+
+
+  Créez des routines sur mesure à partir d'une large base d'exercices (instructions, images, groupes musculaires), avec séries, répétitions, temps de repos et progressions. Chaque séance est enregistrée pour suivre vos performances dans le temps.
+
+
+  Le module nutrition permet de planifier vos repas, de compter les calories et de suivre vos macronutriments grâce à une base d'aliments intégrée. Des graphiques de poids, de mensurations et de performances vous aident à rester motivé.
+
+
+  Cette version corrige la synchronisation avec l'application mobile wger (PowerSync) du paquet officiel : noms de conteneurs uniques sur le réseau Umbrel et clés de vérification intégrées à la configuration de PowerSync.
+developer: wger Project
+website: https://wger.de/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/wger-project/wger
+support: https://github.com/wger-project/wger/issues
+gallery:
+  - https://getumbrel.github.io/umbrel-apps-gallery/wger/1.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/wger/2.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/wger/3.jpg
+releaseNotes: >-
+  Première version dans ce store, basée sur wger 2.7. La synchronisation avec l'application mobile fonctionne : PowerSync se connecte à sa propre base (youbs-wger_db_1) au lieu du nom « db » partagé avec d'autres apps, et vérifie les jetons du téléphone sans passer par l'adresse wger_web_1 refusée par Django. Les mots de passe de la base sont dérivés du secret de l'app et la session de l'app mobile dure 120 jours au lieu d'un jour.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

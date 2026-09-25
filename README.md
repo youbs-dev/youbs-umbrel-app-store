@@ -10,6 +10,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Dawarich | `youbs-dawarich` | 1.15.0.2 |
 | Bambuddy | `youbs-bambuddy` | 1.2.5.5 |
 | Rclone Seedbox | `youbs-rclone` | 1.75.1.3 |
+| wger | `youbs-wger` | 2.7 |
 
 ## Ajouter ce store dans Umbrel
 
