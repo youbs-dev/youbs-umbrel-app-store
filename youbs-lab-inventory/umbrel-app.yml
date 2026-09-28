@@ -4,7 +4,7 @@ name: Lab Inventory
 tagline: Inventoriez vos composants électroniques en les prenant en photo
 icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/lab-inventory/icon.svg
 category: files
-version: "0.3.0"
+version: "0.4.0"
 port: 8765
 description: >-
   Prenez un composant en photo depuis votre smartphone : l'IA (Claude) l'identifie,
@@ -21,8 +21,8 @@ repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/lab-inve
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Plusieurs photos par composant (galerie, photo principale, visionneuse plein écran),
-  identification par l'IA sur toutes les photos et propositions d'images trouvées sur le web.
+  Nouvelle interface au style de Bambuddy (barre latérale, thème sombre / clair) et fiche composant
+  en lecture avec bouton Modifier et ajustement rapide du stock.
 dependencies: []
 path: ""
 defaultUsername: ""

@@ -1,6 +1,7 @@
 """Inventaire de composants électroniques : API + interface web."""
 import ipaddress
 import json
+import mimetypes
 import os
 import socket
 import sqlite3
@@ -443,6 +444,20 @@ def update_component(cid: int, c: Component):
     return get_component(cid)
 
 
+class QuantityPatch(BaseModel):
+    quantity: int
+
+
+@app.patch("/api/components/{cid}")
+def update_quantity(cid: int, p: QuantityPatch):
+    """Ajustement rapide du stock depuis la fiche en lecture."""
+    with db() as conn:
+        if not conn.execute("UPDATE components SET quantity=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                            (max(0, p.quantity), cid)).rowcount:
+            raise HTTPException(404, "Composant introuvable")
+    return get_component(cid)
+
+
 @app.delete("/api/components/{cid}")
 def delete_component(cid: int):
     photos = get_component(cid)["photos"]
@@ -460,4 +475,16 @@ def get_photo(name: str):
     return FileResponse(path)
 
 
-app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+mimetypes.add_type("font/woff2", ".woff2")
+
+
+class Static(StaticFiles):
+    """Fichiers de l'interface ; la page est toujours revalidée pour qu'une mise à jour de l'app soit vue tout de suite."""
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if path in ("", ".", "index.html"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/", Static(directory=STATIC_DIR, html=True), name="static")

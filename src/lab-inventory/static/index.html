@@ -1,261 +1,467 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f6feb">
+<meta name="theme-color" content="#1a1a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Lab Inventory</title>
+<script>
+  // Thème appliqué avant l'affichage (sombre / clair / système), comme Bambuddy
+  (function () {
+    let mode = "dark";
+    try { mode = localStorage.getItem("theme") || "dark"; } catch (e) {}
+    const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+  })();
+</script>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --text:#1b1f24; --muted:#667085; --accent:#1f6feb; --accent-soft:#e8f0fe; --border:#e3e6ea; --danger:#d1242f; --warn:#b54708; --warn-soft:#fff4e5; --nav-h:64px; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0e1116; --card:#171b22; --text:#e6e8eb; --muted:#8b949e; --border:#2a313b; --accent-soft:#1a2740; --warn:#f5a524; --warn-soft:#2d2210; } }
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
-  header { position:sticky; top:0; background:var(--card); border-bottom:1px solid var(--border); padding:12px 16px; display:flex; gap:16px; align-items:center; z-index:3; }
-  header h1 { font-size:18px; margin:0; white-space:nowrap; }
-  main { padding:16px; max-width:900px; margin:0 auto; padding-bottom:calc(var(--nav-h) + 110px + env(safe-area-inset-bottom)); }
-  h2 { font-size:20px; margin:4px 0 14px; } h3 { font-size:15px; margin:0 0 10px; }
+  /* Police Inter auto-hébergée (mêmes fichiers que Bambuddy) */
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900; font-display:swap; src:url('fonts/inter-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900; font-display:swap; src:url('fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+A720-A7FF; }
 
-  /* Menu : barre d'onglets en bas sur mobile, dans l'en-tête sur grand écran */
-  nav.menu { position:fixed; left:0; right:0; bottom:0; height:calc(var(--nav-h) + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom);
-             display:flex; background:var(--card); border-top:1px solid var(--border); z-index:3; }
-  nav.menu a { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-decoration:none; color:var(--muted); font-size:12px; }
-  nav.menu a .ic { font-size:22px; line-height:1; }
-  nav.menu a.active { color:var(--accent); font-weight:600; }
-  @media (min-width: 720px) {
-    :root { --nav-h:0px; }
-    nav.menu { position:static; height:auto; border:0; padding:0; background:none; gap:4px; }
-    nav.menu a { flex:none; flex-direction:row; gap:6px; font-size:14px; padding:8px 12px; border-radius:8px; }
-    nav.menu a .ic { font-size:16px; }
-    nav.menu a.active { background:var(--accent-soft); }
+  /* Palette Bambuddy */
+  :root {
+    --accent:#00ae42; --accent-light:#00c64d; --accent-dark:#009438;
+    --ok:#22c55e; --error:#ef4444; --warning:#f59e0b;
+    --bg-primary:#f5f5f5; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e5;
+    --text-primary:#1a1a1a; --text-secondary:#4a4a4a; --text-muted:#6b6b6b; --text-tertiary:#808080;
+    --border:#d4d4d4; --card-shadow:0 2px 8px rgba(0,0,0,.08); --hover:#e5e5e5;
+    --sidebar-w:240px; --header-h:56px;
+    color-scheme:light;
+  }
+  .dark {
+    --bg-primary:#1a1a1a; --bg-secondary:#2d2d2d; --bg-tertiary:#3d3d3d;
+    --text-primary:#ffffff; --text-secondary:#a0a0a0; --text-muted:#808080; --text-tertiary:#4a4a4a;
+    --border:#3d3d3d; --card-shadow:0 4px 16px rgba(0,0,0,.4); --hover:#3d3d3d;
+    color-scheme:dark;
+  }
+  html { font-size:14.4px; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Inter', system-ui, sans-serif; line-height:1.5; background:var(--bg-primary); color:var(--text-primary);
+         -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  a { color:var(--accent); }
+  svg.i { width:20px; height:20px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  svg.i.sm { width:16px; height:16px; } svg.i.lg { width:24px; height:24px; }
+  .hidden { display:none !important; }
+
+  /* ---------- Barre latérale (grand écran) / tiroir (téléphone) ---------- */
+  aside { position:fixed; top:0; bottom:0; left:0; width:var(--sidebar-w); background:var(--bg-secondary); border-right:1px solid var(--border);
+          display:flex; flex-direction:column; z-index:50; transition:transform .25s; }
+  .brand { display:flex; align-items:center; gap:10px; padding:18px 16px; border-bottom:1px solid var(--border); }
+  .brand .logo { width:36px; height:36px; border-radius:10px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; }
+  .brand b { font-size:16px; } .brand small { display:block; color:var(--text-muted); font-size:12px; line-height:1.2; }
+  nav.menu { flex:1; padding:8px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+  nav.menu a { display:flex; align-items:center; gap:12px; padding:11px 16px; border-radius:8px; color:var(--text-secondary); text-decoration:none; font-weight:500; transition:background .15s, color .15s; }
+  nav.menu a:hover { background:var(--hover); color:var(--text-primary); }
+  nav.menu a.active { background:var(--accent); color:#fff; }
+  .side-foot { padding:10px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--text-muted); font-size:12px; }
+  .topbar { display:none; }
+  .scrim { display:none; }
+  main { margin-left:var(--sidebar-w); min-height:100vh; }
+  .page { max-width:1200px; margin:0 auto; padding:24px; padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
+  @media (max-width: 899px) {
+    aside { transform:translateX(-100%); box-shadow:none; }
+    body.drawer-open aside { transform:none; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+    body.drawer-open .scrim { display:block; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:45; }
+    .topbar { display:flex; position:fixed; top:0; left:0; right:0; height:var(--header-h); z-index:40; align-items:center; gap:10px; padding:0 12px;
+              background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+    .topbar b { flex:1; font-size:16px; }
+    main { margin-left:0; padding-top:var(--header-h); }
+    .page { padding:16px; }
   }
 
-  input, select, textarea { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--text); font:inherit; }
-  textarea { min-height:70px; }
-  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
-  button { font:inherit; border:0; border-radius:8px; padding:10px 14px; background:var(--border); color:var(--text); cursor:pointer; }
-  button.primary { background:var(--accent); color:#fff; }
-  button.danger { background:var(--danger); color:#fff; }
-  .row { display:flex; gap:8px; } .row > * { flex:1; }
-  .list { display:grid; gap:10px; margin-top:12px; }
-  .item { display:flex; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px; cursor:pointer; }
-  .item img, .thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; background:var(--border); flex:none; display:block; }
-  .item.small img, .item.small .thumb { width:44px; height:44px; }
-  .item .t { font-weight:600; } .s { font-size:13px; color:var(--muted); }
-  .qty { margin-left:auto; font-weight:700; font-size:18px; align-self:center; white-space:nowrap; }
-  .qty.low { color:var(--warn); }
-  .fab { position:fixed; bottom:calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); padding:16px 28px; border-radius:40px; font-size:17px; box-shadow:0 4px 14px rgba(0,0,0,.25); z-index:2; }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
-  .hidden { display:none !important; }
-  .photo-big { width:100%; max-height:280px; object-fit:contain; border-radius:8px; background:var(--border); }
-  #galleryMain { cursor:zoom-in; }
-  .gthumbs { display:flex; gap:8px; overflow-x:auto; padding:8px 0 2px; }
-  .gthumb { position:relative; flex:none; width:64px; height:64px; border-radius:8px; overflow:hidden; border:2px solid transparent; cursor:pointer; }
-  .gthumb.sel { border-color:var(--accent); }
-  .gthumb img { width:100%; height:100%; object-fit:cover; display:block; }
-  .gthumb .gstar { position:absolute; left:3px; bottom:1px; color:#ffd33d; font-size:14px; text-shadow:0 0 3px #000; }
-  .gthumb .gdel { position:absolute; top:2px; right:2px; width:22px; height:22px; padding:0; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; font-size:12px; line-height:22px; }
-  .gactions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:6px 0 4px; }
-  .gactions button { padding:8px 10px; font-size:14px; }
-  .gactions #photoCount { flex:1 0 100%; }
-  .viewer { position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:10; display:flex; align-items:center; justify-content:center; }
-  .viewer img { max-width:100%; max-height:100%; object-fit:contain; }
-  .vnav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.15); color:#fff; font-size:32px; width:48px; height:64px; padding:0; }
-  .vnav.prev { left:8px; } .vnav.next { right:8px; }
-  .vcount { position:absolute; bottom:calc(16px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; color:#fff; font-size:14px; }
-  .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9; display:flex; align-items:flex-end; justify-content:center; }
-  @media (min-width: 720px) { .modal { align-items:center; } }
-  .modal-box { background:var(--card); width:100%; max-width:720px; max-height:90vh; overflow:auto; border-radius:14px 14px 0 0; padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
-  @media (min-width: 720px) { .modal-box { border-radius:14px; } }
-  .sugg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:8px; }
-  .sugg { position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:3px solid transparent; cursor:pointer; background:#fff; }
-  .sugg.sel { border-color:var(--accent); }
-  .sugg img { width:100%; height:100%; object-fit:contain; display:block; }
-  .sugg .check { position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:13px; text-align:center; line-height:22px; display:none; }
-  .sugg.sel .check { display:block; }
-  .sugg .src { position:absolute; left:0; right:0; bottom:0; font-size:10px; padding:2px 4px; background:rgba(0,0,0,.55); color:#fff; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .pcount { position:absolute; right:2px; bottom:2px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; border-radius:6px; padding:0 4px; }
-  .pwrap { position:relative; flex:none; }
-  .spinner { text-align:center; padding:40px 0; color:var(--muted); }
-  .links a { display:inline-block; margin:6px 8px 0 0; color:var(--accent); }
-  .banner { background:var(--warn-soft); color:var(--warn); padding:10px; border-radius:8px; margin-bottom:12px; }
-  .banner a { color:inherit; font-weight:600; }
-  table { width:100%; border-collapse:collapse; font-size:14px; } td { padding:4px 0; border-bottom:1px solid var(--border); } td:first-child { color:var(--muted); width:45%; }
-  .chip { display:inline-block; background:var(--accent-soft); color:var(--accent); border-radius:20px; padding:4px 10px; font-size:13px; margin-bottom:10px; cursor:pointer; }
+  /* ---------- Éléments communs ---------- */
+  .page-head { display:flex; align-items:flex-start; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .page-head .titles { flex:1; min-width:200px; }
+  .page-head h1 { font-size:1.75rem; line-height:1.2; margin:0; font-weight:700; }
+  .page-head p { margin:4px 0 0; color:var(--text-secondary); }
+  .page-head .acts { display:flex; gap:8px; flex-wrap:wrap; }
+  .card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; box-shadow:var(--card-shadow); }
+  .card-h { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+  .card-h h3 { margin:0; font-size:1.05rem; font-weight:600; flex:1; }
+  .card-h svg { color:var(--accent); }
+  .card-c { padding:20px; }
+  @media (max-width: 599px) { .card-h { padding:12px 16px; } .card-c { padding:16px; } }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font:inherit; font-weight:500; font-size:.95rem; border:0; border-radius:8px;
+         padding:9px 16px; min-height:40px; cursor:pointer; transition:background .15s, color .15s; text-decoration:none; white-space:nowrap; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn.primary { background:var(--accent); color:#fff; } .btn.primary:hover:not(:disabled) { background:var(--accent-light); }
+  .btn.secondary { background:var(--bg-tertiary); color:var(--text-primary); } .btn.secondary:hover:not(:disabled) { filter:brightness(1.12); }
+  .btn.danger { background:#dc2626; color:#fff; } .btn.danger:hover:not(:disabled) { background:#b91c1c; }
+  .btn.ghost { background:transparent; color:var(--text-secondary); } .btn.ghost:hover:not(:disabled) { background:var(--hover); color:var(--text-primary); }
+  .btn.sm { padding:6px 12px; min-height:34px; font-size:.88rem; }
+  .btn.icon { padding:8px; min-height:0; }
+  input, select, textarea { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); color:var(--text-primary);
+         font:inherit; transition:border-color .15s, box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  textarea { min-height:80px; resize:vertical; }
+  label { display:block; font-size:.9rem; font-weight:500; color:var(--text-secondary); margin:14px 0 6px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  @media (max-width: 599px) { .grid2 { grid-template-columns:1fr; } }
+  .muted { color:var(--text-secondary); } .small { font-size:.88rem; }
+  .pill { display:inline-flex; align-items:center; gap:4px; font-size:.8rem; font-weight:500; border-radius:999px; padding:2px 10px; background:var(--bg-tertiary); color:var(--text-secondary); white-space:nowrap; }
+  .pill.green { background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent); }
+  .pill.amber { background:color-mix(in srgb, var(--warning) 18%, transparent); color:var(--warning); }
+  .pill.gray { background:var(--bg-tertiary); color:var(--text-muted); }
+  .banner { display:flex; gap:10px; align-items:flex-start; border:1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+            background:color-mix(in srgb, var(--warning) 12%, transparent); color:var(--text-primary); padding:12px 14px; border-radius:10px; margin-bottom:16px; }
+  .banner svg { color:var(--warning); margin-top:1px; }
+  .empty { color:var(--text-muted); text-align:center; padding:24px 8px; }
+  .spinner { text-align:center; padding:48px 0; color:var(--text-secondary); }
+  .spinner .dot { width:36px; height:36px; margin:0 auto 14px; border-radius:50%; border:3px solid var(--bg-tertiary); border-top-color:var(--accent); animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .fade { animation:fadeIn .15s ease-out; } @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--bg-secondary); border:1px solid var(--border);
+           box-shadow:var(--card-shadow); border-radius:10px; padding:10px 16px; z-index:80; display:flex; gap:8px; align-items:center; }
+  .toast svg { color:var(--accent); }
 
-  /* Dashboard */
-  .tiles { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:12px; }
-  @media (min-width: 720px) { .tiles { grid-template-columns:repeat(4, 1fr); } }
-  .tile { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
-  .tile[data-go] { cursor:pointer; }
-  .tile .v { font-size:28px; font-weight:700; line-height:1.1; } .tile .l { font-size:13px; color:var(--muted); }
-  .tile.warn .v { color:var(--warn); }
-  .dash-grid { display:grid; gap:12px; }
-  @media (min-width: 720px) { .dash-grid { grid-template-columns:1fr 1fr; } .dash-grid .wide { grid-column:1 / -1; } }
-  .bars { display:grid; gap:8px; }
-  .bar { display:grid; grid-template-columns:minmax(90px, 34%) 1fr auto; gap:10px; align-items:center; font-size:14px; cursor:pointer; }
-  .bar .track { height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
-  .bar .fill { height:100%; background:var(--accent); border-radius:5px; }
-  .bar .n { color:var(--muted); font-variant-numeric:tabular-nums; }
-  .empty { color:var(--muted); font-size:14px; text-align:center; padding:12px 0; }
-  dl.info { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:14px; margin:0; } dl.info dt { color:var(--muted); } dl.info dd { margin:0; }
-  .settings { display:grid; gap:12px; }
-  .row.wrap { flex-wrap:wrap; } .row.wrap > * { min-width:160px; }
-  .table-wrap { overflow-x:auto; margin-top:10px; }
-  table.conn { min-width:480px; } table.conn th { text-align:left; font-size:12px; color:var(--muted); font-weight:500; padding:6px 8px 6px 0; border-bottom:1px solid var(--border); }
-  table.conn td { padding:8px 8px 8px 0; width:auto; color:var(--text); vertical-align:middle; }
-  table.conn td.key { font-family:ui-monospace,monospace; font-size:12px; color:var(--muted); }
+  /* ---------- Dashboard ---------- */
+  .stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:16px; }
+  @media (max-width: 1099px) { .stats { grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width: 599px) { .stats { gap:10px; } }
+  .stat { display:flex; align-items:center; gap:14px; padding:18px; }
+  @media (max-width: 599px) { .stat { padding:14px; gap:10px; } }
+  .stat[data-go] { cursor:pointer; } .stat[data-go]:hover { border-color:var(--accent); }
+  .stat .ic { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex:none;
+              background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+  .stat.warn .ic { background:color-mix(in srgb, var(--warning) 16%, transparent); color:var(--warning); }
+  .stat .v { font-size:1.6rem; font-weight:700; line-height:1.1; } .stat .l { font-size:.85rem; color:var(--text-secondary); }
+  .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .dash-grid .wide { grid-column:1 / -1; }
+  @media (max-width: 899px) { .dash-grid { grid-template-columns:1fr; } }
+  .bars { display:grid; gap:10px; }
+  .bar { display:grid; grid-template-columns:minmax(100px, 30%) 1fr auto; gap:12px; align-items:center; cursor:pointer; border-radius:6px; padding:2px 4px; }
+  .bar:hover { background:var(--hover); }
+  .bar .track { height:8px; background:var(--bg-tertiary); border-radius:4px; overflow:hidden; }
+  .bar .fill { height:100%; background:var(--accent); border-radius:4px; }
+  .bar .n { color:var(--text-secondary); font-size:.85rem; font-variant-numeric:tabular-nums; }
+  .rows { display:flex; flex-direction:column; }
+  .rowi { display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--border); cursor:pointer; border-radius:6px; }
+  .rowi:last-child { border-bottom:0; } .rowi:hover { background:var(--hover); }
+  .rowi .th { width:40px; height:40px; border-radius:8px; object-fit:cover; background:var(--bg-tertiary); flex:none; display:flex; align-items:center; justify-content:center; color:var(--text-muted); }
+  .rowi .t { font-weight:600; } .rowi .s { font-size:.85rem; color:var(--text-secondary); }
+  .rowi .end { margin-left:auto; }
+
+  /* ---------- Composants (grille) ---------- */
+  .toolbar { display:flex; gap:10px; padding:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .toolbar .search { position:relative; flex:1 1 260px; }
+  .toolbar .search svg { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); }
+  .toolbar .search input { padding-left:38px; }
+  .toolbar select { flex:1 1 180px; width:auto; max-width:260px; }
+  @media (max-width: 599px) { .toolbar select { max-width:none; } }
+  .toggle { display:inline-flex; align-items:center; gap:6px; }
+  .toggle.on { background:color-mix(in srgb, var(--warning) 18%, transparent); color:var(--warning); }
+  .cgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:16px; }
+  @media (max-width: 599px) { .cgrid { grid-template-columns:repeat(2, 1fr); gap:10px; } }
+  .ccard { overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:border-color .15s, transform .15s; }
+  .ccard:hover { border-color:var(--accent); }
+  .ccard .ph { position:relative; aspect-ratio:4/3; background:var(--bg-tertiary); display:flex; align-items:center; justify-content:center; color:var(--text-muted); }
+  .ccard .ph img { width:100%; height:100%; object-fit:cover; display:block; }
+  .ccard .ph .qty { position:absolute; top:8px; right:8px; }
+  .ccard .ph .cnt { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,.6); color:#fff; font-size:.75rem; border-radius:6px; padding:1px 6px; display:flex; gap:4px; align-items:center; }
+  .ccard .qty { font-weight:700; font-size:.85rem; border-radius:999px; padding:2px 10px; background:var(--accent); color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  .ccard .qty.low { background:var(--warning); color:#1a1a1a; }
+  .ccard .bd { padding:12px 14px 6px; flex:1; min-width:0; }
+  .ccard .t { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ccard .s { font-size:.85rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ccard .meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .ccard .ft { display:flex; gap:4px; padding:6px 8px 8px; border-top:1px solid var(--border); }
+  .ccard .ft .btn { flex:1; }
+  @media (max-width: 599px) { .ccard .bd { padding:10px 10px 4px; } .ccard .ft .btn span { display:none; } }
+
+  /* ---------- Fiche (lecture) ---------- */
+  .detail { display:grid; grid-template-columns:minmax(0, 5fr) minmax(0, 6fr); gap:16px; align-items:start; }
+  @media (max-width: 899px) { .detail { grid-template-columns:1fr; } }
+  .stack { display:flex; flex-direction:column; gap:16px; }
+  .dphoto { width:100%; aspect-ratio:4/3; object-fit:contain; background:var(--bg-tertiary); border-radius:10px; cursor:zoom-in; display:block; }
+  .dphoto-empty { aspect-ratio:4/3; border-radius:10px; background:var(--bg-tertiary); display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; color:var(--text-muted); }
+  .thumbs { display:flex; gap:8px; overflow-x:auto; padding-top:10px; }
+  .thumbs .tb { position:relative; flex:none; width:64px; height:64px; border-radius:8px; overflow:hidden; border:2px solid transparent; cursor:pointer; background:var(--bg-tertiary); }
+  .thumbs .tb.sel { border-color:var(--accent); }
+  .thumbs .tb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumbs .tb .star { position:absolute; left:3px; bottom:1px; color:#fbbf24; } .thumbs .tb .star svg { fill:#fbbf24; stroke:#fbbf24; width:13px; height:13px; }
+  .thumbs .tb .del { position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,.65); color:#fff; border:0; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .thumbs .tb .del svg { width:13px; height:13px; }
+  .stock { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .stock .big { font-size:2.4rem; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; min-width:70px; text-align:center; }
+  .stock .big.low { color:var(--warning); }
+  .qbtn { width:44px; height:44px; border-radius:10px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:10px 16px; margin:0; }
+  .kv dt { color:var(--text-secondary); font-size:.9rem; display:flex; align-items:center; gap:6px; } .kv dd { margin:0; font-weight:500; min-width:0; overflow-wrap:anywhere; }
+  table.specs { width:100%; border-collapse:collapse; } table.specs td { padding:8px 0; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.specs tr:last-child td { border-bottom:0; } table.specs td:first-child { color:var(--text-secondary); width:45%; padding-right:12px; }
+  .doclinks { display:flex; flex-direction:column; gap:8px; }
+  .doclink { display:flex; align-items:center; gap:12px; padding:12px; border-radius:10px; background:var(--bg-primary); border:1px solid var(--border); text-decoration:none; color:var(--text-primary); }
+  .doclink:hover { border-color:var(--accent); }
+  .doclink .ic { width:36px; height:36px; border-radius:8px; background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none; }
+  .doclink .u { font-size:.8rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prose { white-space:pre-wrap; margin:0; }
+
+  /* ---------- Formulaire ---------- */
+  .gacts { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .formbar { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+
+  /* ---------- Paramètres ---------- */
+  .settings { display:grid; gap:16px; max-width:900px; }
+  .settings > * { min-width:0; }
+  .table-wrap { overflow-x:auto; }
+  table.conn { width:100%; border-collapse:collapse; min-width:520px; }
+  table.conn th { text-align:left; font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); font-weight:600; padding:8px 10px 8px 0; border-bottom:1px solid var(--border); }
+  table.conn td { padding:10px 10px 10px 0; border-bottom:1px solid var(--border); vertical-align:middle; }
+  table.conn tr:last-child td { border-bottom:0; }
+  table.conn td.key { font-family:ui-monospace, monospace; font-size:.8rem; color:var(--text-muted); }
   table.conn tr.off td:not(:last-child) { opacity:.5; }
   table.conn .acts { white-space:nowrap; text-align:right; }
-  table.conn button { padding:6px 10px; font-size:13px; }
-  .badge { display:inline-block; font-size:12px; border-radius:20px; padding:2px 8px; white-space:nowrap; }
-  .badge.on { background:#dafbe1; color:#1a7f37; } .badge.off { background:var(--border); color:var(--muted); }
-  @media (prefers-color-scheme: dark) { .badge.on { background:#12361f; color:#56d364; } }
-  .settings > * { min-width:0; }
-  /* Sur téléphone, chaque connecteur devient une petite fiche */
-  @media (max-width: 560px) {
+  @media (max-width: 599px) {
     table.conn { min-width:0; } table.conn thead { display:none; }
-    table.conn tr { display:grid; grid-template-columns:1fr auto; gap:2px 8px; padding:10px 0; border-bottom:1px solid var(--border); }
+    table.conn tr { display:grid; grid-template-columns:1fr auto; gap:2px 8px; padding:12px 0; border-bottom:1px solid var(--border); }
     table.conn td { padding:0; border:0; }
     table.conn td:nth-child(1) { font-weight:600; } table.conn td:nth-child(4) { grid-row:1; grid-column:2; text-align:right; }
-    table.conn td:nth-child(2), table.conn td.key { grid-column:1 / -1; font-size:13px; color:var(--muted); }
-    table.conn td.acts { grid-column:1 / -1; text-align:left; margin-top:6px; }
+    table.conn td:nth-child(2), table.conn td.key { grid-column:1 / -1; font-size:.85rem; color:var(--text-secondary); }
+    table.conn td.acts { grid-column:1 / -1; text-align:left; margin-top:8px; }
     table.conn td[colspan] { grid-column:1 / -1; }
   }
+
+  /* ---------- Visionneuse et fenêtre des propositions ---------- */
+  .viewer { position:fixed; inset:0; background:rgba(0,0,0,.93); z-index:90; display:flex; align-items:center; justify-content:center; }
+  .viewer img { max-width:100%; max-height:100%; object-fit:contain; }
+  .vnav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.12); color:#fff; border:0; width:48px; height:64px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .vnav.prev { left:10px; } .vnav.next { right:10px; }
+  .vclose { position:absolute; top:calc(12px + env(safe-area-inset-top)); right:12px; background:rgba(255,255,255,.12); color:#fff; border:0; width:44px; height:44px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .vcount { position:absolute; bottom:calc(16px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; color:#fff; font-size:.9rem; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .15s ease-out; }
+  .modal .card { width:100%; max-width:760px; max-height:90vh; display:flex; flex-direction:column; }
+  .modal .card-c { overflow:auto; }
+  .modal .card-f { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  @media (max-width: 599px) { .modal { align-items:flex-end; padding:0; } .modal .card { border-radius:14px 14px 0 0; padding-bottom:env(safe-area-inset-bottom); } }
+  .sugg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:10px; }
+  .sugg { position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; border:3px solid transparent; cursor:pointer; background:#fff; }
+  .sugg.sel { border-color:var(--accent); }
+  .sugg img { width:100%; height:100%; object-fit:contain; display:block; }
+  .sugg .check { position:absolute; top:5px; right:5px; width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:none; align-items:center; justify-content:center; }
+  .sugg.sel .check { display:flex; } .sugg .check svg { width:14px; height:14px; stroke-width:3; }
+  .sugg .src { position:absolute; left:0; right:0; bottom:0; font-size:.72rem; padding:3px 6px; background:rgba(0,0,0,.6); color:#fff; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 </style>
 </head>
 <body>
-<header>
-  <h1>🔌 Lab Inventory</h1>
+
+<!-- En-tête (téléphone) -->
+<div class="topbar">
+  <button class="btn ghost icon" id="btnDrawer" aria-label="Menu"><svg class="i lg"><use href="#i-menu"/></svg></button>
+  <b>Lab Inventory</b>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<!-- Barre latérale -->
+<aside>
+  <div class="brand">
+    <div class="logo"><svg class="i"><use href="#i-cpu"/></svg></div>
+    <div><b>Lab Inventory</b><small>Composants électroniques</small></div>
+  </div>
   <nav class="menu" id="menu">
-    <a href="#/dashboard" data-route="dashboard"><span class="ic">📊</span>Dashboard</a>
-    <a href="#/composants" data-route="composants"><span class="ic">📦</span>Composants</a>
-    <a href="#/parametres" data-route="parametres"><span class="ic">⚙️</span>Paramètres</a>
+    <a href="#/dashboard" data-route="dashboard"><svg class="i"><use href="#i-dashboard"/></svg>Dashboard</a>
+    <a href="#/composants" data-route="composants"><svg class="i"><use href="#i-cpu"/></svg>Composants</a>
+    <a href="#/parametres" data-route="parametres"><svg class="i"><use href="#i-sliders"/></svg>Paramètres</a>
   </nav>
-</header>
+  <div class="side-foot">
+    <span id="themeLabel">Thème sombre</span>
+    <button class="btn ghost icon" id="btnTheme" title="Changer de thème"><svg class="i"><use href="#i-moon"/></svg></button>
+  </div>
+</aside>
 
 <main>
-  <div id="keyBanner" class="banner hidden">Ajoutez une IA (Claude, ChatGPT, Gemini…) dans les <a href="#/parametres">Paramètres</a> pour activer l'identification par photo.</div>
+<div class="page">
+  <div id="keyBanner" class="banner hidden"><svg class="i"><use href="#i-alert"/></svg>
+    <div>Ajoutez une IA (Claude, ChatGPT, Gemini…) dans les <a href="#/parametres">Paramètres</a> pour activer l'identification par photo.</div></div>
 
-  <!-- Dashboard -->
-  <section id="viewDashboard" class="hidden">
-    <h2>Dashboard</h2>
-    <div class="tiles">
-      <div class="tile" data-go="composants"><div class="v" id="stRefs">–</div><div class="l">Références</div></div>
-      <div class="tile" data-go="composants"><div class="v" id="stPieces">–</div><div class="l">Pièces en stock</div></div>
-      <div class="tile"><div class="v" id="stLocations">–</div><div class="l">Emplacements</div></div>
-      <div class="tile warn" data-go="lowstock"><div class="v" id="stLow">–</div><div class="l" id="stLowLabel">Stock bas</div></div>
+  <!-- ===== Dashboard ===== -->
+  <section id="viewDashboard" class="hidden fade">
+    <div class="page-head">
+      <div class="titles"><h1>Dashboard</h1><p>Vue d'ensemble de votre stock</p></div>
+      <div class="acts"><button class="btn primary js-add"><svg class="i"><use href="#i-camera"/></svg>Ajouter</button></div>
+    </div>
+    <div class="stats">
+      <div class="card stat" data-go="composants"><div class="ic"><svg class="i lg"><use href="#i-cpu"/></svg></div><div><div class="v" id="stRefs">–</div><div class="l">Références</div></div></div>
+      <div class="card stat" data-go="composants"><div class="ic"><svg class="i lg"><use href="#i-box"/></svg></div><div><div class="v" id="stPieces">–</div><div class="l">Pièces en stock</div></div></div>
+      <div class="card stat"><div class="ic"><svg class="i lg"><use href="#i-pin"/></svg></div><div><div class="v" id="stLocations">–</div><div class="l">Emplacements</div></div></div>
+      <div class="card stat warn" data-go="lowstock"><div class="ic"><svg class="i lg"><use href="#i-alert"/></svg></div><div><div class="v" id="stLow">–</div><div class="l" id="stLowLabel">Stock bas</div></div></div>
     </div>
     <div class="dash-grid">
-      <div class="card wide"><h3>Répartition par catégorie</h3><div id="dashCats" class="bars"></div></div>
-      <div class="card"><h3>Stock bas</h3><div id="dashLow" class="list" style="margin-top:0"></div></div>
-      <div class="card"><h3>Derniers ajouts</h3><div id="dashRecent" class="list" style="margin-top:0"></div></div>
+      <div class="card wide"><div class="card-h"><svg class="i"><use href="#i-layers"/></svg><h3>Répartition par catégorie</h3></div><div class="card-c"><div id="dashCats" class="bars"></div></div></div>
+      <div class="card"><div class="card-h"><svg class="i"><use href="#i-alert"/></svg><h3>Stock bas</h3></div><div class="card-c"><div id="dashLow" class="rows"></div></div></div>
+      <div class="card"><div class="card-h"><svg class="i"><use href="#i-clock"/></svg><h3>Derniers ajouts</h3></div><div class="card-c"><div id="dashRecent" class="rows"></div></div></div>
     </div>
-    <p class="s" id="dashNoDs" style="margin-top:12px"></p>
+    <p class="muted small" id="dashNoDs" style="margin-top:14px"></p>
   </section>
 
-  <!-- Composants -->
-  <section id="viewList" class="hidden">
-    <h2>Composants</h2>
-    <span id="lowChip" class="chip hidden" title="Retirer le filtre">⚠️ Stock bas uniquement ✕</span>
-    <div class="row">
-      <input id="search" type="search" placeholder="Rechercher (nom, référence, tiroir…)">
-      <select id="filterCat" style="flex:0 0 38%"><option value="">Toutes catégories</option></select>
+  <!-- ===== Composants : liste ===== -->
+  <section id="viewList" class="hidden fade">
+    <div class="page-head">
+      <div class="titles"><h1>Composants</h1><p id="listCount">&nbsp;</p></div>
+      <div class="acts"><button class="btn primary js-add"><svg class="i"><use href="#i-camera"/></svg>Ajouter</button></div>
     </div>
-    <p class="s" id="listCount" style="margin:10px 0 0"></p>
-    <div id="list" class="list"></div>
+    <div class="card toolbar">
+      <div class="search"><svg class="i sm"><use href="#i-search"/></svg><input id="search" type="search" placeholder="Rechercher (nom, référence, tiroir…)"></div>
+      <select id="filterCat"><option value="">Toutes catégories</option></select>
+      <button class="btn secondary toggle" id="btnLow"><svg class="i sm"><use href="#i-alert"/></svg>Stock bas</button>
+    </div>
+    <div id="list" class="cgrid"></div>
   </section>
 
-  <!-- Identification en cours -->
-  <section id="viewLoading" class="hidden">
-    <img id="loadingPhoto" class="photo-big" alt="">
-    <div class="spinner">🔍 Identification en cours et recherche de la datasheet…<br>(cela peut prendre une trentaine de secondes)</div>
-  </section>
-
-  <!-- Formulaire -->
-  <section id="viewForm" class="hidden">
-    <div id="aiError" class="banner hidden"></div>
-    <div class="gallery">
-      <img id="galleryMain" class="photo-big hidden" alt="" title="Agrandir">
-      <div id="galleryThumbs" class="gthumbs"></div>
-      <div class="gactions">
-        <span id="photoCount" class="s"></span>
-        <button type="button" id="btnAddPhotos">📷 Ajouter des photos</button>
-        <button type="button" id="btnSuggest">🌐 Proposer des images</button>
-        <button type="button" id="btnMainPhoto" class="hidden">★ Photo principale</button>
-        <button type="button" id="btnReidentify" class="hidden">🔍 Ré-identifier</button>
+  <!-- ===== Composant : lecture ===== -->
+  <section id="viewDetail" class="hidden fade">
+    <div class="page-head">
+      <button class="btn ghost icon" id="btnBack" title="Retour"><svg class="i lg"><use href="#i-back"/></svg></button>
+      <div class="titles"><h1 id="dName"></h1><p id="dSub"></p></div>
+      <div class="acts">
+        <button class="btn primary" id="btnEdit"><svg class="i"><use href="#i-pencil"/></svg>Modifier</button>
+        <button class="btn ghost" id="btnDelDetail" title="Supprimer"><svg class="i"><use href="#i-trash"/></svg></button>
       </div>
     </div>
-    <form id="form">
-      <label>Nom</label><input name="name" required>
-      <div class="row">
-        <div><label>Référence</label><input name="part_number"></div>
-        <div><label>Fabricant</label><input name="manufacturer"></div>
+    <div class="detail">
+      <div class="stack">
+        <div class="card"><div class="card-c" id="dGallery"></div></div>
+        <div class="card" id="dDocsCard"><div class="card-h"><svg class="i"><use href="#i-file"/></svg><h3>Documentation</h3></div><div class="card-c"><div class="doclinks" id="dDocs"></div></div></div>
       </div>
-      <div class="row">
-        <div><label>Catégorie</label><input name="category" list="cats"></div>
-        <div><label>Boîtier</label><input name="package"></div>
+      <div class="stack">
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3><span id="dLowPill" class="pill amber hidden">Stock bas</span></div>
+          <div class="card-c">
+            <div class="stock">
+              <button class="btn secondary qbtn" id="qMinus" aria-label="Retirer une pièce"><svg class="i"><use href="#i-minus"/></svg></button>
+              <div class="big" id="dQty">0</div>
+              <button class="btn secondary qbtn" id="qPlus" aria-label="Ajouter une pièce"><svg class="i"><use href="#i-plus"/></svg></button>
+              <span class="muted small">pièce(s)</span>
+            </div>
+            <dl class="kv" style="margin-top:18px">
+              <dt><svg class="i sm"><use href="#i-pin"/></svg>Emplacement</dt><dd id="dLoc"></dd>
+              <dt><svg class="i sm"><use href="#i-layers"/></svg>Catégorie</dt><dd id="dCat"></dd>
+              <dt><svg class="i sm"><use href="#i-cpu"/></svg>Boîtier</dt><dd id="dPkg"></dd>
+            </dl>
+          </div></div>
+        <div class="card" id="dDescCard"><div class="card-h"><svg class="i"><use href="#i-info"/></svg><h3>Description</h3></div><div class="card-c"><p class="prose" id="dDesc"></p></div></div>
+        <div class="card" id="dSpecsCard"><div class="card-h"><svg class="i"><use href="#i-list"/></svg><h3>Caractéristiques</h3></div><div class="card-c"><table class="specs" id="dSpecs"></table></div></div>
+        <div class="card" id="dNotesCard"><div class="card-h"><svg class="i"><use href="#i-pencil"/></svg><h3>Notes</h3></div><div class="card-c"><p class="prose" id="dNotes"></p></div></div>
+        <p class="muted small" id="dDates" style="margin:0"></p>
       </div>
-      <div class="row">
-        <div><label>Quantité</label><input name="quantity" type="number" min="0" value="1"></div>
-        <div><label>Emplacement</label><input name="location" placeholder="ex. Tiroir A3"></div>
+    </div>
+  </section>
+
+  <!-- ===== Identification en cours ===== -->
+  <section id="viewLoading" class="hidden fade">
+    <div class="page-head"><div class="titles"><h1>Nouveau composant</h1><p>Identification par l'IA</p></div></div>
+    <div class="card"><div class="card-c">
+      <img id="loadingPhoto" class="dphoto" alt="" style="cursor:default;max-height:320px">
+      <div class="spinner"><div class="dot"></div>Identification en cours et recherche de la datasheet…<br><span class="small">(cela peut prendre une trentaine de secondes)</span></div>
+    </div></div>
+  </section>
+
+  <!-- ===== Composant : modification ===== -->
+  <section id="viewForm" class="hidden fade">
+    <div class="page-head">
+      <button class="btn ghost icon" id="btnFormBack" title="Annuler"><svg class="i lg"><use href="#i-back"/></svg></button>
+      <div class="titles"><h1 id="formTitle">Modifier</h1><p id="formSub"></p></div>
+    </div>
+    <div id="aiError" class="banner hidden"><svg class="i"><use href="#i-alert"/></svg><div id="aiErrorText"></div></div>
+    <form id="form" class="detail">
+      <div class="stack">
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-image"/></svg><h3>Photos</h3><span id="photoCount" class="muted small"></span></div>
+          <div class="card-c">
+            <div id="formGallery"></div>
+            <div class="gacts">
+              <button type="button" class="btn secondary sm" id="btnAddPhotos"><svg class="i sm"><use href="#i-camera"/></svg>Ajouter des photos</button>
+              <button type="button" class="btn secondary sm" id="btnSuggest"><svg class="i sm"><use href="#i-globe"/></svg>Proposer des images</button>
+              <button type="button" class="btn secondary sm hidden" id="btnMainPhoto"><svg class="i sm"><use href="#i-star"/></svg>Photo principale</button>
+              <button type="button" class="btn secondary sm hidden" id="btnReidentify"><svg class="i sm"><use href="#i-search"/></svg>Ré-identifier</button>
+            </div>
+          </div></div>
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-file"/></svg><h3>Documentation</h3></div>
+          <div class="card-c" style="padding-top:6px">
+            <label>Datasheet (URL)</label><input name="datasheet_url" type="url">
+            <label>Page fabricant (URL)</label><input name="manufacturer_url" type="url">
+          </div></div>
       </div>
-      <label>Description</label><textarea name="description"></textarea>
-      <label>Datasheet (URL)</label><input name="datasheet_url" type="url">
-      <label>Page fabricant (URL)</label><input name="manufacturer_url" type="url">
-      <div class="links" id="formLinks"></div>
-      <label>Caractéristiques (une par ligne, « clé : valeur »)</label><textarea name="specs" rows="5"></textarea>
-      <label>Notes</label><textarea name="notes"></textarea>
-      <div class="row" style="margin-top:16px">
-        <button type="button" id="btnCancel">Annuler</button>
-        <button type="submit" class="primary">Enregistrer</button>
+      <div class="stack">
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-cpu"/></svg><h3>Identification</h3></div>
+          <div class="card-c" style="padding-top:6px">
+            <label>Nom</label><input name="name" required>
+            <div class="grid2">
+              <div><label>Référence</label><input name="part_number"></div>
+              <div><label>Fabricant</label><input name="manufacturer"></div>
+              <div><label>Catégorie</label><input name="category" list="cats"></div>
+              <div><label>Boîtier</label><input name="package"></div>
+            </div>
+            <label>Description</label><textarea name="description"></textarea>
+          </div></div>
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3></div>
+          <div class="card-c" style="padding-top:6px">
+            <div class="grid2">
+              <div><label>Quantité</label><input name="quantity" type="number" min="0" value="1"></div>
+              <div><label>Emplacement</label><input name="location" placeholder="ex. Tiroir A3"></div>
+            </div>
+          </div></div>
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-list"/></svg><h3>Caractéristiques et notes</h3></div>
+          <div class="card-c" style="padding-top:6px">
+            <label>Caractéristiques (une par ligne, « clé : valeur »)</label><textarea name="specs" rows="6"></textarea>
+            <label>Notes</label><textarea name="notes"></textarea>
+          </div></div>
+        <div class="formbar">
+          <button type="button" class="btn ghost hidden" id="btnDelete"><svg class="i"><use href="#i-trash"/></svg>Supprimer</button>
+          <button type="button" class="btn secondary" id="btnCancel">Annuler</button>
+          <button type="submit" class="btn primary"><svg class="i"><use href="#i-check"/></svg>Enregistrer</button>
+        </div>
       </div>
-      <button type="button" id="btnDelete" class="danger hidden" style="width:100%;margin-top:10px">Supprimer</button>
     </form>
   </section>
 
-  <!-- Paramètres -->
-  <section id="viewSettings" class="hidden">
-    <h2>Paramètres</h2>
+  <!-- ===== Paramètres ===== -->
+  <section id="viewSettings" class="hidden fade">
+    <div class="page-head"><div class="titles"><h1>Paramètres</h1><p>Intelligence artificielle, stock et informations</p></div></div>
     <div class="settings">
       <div class="card">
-        <h3>Intelligence artificielle</h3>
-        <p class="s" style="margin:0">L'identification utilise le premier connecteur actif ; les suivants servent de secours s'il échoue.</p>
-        <div class="table-wrap">
-          <table class="conn">
-            <thead><tr><th>IA</th><th>Modèle</th><th>Clé</th><th>État</th><th></th></tr></thead>
-            <tbody id="connRows"></tbody>
-          </table>
+        <div class="card-h"><svg class="i"><use href="#i-sparkles"/></svg><h3>Intelligence artificielle</h3></div>
+        <div class="card-c">
+          <p class="muted" style="margin:0 0 10px">L'identification utilise le premier connecteur actif ; les suivants servent de secours s'il échoue.</p>
+          <div class="table-wrap">
+            <table class="conn">
+              <thead><tr><th>IA</th><th>Modèle</th><th>Clé</th><th>État</th><th></th></tr></thead>
+              <tbody id="connRows"></tbody>
+            </table>
+          </div>
+          <p id="envNote" class="muted small hidden" style="margin:10px 0 0">Une clé Claude est aussi fournie par la configuration Umbrel ; elle sert si aucun connecteur n'est actif.</p>
+          <h3 style="margin:22px 0 0;font-size:1rem">Ajouter un connecteur</h3>
+          <div class="grid2">
+            <div><label>IA</label><select id="connProvider"></select></div>
+            <div><label>Modèle</label><input id="connModel" autocomplete="off"></div>
+          </div>
+          <label>Clé API <a id="connKeyLink" target="_blank" rel="noopener" class="small">(obtenir une clé)</a></label>
+          <input id="connKey" type="password" autocomplete="off">
+          <p id="connSearchNote" class="muted small hidden" style="margin:6px 0 0">Cette IA n'a pas de recherche web : les liens datasheet seront souvent vides.</p>
+          <button id="btnAddConn" class="btn primary" style="margin-top:14px"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button>
         </div>
-        <p id="envNote" class="s hidden" style="margin:8px 0 0">Une clé Claude est aussi fournie par la configuration Umbrel ; elle sert si aucun connecteur n'est actif.</p>
-
-        <h3 style="margin:18px 0 0">Ajouter un connecteur</h3>
-        <div class="row wrap">
-          <div><label>IA</label><select id="connProvider"></select></div>
-          <div><label>Modèle</label><input id="connModel" autocomplete="off"></div>
-        </div>
-        <label>Clé API <a id="connKeyLink" target="_blank" rel="noopener" class="s">(obtenir une clé)</a></label>
-        <input id="connKey" type="password" autocomplete="off">
-        <p id="connSearchNote" class="s hidden" style="margin:6px 0 0">Cette IA n'a pas de recherche web : les liens datasheet seront souvent vides.</p>
-        <button id="btnAddConn" class="primary" style="margin-top:12px">Ajouter</button>
       </div>
       <div class="card">
-        <h3>Stock</h3>
-        <label>Seuil de stock bas (un composant est signalé quand sa quantité est inférieure ou égale à ce nombre)</label>
-        <input id="lowThreshold" type="number" min="0" step="1">
-        <button id="btnSaveStock" class="primary" style="margin-top:12px">Enregistrer le seuil</button>
+        <div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3></div>
+        <div class="card-c">
+          <label style="margin-top:0">Seuil de stock bas (un composant est signalé quand sa quantité est inférieure ou égale à ce nombre)</label>
+          <div style="display:flex;gap:10px;max-width:360px"><input id="lowThreshold" type="number" min="0" step="1"><button id="btnSaveStock" class="btn primary">Enregistrer</button></div>
+        </div>
       </div>
       <div class="card">
-        <h3>À propos</h3>
-        <dl class="info">
-          <dt>Application</dt><dd>Lab Inventory</dd>
-          <dt>Références</dt><dd id="aboutRefs">–</dd>
-          <dt>Pièces</dt><dd id="aboutPieces">–</dd>
-        </dl>
+        <div class="card-h"><svg class="i"><use href="#i-info"/></svg><h3>À propos</h3></div>
+        <div class="card-c">
+          <dl class="kv">
+            <dt>Application</dt><dd>Lab Inventory</dd>
+            <dt>Références</dt><dd id="aboutRefs">–</dd>
+            <dt>Pièces</dt><dd id="aboutPieces">–</dd>
+          </dl>
+        </div>
       </div>
-      <p id="settingsMsg" class="s hidden" style="text-align:center"></p>
     </div>
   </section>
+</div>
 </main>
 
 <datalist id="cats"></datalist>
@@ -265,70 +471,147 @@
 <!-- Visionneuse plein écran -->
 <div id="viewer" class="viewer hidden">
   <img id="viewerImg" alt="">
-  <button type="button" id="viewerPrev" class="vnav prev" aria-label="Photo précédente">‹</button>
-  <button type="button" id="viewerNext" class="vnav next" aria-label="Photo suivante">›</button>
+  <button type="button" id="viewerPrev" class="vnav prev" aria-label="Photo précédente"><svg class="i lg"><use href="#i-left"/></svg></button>
+  <button type="button" id="viewerNext" class="vnav next" aria-label="Photo suivante"><svg class="i lg"><use href="#i-right"/></svg></button>
+  <button type="button" id="viewerClose" class="vclose" aria-label="Fermer"><svg class="i lg"><use href="#i-x"/></svg></button>
   <div id="viewerCount" class="vcount"></div>
 </div>
 
 <!-- Propositions d'images -->
 <div id="suggest" class="modal hidden">
-  <div class="modal-box">
-    <h3>Images proposées</h3>
-    <p id="suggestInfo" class="s" style="margin:0 0 10px"></p>
-    <div id="suggestGrid" class="sugg-grid"></div>
-    <div class="row wrap" style="margin-top:12px">
-      <button type="button" id="btnSuggestClose">Fermer</button>
-      <button type="button" id="btnSuggestAdd" class="primary">Ajouter</button>
-      <button type="button" id="btnSuggestReplace">Remplacer mes photos</button>
+  <div class="card">
+    <div class="card-h"><svg class="i"><use href="#i-globe"/></svg><h3>Images proposées</h3>
+      <button type="button" class="btn ghost icon" id="btnSuggestX" aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="card-c">
+      <p id="suggestInfo" class="muted small" style="margin:0 0 12px"></p>
+      <div id="suggestGrid" class="sugg-grid"></div>
+    </div>
+    <div class="card-f">
+      <button type="button" class="btn secondary" id="btnSuggestClose">Fermer</button>
+      <button type="button" class="btn secondary" id="btnSuggestReplace">Remplacer mes photos</button>
+      <button type="button" class="btn primary" id="btnSuggestAdd">Ajouter</button>
     </div>
   </div>
 </div>
-<button id="fab" class="primary fab hidden">📷 Ajouter</button>
+
+<div id="toast" class="toast hidden"><svg class="i"><use href="#i-check"/></svg><span id="toastText"></span></div>
+
+<!-- Icônes (dessins inspirés de Lucide, comme Bambuddy) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4"/></symbol>
+</svg>
 
 <script>
 const CATEGORIES = ["Résistance","Condensateur","Inductance","Diode","LED","Transistor","Circuit intégré","Microcontrôleur","Régulateur","Capteur","Module","Connecteur","Interrupteur","Relais","Afficheur","Quartz/Oscillateur","Câble","Autre"];
 const $ = s => document.querySelector(s);
-const views = ["viewDashboard","viewList","viewLoading","viewForm","viewSettings"];
-const ROUTES = { dashboard: "viewDashboard", composants: "viewList", parametres: "viewSettings" };
-let editingId = null, currentPhoto = null, lowOnly = false, returnRoute = "composants";
+const views = ["viewDashboard","viewList","viewDetail","viewLoading","viewForm","viewSettings"];
+let lowOnly = false, lowThreshold = 2, returnHash = "#/composants";
+let current = null;          // composant affiché en lecture
+let draft = null;            // fiche en cours de création (après identification)
 
-function show(v) {
-  views.forEach(x => $("#"+x).classList.toggle("hidden", x !== v));
-  $("#viewer").classList.add("hidden"); $("#suggest").classList.add("hidden");
-  $("#fab").classList.toggle("hidden", !["viewDashboard","viewList"].includes(v));
-  scrollTo(0,0);
-}
+const ic = (name, cls = "") => `<svg class="i ${cls}"><use href="#i-${name}"/></svg>`;
 function esc(s) { return (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function fmt(n) { return (n ?? 0).toLocaleString("fr-FR"); }
-async function api(path, opts={}) {
+function fmtDate(s) { if (!s) return ""; const d = new Date(s.replace(" ", "T") + "Z"); return isNaN(d) ? s : d.toLocaleDateString("fr-FR", { day:"numeric", month:"short", year:"numeric" }); }
+function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } }
+async function api(path, opts = {}) {
   const r = await fetch(path, opts);
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.detail || r.statusText);
   return data;
 }
+const json = (method, body) => ({ method, headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+let toastT;
+function toast(msg) { $("#toastText").textContent = msg; $("#toast").classList.remove("hidden"); clearTimeout(toastT); toastT = setTimeout(() => $("#toast").classList.add("hidden"), 2500); }
 
-// ---------- Navigation (#/dashboard, #/composants, #/parametres) ----------
-function currentRoute() { const r = location.hash.replace(/^#\/?/, ""); return ROUTES[r] ? r : "dashboard"; }
-function route() {
-  const r = currentRoute();
-  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === r));
-  show(ROUTES[r]);
-  if (r === "dashboard") loadDashboard();
-  if (r === "composants") loadList();
-  if (r === "parametres") loadSettings();
+function show(v) {
+  views.forEach(x => $("#"+x).classList.toggle("hidden", x !== v));
+  $("#viewer").classList.add("hidden"); $("#suggest").classList.add("hidden");
+  document.body.classList.remove("drawer-open");
+  scrollTo(0, 0);
 }
-function go(r) { if (currentRoute() === r && location.hash) route(); else location.hash = "#/" + r; }
+
+// ---------- Thème (sombre → clair → système, comme Bambuddy) ----------
+const THEMES = { dark: ["moon", "Thème sombre"], light: ["sun", "Thème clair"], system: ["monitor", "Thème du système"] };
+function themeMode() { try { return localStorage.getItem("theme") || "dark"; } catch { return "dark"; } }
+function applyTheme() {
+  const mode = themeMode();
+  const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", dark);
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#1a1a1a" : "#f5f5f5";
+  $("#btnTheme use").setAttribute("href", "#i-" + THEMES[mode][0]);
+  $("#themeLabel").textContent = THEMES[mode][1];
+}
+$("#btnTheme").onclick = () => {
+  const next = { dark: "light", light: "system", system: "dark" }[themeMode()];
+  try { localStorage.setItem("theme", next); } catch {}
+  applyTheme();
+};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+applyTheme();
+$("#btnDrawer").onclick = () => document.body.classList.add("drawer-open");
+$("#scrim").onclick = () => document.body.classList.remove("drawer-open");
+
+// ---------- Navigation ----------
+// #/dashboard  #/composants  #/composants/12  #/composants/12/modifier  #/composants/nouveau  #/parametres
+function parseHash() { return location.hash.replace(/^#\/?/, "").split("/").filter(Boolean); }
+async function route() {
+  const [page, id, action] = parseHash();
+  const section = ["dashboard", "composants", "parametres"].includes(page) ? page : "dashboard";
+  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === section));
+  try {
+    if (section === "dashboard") { show("viewDashboard"); await loadDashboard(); }
+    else if (section === "parametres") { show("viewSettings"); await loadSettings(); }
+    else if (id === "nouveau") { if (draft) openForm(draft, null); else location.replace("#/composants"); }
+    else if (id && action === "modifier") { openForm(await api("/api/components/" + id), +id); }
+    else if (id) { await openDetail(+id); }
+    else { show("viewList"); await loadList(); }
+  } catch (err) { toast(err.message); if (id) location.replace("#/composants"); }
+}
+function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
 addEventListener("hashchange", route);
 
 // ---------- Dashboard ----------
-function miniItem(c, low) {
-  return `<div class="item small" data-id="${c.id}">
-    ${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy">` : `<div class="thumb"></div>`}
-    <div><div class="t">${esc(c.name)}</div><div class="s">${esc([c.part_number, c.location].filter(Boolean).join(" · "))}</div></div>
-    <div class="qty${low ? " low" : ""}">×${c.quantity}</div></div>`;
+function rowItem(c, low) {
+  return `<div class="rowi" data-id="${c.id}">
+    ${c.photo ? `<img class="th" src="/photos/${esc(c.photo)}" loading="lazy" alt="">` : `<div class="th">${ic("cpu", "sm")}</div>`}
+    <div style="min-width:0"><div class="t">${esc(c.name)}</div><div class="s">${esc([c.part_number, c.location].filter(Boolean).join(" · "))}</div></div>
+    <span class="end pill ${low ? "amber" : "green"}">× ${c.quantity}</span></div>`;
 }
 async function loadDashboard() {
   const s = await api("/api/stats");
+  lowThreshold = s.low_stock_threshold;
   $("#stRefs").textContent = fmt(s.refs);
   $("#stPieces").textContent = fmt(s.pieces);
   $("#stLocations").textContent = fmt(s.locations);
@@ -341,64 +624,157 @@ async function loadDashboard() {
       <div class="track"><div class="fill" style="width:${(c.refs / max * 100).toFixed(1)}%"></div></div>
       <span class="n">${c.refs} réf. · ${fmt(c.pieces)} pcs</span>
     </div>`).join("") : `<div class="empty">Aucun composant pour l'instant.</div>`;
-  $("#dashLow").innerHTML = s.low_stock.length ? s.low_stock.map(c => miniItem(c, true)).join("") : `<div class="empty">Rien à racheter 👍</div>`;
-  $("#dashRecent").innerHTML = s.recent.length ? s.recent.map(c => miniItem(c)).join("") : `<div class="empty">Touchez « 📷 Ajouter » pour commencer.</div>`;
-  $("#dashNoDs").textContent = s.no_datasheet ? `📄 ${s.no_datasheet} composant(s) sans datasheet.` : "";
+  $("#dashLow").innerHTML = s.low_stock.length ? s.low_stock.map(c => rowItem(c, true)).join("") : `<div class="empty">Rien à racheter 👍</div>`;
+  $("#dashRecent").innerHTML = s.recent.length ? s.recent.map(c => rowItem(c, c.quantity <= lowThreshold)).join("") : `<div class="empty">Touchez « Ajouter » pour commencer.</div>`;
+  $("#dashNoDs").textContent = s.no_datasheet ? `${s.no_datasheet} composant(s) sans datasheet.` : "";
 }
 $("#viewDashboard").onclick = e => {
-  const it = e.target.closest(".item"); if (it) return openEdit(+it.dataset.id);
+  const it = e.target.closest(".rowi"); if (it) return go("#/composants/" + it.dataset.id);
   const bar = e.target.closest(".bar");
-  if (bar) { lowOnly = false; $("#search").value = ""; $("#filterCat").value = bar.dataset.cat; return go("composants"); }
-  const tile = e.target.closest(".tile[data-go]");
-  if (tile) { lowOnly = tile.dataset.go === "lowstock"; $("#search").value = ""; $("#filterCat").value = ""; go("composants"); }
+  if (bar) { lowOnly = false; $("#search").value = ""; $("#filterCat").value = bar.dataset.cat; return go("#/composants"); }
+  const st = e.target.closest(".stat[data-go]");
+  if (st) { lowOnly = st.dataset.go === "lowstock"; $("#search").value = ""; $("#filterCat").value = ""; go("#/composants"); }
 };
 
-// ---------- Composants ----------
+// ---------- Composants : liste ----------
 CATEGORIES.forEach(c => { $("#filterCat").add(new Option(c, c)); $("#cats").append(new Option(c)); });
 $("#filterCat").add(new Option("Sans catégorie", "Sans catégorie"));
 
 async function loadList() {
   const q = encodeURIComponent($("#search").value), cat = encodeURIComponent($("#filterCat").value);
-  $("#lowChip").classList.toggle("hidden", !lowOnly);
+  $("#btnLow").classList.toggle("on", lowOnly);
   const items = await api(`/api/components?q=${q}&category=${cat}${lowOnly ? "&low_stock=true" : ""}`);
   const filtered = q || cat || lowOnly;
-  $("#listCount").textContent = items.length ? `${items.length} référence(s)` : "";
-  $("#list").innerHTML = items.length ? items.map(c => `
-    <div class="item" data-id="${c.id}">
-      <div class="pwrap">${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy">` : `<div class="thumb"></div>`}
-        ${c.photos.length > 1 ? `<span class="pcount">📷${c.photos.length}</span>` : ""}</div>
-      <div><div class="t">${esc(c.name)}</div>
-        <div class="s">${esc([c.part_number, c.manufacturer].filter(Boolean).join(" · "))}</div>
-        <div class="s">${esc([c.category, c.location].filter(Boolean).join(" · "))}</div></div>
-      <div class="qty">×${c.quantity}</div>
-    </div>`).join("") : `<p class="empty">${filtered ? "Aucun composant ne correspond." : "Aucun composant. Touchez « 📷 Ajouter » pour photographier le premier."}</p>`;
+  $("#listCount").textContent = items.length ? `${items.length} référence(s)${filtered ? " correspondante(s)" : ""}` : "Aucune référence";
+  $("#list").innerHTML = items.length ? items.map(c => {
+    const low = c.quantity <= lowThreshold;
+    return `<div class="card ccard" data-id="${c.id}">
+      <div class="ph">${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy" alt="">` : ic("cpu", "lg")}
+        <span class="qty${low ? " low" : ""}">× ${c.quantity}</span>
+        ${c.photos.length > 1 ? `<span class="cnt">${ic("image", "sm")}${c.photos.length}</span>` : ""}</div>
+      <div class="bd">
+        <div class="t">${esc(c.name)}</div>
+        <div class="s">${esc([c.part_number, c.manufacturer].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
+        <div class="meta">${c.category ? `<span class="pill">${esc(c.category)}</span>` : ""}${c.location ? `<span class="pill gray">${ic("pin", "sm")}${esc(c.location)}</span>` : ""}</div>
+      </div>
+      <div class="ft">
+        <button class="btn ghost sm" data-act="view">${ic("eye", "sm")}<span>Voir</span></button>
+        <button class="btn ghost sm" data-act="edit">${ic("pencil", "sm")}<span>Modifier</span></button>
+      </div></div>`;
+  }).join("") : `<div class="empty" style="grid-column:1/-1">${filtered ? "Aucun composant ne correspond." : "Aucun composant. Touchez « Ajouter » pour photographier le premier."}</div>`;
 }
-$("#list").onclick = e => { const it = e.target.closest(".item"); if (it) openEdit(+it.dataset.id); };
+$("#list").onclick = e => {
+  const card = e.target.closest(".ccard"); if (!card) return;
+  const edit = e.target.closest('[data-act="edit"]');
+  go(`#/composants/${card.dataset.id}${edit ? "/modifier" : ""}`);
+};
 let t; $("#search").oninput = () => { clearTimeout(t); t = setTimeout(loadList, 250); };
 $("#filterCat").onchange = loadList;
-$("#lowChip").onclick = () => { lowOnly = false; loadList(); };
+$("#btnLow").onclick = () => { lowOnly = !lowOnly; loadList(); };
 
-// ---------- Fiche composant ----------
-function specsToText(s) { return Object.entries(s || {}).map(([k,v]) => `${k} : ${v}`).join("\n"); }
-function textToSpecs(t) { const o = {}; t.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) o[l.slice(0,i).trim()] = l.slice(i+1).trim(); }); return o; }
+// ---------- Composant : lecture ----------
+let detailIdx = 0;
+async function openDetail(id) {
+  current = await api("/api/components/" + id);
+  const c = current; detailIdx = 0;
+  $("#dName").textContent = c.name;
+  $("#dSub").textContent = [c.part_number, c.manufacturer].filter(Boolean).join(" · ") || " ";
+  renderDetailGallery(); renderQty();
+  $("#dLoc").textContent = c.location || "—";
+  $("#dCat").textContent = c.category || "—";
+  $("#dPkg").textContent = c.package || "—";
+  const docs = [c.datasheet_url && ["file", "Datasheet", c.datasheet_url], c.manufacturer_url && ["external", "Page fabricant", c.manufacturer_url]].filter(Boolean);
+  $("#dDocsCard").classList.toggle("hidden", !docs.length);
+  $("#dDocs").innerHTML = docs.map(([i, l, u]) => `<a class="doclink" href="${esc(u)}" target="_blank" rel="noopener">
+    <span class="ic">${ic(i)}</span><span style="min-width:0"><b>${l}</b><div class="u">${esc(hostOf(u))}</div></span></a>`).join("");
+  $("#dDescCard").classList.toggle("hidden", !c.description); $("#dDesc").textContent = c.description || "";
+  $("#dNotesCard").classList.toggle("hidden", !c.notes); $("#dNotes").textContent = c.notes || "";
+  const specs = Object.entries(c.specs || {});
+  $("#dSpecsCard").classList.toggle("hidden", !specs.length);
+  $("#dSpecs").innerHTML = specs.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
+  $("#dDates").textContent = `Ajouté le ${fmtDate(c.created_at)} · modifié le ${fmtDate(c.updated_at)}`;
+  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === "composants"));
+  show("viewDetail");
+}
+function renderDetailGallery() {
+  const p = current.photos;
+  $("#dGallery").innerHTML = p.length ? `
+    <img class="dphoto" src="/photos/${esc(p[detailIdx])}" alt="" data-zoom>
+    ${p.length > 1 ? `<div class="thumbs">${p.map((x, i) => `<div class="tb${i === detailIdx ? " sel" : ""}" data-i="${i}"><img src="/photos/${esc(x)}" alt=""></div>`).join("")}</div>` : ""}`
+    : `<div class="dphoto-empty">${ic("image", "lg")}<span>Aucune photo</span><button class="btn secondary sm" id="dAddPhoto">${ic("pencil", "sm")}Ajouter des photos</button></div>`;
+}
+$("#dGallery").onclick = e => {
+  if (e.target.closest("#dAddPhoto")) return go(`#/composants/${current.id}/modifier`);
+  if (e.target.closest("[data-zoom]")) return openViewer(current.photos, detailIdx);
+  const tb = e.target.closest(".tb"); if (tb) { detailIdx = +tb.dataset.i; renderDetailGallery(); }
+};
+function renderQty() {
+  const low = current.quantity <= lowThreshold;
+  $("#dQty").textContent = current.quantity;
+  $("#dQty").classList.toggle("low", low);
+  $("#dLowPill").classList.toggle("hidden", !low);
+  $("#qMinus").disabled = current.quantity <= 0;
+}
+async function changeQty(delta) {
+  current = await api("/api/components/" + current.id, json("PATCH", { quantity: current.quantity + delta }));
+  renderQty();
+}
+$("#qMinus").onclick = () => changeQty(-1);
+$("#qPlus").onclick = () => changeQty(1);
+$("#btnBack").onclick = () => history.length > 1 ? history.back() : go("#/composants");
+$("#btnEdit").onclick = () => go(`#/composants/${current.id}/modifier`);
+async function deleteComponent(id) {
+  if (!confirm("Supprimer ce composant et ses photos ?")) return;
+  await api("/api/components/" + id, { method: "DELETE" });
+  toast("Composant supprimé."); go("#/composants");
+}
+$("#btnDelDetail").onclick = () => deleteComponent(current.id);
 
-function fillForm(c, error) {
-  const f = $("#form"); f.reset();
-  for (const el of f.elements) if (el.name && el.name !== "specs" && c[el.name] != null) el.value = c[el.name];
+// ---------- Composant : modification ----------
+let editingId = null, currentPhotos = [], mainIdx = 0;
+function specsToText(s) { return Object.entries(s || {}).map(([k, v]) => `${k} : ${v}`).join("\n"); }
+function textToSpecs(t) { const o = {}; t.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) o[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); return o; }
+
+function fillFields(c) {
+  const f = $("#form");
+  for (const el of f.elements) if (el.name && el.name !== "specs") el.value = c[el.name] ?? (el.name === "quantity" ? 1 : "");
   f.specs.value = specsToText(c.specs);
-  if (c.photos) { currentPhotos = [...c.photos]; mainIdx = 0; }
-  renderGallery();
-  $("#formLinks").innerHTML = [c.datasheet_url && `<a href="${esc(c.datasheet_url)}" target="_blank">📄 Datasheet</a>`,
-                               c.manufacturer_url && `<a href="${esc(c.manufacturer_url)}" target="_blank">🏭 Page fabricant</a>`].filter(Boolean).join("");
+}
+function setAiMessage(c, error) {
   const msg = error ? "Identification impossible : " + error + ". Complétez la fiche à la main."
             : c.confidence && c.confidence !== "haute" ? `Confiance de l'IA${c.ai_provider ? " (" + c.ai_provider + ")" : ""} : ${c.confidence}. ${c.notes || ""} Vérifiez avant d'enregistrer.` : "";
-  $("#aiError").textContent = msg; $("#aiError").classList.toggle("hidden", !msg);
-  $("#btnDelete").classList.toggle("hidden", !editingId);
+  $("#aiErrorText").textContent = msg; $("#aiError").classList.toggle("hidden", !msg);
+}
+function openForm(c, id) {
+  editingId = id;
+  fillFields(c);
+  currentPhotos = [...(c.photos || [])]; mainIdx = 0; renderGallery();
+  setAiMessage(c, c.error);
+  $("#formTitle").textContent = id ? "Modifier" : "Nouveau composant";
+  $("#formSub").textContent = id ? c.name : (c.ai_provider ? "Pré-rempli par " + c.ai_provider : "Complétez la fiche");
+  $("#btnDelete").classList.toggle("hidden", !id);
+  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === "composants"));
   show("viewForm");
 }
+function cancelForm() {
+  if (editingId) go(`#/composants/${editingId}`);
+  else { draft = null; go(returnHash); }
+}
+$("#btnCancel").onclick = cancelForm;
+$("#btnFormBack").onclick = cancelForm;
+$("#btnDelete").onclick = () => deleteComponent(editingId);
 
-async function openEdit(id) { returnRoute = currentRoute(); editingId = id; fillForm(await api("/api/components/" + id)); }
-function closeForm() { go(returnRoute); }
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, body = { photos: currentPhotos };
+  for (const el of f.elements) if (el.name) body[el.name] = el.value || null;
+  body.quantity = +f.quantity.value || 0;
+  body.specs = textToSpecs(f.specs.value);
+  const saved = await api(editingId ? "/api/components/" + editingId : "/api/components", json(editingId ? "PUT" : "POST", body));
+  draft = null; toast("Composant enregistré.");
+  if (editingId) history.replaceState(null, "", `#/composants/${saved.id}`);
+  go(`#/composants/${saved.id}`);
+};
 
 // Photo : redimensionnée dans le navigateur (envoi rapide, limite 5 Mo de l'IA)
 function resize(file, max = 1600) {
@@ -413,53 +789,55 @@ function resize(file, max = 1600) {
     img.onerror = rej; img.src = URL.createObjectURL(file);
   });
 }
-
 async function uploadPhotos(files) {
   const fd = new FormData();
   for (const file of files) fd.append("photos", await resize(file), "photo.jpg");
   return (await api("/api/photos", { method: "POST", body: fd })).photos;
 }
 async function identifyPhotos(photos) {
-  try { return await api("/api/identify", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ photos }) }); }
+  try { return await api("/api/identify", json("POST", { photos })); }
   catch (err) { return { error: err.message }; }
 }
 
 // Ajout d'un composant : une ou plusieurs photos, puis identification par l'IA sur l'ensemble
-$("#fab").onclick = () => $("#fileInput").click();
+document.querySelectorAll(".js-add").forEach(b => b.onclick = () => $("#fileInput").click());
 $("#fileInput").onchange = async e => {
   const files = [...e.target.files]; e.target.value = "";
   if (!files.length) return;
-  editingId = null; returnRoute = currentRoute();
+  returnHash = location.hash || "#/dashboard";
   $("#loadingPhoto").src = URL.createObjectURL(files[0]);
   show("viewLoading");
+  let photos = [];
   try {
-    const photos = await uploadPhotos(files);
-    const r = await identifyPhotos(photos);
-    fillForm({ ...r, photos }, r.error);
-  } catch (err) { currentPhotos = []; fillForm({ photos: [] }, err.message); }
+    photos = await uploadPhotos(files);
+    draft = { ...(await identifyPhotos(photos)), photos };
+  } catch (err) { draft = { photos, error: err.message }; }
+  if (draft.error && !draft.name) draft.quantity = 1;
+  location.hash = "#/composants/nouveau";
 };
 
-// ---------- Galerie de la fiche ----------
-let currentPhotos = [], mainIdx = 0;
+// Galerie de la fiche en modification
 function renderGallery() {
   if (mainIdx >= currentPhotos.length) mainIdx = 0;
   const has = currentPhotos.length > 0;
-  $("#galleryMain").classList.toggle("hidden", !has);
-  if (has) $("#galleryMain").src = "/photos/" + currentPhotos[mainIdx];
-  $("#galleryThumbs").innerHTML = currentPhotos.map((p, i) => `
-    <div class="gthumb${i === mainIdx ? " sel" : ""}" data-i="${i}">
-      <img src="/photos/${esc(p)}" alt="">
-      ${i === 0 ? `<span class="gstar" title="Photo principale">★</span>` : ""}
-      <button type="button" class="gdel" data-del="${i}" title="Retirer cette photo">✕</button>
-    </div>`).join("");
+  $("#formGallery").innerHTML = has ? `
+    <img class="dphoto" src="/photos/${esc(currentPhotos[mainIdx])}" alt="" data-zoom title="Agrandir">
+    <div class="thumbs">${currentPhotos.map((p, i) => `
+      <div class="tb${i === mainIdx ? " sel" : ""}" data-i="${i}">
+        <img src="/photos/${esc(p)}" alt="">
+        ${i === 0 ? `<span class="star" title="Photo principale">${ic("star")}</span>` : ""}
+        <button type="button" class="del" data-del="${i}" title="Retirer cette photo">${ic("x")}</button>
+      </div>`).join("")}</div>`
+    : `<div class="dphoto-empty">${ic("image", "lg")}<span>Aucune photo</span></div>`;
   $("#btnMainPhoto").classList.toggle("hidden", mainIdx === 0 || !has);
   $("#btnReidentify").classList.toggle("hidden", !has);
-  $("#photoCount").textContent = has ? `${currentPhotos.length} photo(s)` : "Aucune photo";
+  $("#photoCount").textContent = has ? `${currentPhotos.length} photo(s)` : "";
 }
-$("#galleryThumbs").onclick = e => {
+$("#formGallery").onclick = e => {
   const del = e.target.closest("[data-del]");
   if (del) { currentPhotos.splice(+del.dataset.del, 1); return renderGallery(); }
-  const th = e.target.closest(".gthumb"); if (th) { mainIdx = +th.dataset.i; renderGallery(); }
+  if (e.target.closest("[data-zoom]")) return openViewer(currentPhotos, mainIdx);
+  const tb = e.target.closest(".tb"); if (tb) { mainIdx = +tb.dataset.i; renderGallery(); }
 };
 $("#btnMainPhoto").onclick = () => { currentPhotos.unshift(...currentPhotos.splice(mainIdx, 1)); mainIdx = 0; renderGallery(); };
 $("#btnAddPhotos").onclick = () => $("#addPhotosInput").click();
@@ -468,37 +846,39 @@ $("#addPhotosInput").onchange = async e => {
   if (!files.length) return;
   $("#photoCount").textContent = "Envoi…";
   try { currentPhotos.push(...await uploadPhotos(files)); mainIdx = currentPhotos.length - 1; }
-  catch (err) { alert(err.message); }
+  catch (err) { toast(err.message); }
   renderGallery();
 };
 $("#btnReidentify").onclick = async () => {
   if (!confirm("Relancer l'identification avec toutes les photos ? Les champs seront remplacés (sauf quantité, emplacement et notes).")) return;
   const f = $("#form"), keep = { quantity: f.quantity.value, location: f.location.value, notes: f.notes.value };
-  const b = $("#btnReidentify"); b.disabled = true; b.textContent = "🔍 Identification…";
+  const b = $("#btnReidentify"); b.disabled = true; b.lastChild.textContent = "Identification…";
   const r = await identifyPhotos(currentPhotos);
-  b.disabled = false; b.textContent = "🔍 Ré-identifier";
-  fillForm({ ...r, ...keep }, r.error);
+  b.disabled = false; b.lastChild.textContent = "Ré-identifier";
+  if (!r.error) fillFields({ ...r, ...keep });
+  setAiMessage(r, r.error);
 };
 
-// Visionneuse plein écran
-$("#galleryMain").onclick = () => openViewer(mainIdx);
-function openViewer(i) { mainIdx = i; $("#viewer").classList.remove("hidden"); showViewer(); }
+// ---------- Visionneuse plein écran ----------
+let vPhotos = [], vIdx = 0;
+function openViewer(photos, i) { vPhotos = photos; vIdx = i; $("#viewer").classList.remove("hidden"); showViewer(); }
 function showViewer() {
-  $("#viewerImg").src = "/photos/" + currentPhotos[mainIdx];
-  $("#viewerCount").textContent = `${mainIdx + 1} / ${currentPhotos.length}`;
-  $("#viewerPrev").classList.toggle("hidden", currentPhotos.length < 2);
-  $("#viewerNext").classList.toggle("hidden", currentPhotos.length < 2);
+  $("#viewerImg").src = "/photos/" + vPhotos[vIdx];
+  $("#viewerCount").textContent = `${vIdx + 1} / ${vPhotos.length}`;
+  $("#viewerPrev").classList.toggle("hidden", vPhotos.length < 2);
+  $("#viewerNext").classList.toggle("hidden", vPhotos.length < 2);
 }
-function stepViewer(d) { mainIdx = (mainIdx + d + currentPhotos.length) % currentPhotos.length; showViewer(); }
-function closeViewer() { $("#viewer").classList.add("hidden"); renderGallery(); }
+function stepViewer(d) { vIdx = (vIdx + d + vPhotos.length) % vPhotos.length; showViewer(); }
+function closeViewer() { $("#viewer").classList.add("hidden"); }
 $("#viewerPrev").onclick = e => { e.stopPropagation(); stepViewer(-1); };
 $("#viewerNext").onclick = e => { e.stopPropagation(); stepViewer(1); };
-$("#viewer").onclick = closeViewer;
+$("#viewerClose").onclick = closeViewer;
+$("#viewer").onclick = e => { if (e.target === $("#viewer") || e.target === $("#viewerImg")) closeViewer(); };
 let touchX = null;
 $("#viewer").addEventListener("touchstart", e => { touchX = e.touches[0].clientX; }, { passive: true });
 $("#viewer").addEventListener("touchend", e => {
   const dx = e.changedTouches[0].clientX - touchX;
-  if (Math.abs(dx) > 50 && currentPhotos.length > 1) { e.preventDefault(); stepViewer(dx < 0 ? 1 : -1); }
+  if (Math.abs(dx) > 50 && vPhotos.length > 1) { e.preventDefault(); stepViewer(dx < 0 ? 1 : -1); }
 });
 addEventListener("keydown", e => {
   if ($("#viewer").classList.contains("hidden")) return;
@@ -513,26 +893,25 @@ $("#btnSuggest").onclick = async () => {
   const f = $("#form");
   const body = { name: f.name.value, part_number: f.part_number.value, manufacturer: f.manufacturer.value,
                  package: f.package.value, category: f.category.value };
-  if (!body.name && !body.part_number) return alert("Renseignez au moins le nom ou la référence.");
+  if (!body.name && !body.part_number) return toast("Renseignez au moins le nom ou la référence.");
   $("#suggest").classList.remove("hidden");
-  $("#suggestGrid").innerHTML = `<div class="spinner" style="grid-column:1/-1">🔍 Recherche d'images sur le web…<br>(cela peut prendre une trentaine de secondes)</div>`;
+  suggestions = [];
+  $("#suggestGrid").innerHTML = `<div class="spinner" style="grid-column:1/-1"><div class="dot"></div>Recherche d'images sur le web…<br><span class="small">(cela peut prendre une trentaine de secondes)</span></div>`;
   $("#suggestInfo").textContent = ""; updateSuggestButtons();
   try {
-    const r = await api("/api/image-suggestions", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const r = await api("/api/image-suggestions", json("POST", body));
     suggestions = r.images.map(i => ({ ...i, sel: false }));
     $("#suggestInfo").textContent = `${suggestions.length} image(s) trouvée(s) via ${r.ai_provider}. Touchez pour sélectionner.`;
     renderSuggestions();
   } catch (err) {
-    suggestions = [];
     $("#suggestGrid").innerHTML = `<p class="empty" style="grid-column:1/-1">Aucune image : ${esc(err.message)}</p>`;
   }
 };
-function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }
 function renderSuggestions() {
   $("#suggestGrid").innerHTML = suggestions.map((s, i) => `
     <div class="sugg${s.sel ? " sel" : ""}" data-i="${i}">
       <img src="/photos/${esc(s.photo)}" alt="">
-      <span class="check">✓</span>
+      <span class="check">${ic("check")}</span>
       <a href="${esc(s.page || s.url)}" target="_blank" rel="noopener" class="src">${esc(hostOf(s.page || s.url))}</a>
     </div>`).join("");
   updateSuggestButtons();
@@ -556,28 +935,12 @@ function applySuggestions(replace) {
 }
 $("#btnSuggestAdd").onclick = () => applySuggestions(false);
 $("#btnSuggestReplace").onclick = () => applySuggestions(true);
-$("#btnSuggestClose").onclick = () => $("#suggest").classList.add("hidden");
-
-$("#form").onsubmit = async e => {
-  e.preventDefault();
-  const f = e.target, body = { photos: currentPhotos };
-  for (const el of f.elements) if (el.name) body[el.name] = el.value || null;
-  body.quantity = +f.quantity.value || 0;
-  body.specs = textToSpecs(f.specs.value);
-  await api(editingId ? "/api/components/" + editingId : "/api/components",
-            { method: editingId ? "PUT" : "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
-  closeForm();
-};
-$("#btnCancel").onclick = closeForm;
-$("#btnDelete").onclick = async () => {
-  if (!confirm("Supprimer ce composant ?")) return;
-  await api("/api/components/" + editingId, { method: "DELETE" }); closeForm();
-};
+$("#btnSuggestClose").onclick = $("#btnSuggestX").onclick = () => $("#suggest").classList.add("hidden");
 
 // ---------- Paramètres ----------
-function flash(msg) { const m = $("#settingsMsg"); m.textContent = msg; m.classList.remove("hidden"); setTimeout(() => m.classList.add("hidden"), 2500); }
 async function refreshKeyBanner() {
   const s = await api("/api/settings");
+  lowThreshold = s.low_stock_threshold;
   $("#keyBanner").classList.toggle("hidden", s.ai_ready);
   return s;
 }
@@ -589,10 +952,12 @@ async function loadSettings() {
   const st = await api("/api/stats");
   $("#aboutRefs").textContent = fmt(st.refs); $("#aboutPieces").textContent = fmt(st.pieces);
 }
-async function saveSettings(body, msg) {
-  await api("/api/settings", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
-  await loadSettings(); flash(msg);
-}
+$("#btnSaveStock").onclick = async () => {
+  const v = parseInt($("#lowThreshold").value, 10);
+  if (isNaN(v) || v < 0) return;
+  await api("/api/settings", json("PUT", { low_stock_threshold: v }));
+  await loadSettings(); toast("Seuil enregistré.");
+};
 
 // Connecteurs IA
 let PROVIDERS = [];
@@ -602,10 +967,10 @@ function renderConnectors(list) {
       <td>${esc(c.provider_label)}</td>
       <td>${esc(c.model)}</td>
       <td class="key">${esc(c.api_key)}</td>
-      <td><span class="badge ${c.enabled ? "on" : "off"}">${c.enabled ? "Actif" : "Désactivé"}</span></td>
+      <td><span class="pill ${c.enabled ? "green" : "gray"}">${c.enabled ? "Actif" : "Désactivé"}</span></td>
       <td class="acts">
-        <button data-act="toggle" data-enabled="${c.enabled ? 0 : 1}">${c.enabled ? "Désactiver" : "Activer"}</button>
-        <button data-act="delete" class="danger" title="Supprimer">🗑</button>
+        <button class="btn secondary sm" data-act="toggle" data-enabled="${c.enabled ? 0 : 1}">${c.enabled ? "Désactiver" : "Activer"}</button>
+        <button class="btn ghost sm" data-act="delete" title="Supprimer">${ic("trash", "sm")}</button>
       </td>
     </tr>`).join("") : `<tr><td colspan="5" class="empty">Aucun connecteur. Ajoutez-en un ci-dessous.</td></tr>`;
 }
@@ -628,10 +993,9 @@ $("#btnAddConn").onclick = async () => {
   const key = $("#connKey").value.trim();
   if (!key) return $("#connKey").focus();
   try {
-    renderConnectors(await api("/api/connectors", { method: "POST", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ provider: $("#connProvider").value, model: $("#connModel").value, api_key: key }) }));
-    $("#connKey").value = ""; refreshKeyBanner(); flash("Connecteur ajouté.");
-  } catch (err) { flash(err.message); }
+    renderConnectors(await api("/api/connectors", json("POST", { provider: $("#connProvider").value, model: $("#connModel").value, api_key: key })));
+    $("#connKey").value = ""; refreshKeyBanner(); toast("Connecteur ajouté.");
+  } catch (err) { toast(err.message); }
 };
 $("#connRows").onclick = async e => {
   const b = e.target.closest("button[data-act]"); if (!b) return;
@@ -640,18 +1004,12 @@ $("#connRows").onclick = async e => {
     if (!confirm("Supprimer ce connecteur et sa clé API ?")) return;
     renderConnectors(await api("/api/connectors/" + id, { method: "DELETE" }));
   } else {
-    renderConnectors(await api("/api/connectors/" + id, { method: "PATCH", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ enabled: b.dataset.enabled === "1" }) }));
+    renderConnectors(await api("/api/connectors/" + id, json("PATCH", { enabled: b.dataset.enabled === "1" })));
   }
   refreshKeyBanner();
 };
-$("#btnSaveStock").onclick = () => {
-  const v = parseInt($("#lowThreshold").value, 10);
-  if (isNaN(v) || v < 0) return;
-  saveSettings({ low_stock_threshold: v }, "Seuil enregistré.");
-};
 
-refreshKeyBanner(); route();
+refreshKeyBanner().finally(route);
 </script>
 </body>
 </html>
