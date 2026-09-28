@@ -243,6 +243,13 @@
   .sugg img { width:100%; height:100%; object-fit:contain; display:block; }
   .sugg .check { position:absolute; top:5px; right:5px; width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:none; align-items:center; justify-content:center; }
   .sugg.sel .check { display:flex; } .sugg .check svg { width:14px; height:14px; stroke-width:3; }
+  .sect { padding:14px; border-radius:10px; background:var(--bg-primary); border:1px solid var(--border); }
+  .sect-t { display:flex; align-items:center; gap:8px; font-weight:600; margin-bottom:6px; }
+  .sect-t svg { color:var(--accent); }
+  .inline { display:flex; gap:8px; flex-wrap:wrap; } .inline input { flex:1 1 200px; width:auto; }
+  .sugg .badge { position:absolute; top:5px; left:5px; font-size:.68rem; font-weight:600; padding:1px 6px; border-radius:6px; background:rgba(0,0,0,.6); color:#fff; }
+  .sugg.broken img { visibility:hidden; }
+  .sugg.broken::after { content:"Image non disponible"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; font-size:.8rem; color:#666; padding:8px; }
   .sugg .src { position:absolute; left:0; right:0; bottom:0; font-size:.72rem; padding:3px 6px; background:rgba(0,0,0,.6); color:#fff; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 </style>
 </head>
@@ -381,6 +388,7 @@
           <div class="card-c" style="padding-top:6px">
             <label>Datasheet (URL)</label><input name="datasheet_url" type="url">
             <label>Page fabricant (URL)</label><input name="manufacturer_url" type="url">
+            <button type="button" class="btn secondary sm hidden" id="btnMouser" style="margin-top:14px"><svg class="i sm"><use href="#i-search"/></svg>Compléter via Mouser</button>
           </div></div>
       </div>
       <div class="stack">
@@ -443,6 +451,19 @@
         </div>
       </div>
       <div class="card">
+        <div class="card-h"><svg class="i"><use href="#i-globe"/></svg><h3>Sources gratuites (sans IA)</h3></div>
+        <div class="card-c">
+          <p class="muted" style="margin:0 0 12px">Utilisées pour proposer des images et compléter les fiches. Wikimedia Commons et Google Images (copier-coller) ne demandent rien.</p>
+          <dl class="kv"><dt>Mouser</dt><dd id="mouserStatus">–</dd></dl>
+          <label>Clé API Mouser (gratuite) <a href="https://www.mouser.fr/api-hub/" target="_blank" rel="noopener" class="small">(obtenir une clé : « Search API »)</a></label>
+          <div class="inline">
+            <input id="mouserKey" type="password" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <button id="btnSaveMouser" class="btn primary">Enregistrer</button>
+            <button id="btnDelMouser" class="btn ghost hidden" title="Supprimer la clé"><svg class="i"><use href="#i-trash"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3></div>
         <div class="card-c">
           <label style="margin-top:0">Seuil de stock bas (un composant est signalé quand sa quantité est inférieure ou égale à ce nombre)</label>
@@ -483,8 +504,21 @@
     <div class="card-h"><svg class="i"><use href="#i-globe"/></svg><h3>Images proposées</h3>
       <button type="button" class="btn ghost icon" id="btnSuggestX" aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
     <div class="card-c">
+      <div class="sect">
+        <div class="sect-t"><svg class="i sm"><use href="#i-search"/></svg>Google Images</div>
+        <p class="muted small" style="margin:0 0 10px">Ouvrez Google Images, faites un appui long (ou un clic droit) sur l'image voulue puis « Copier l'adresse de l'image », et collez-la ici.</p>
+        <div class="inline">
+          <a id="btnGoogle" class="btn secondary sm" target="_blank" rel="noopener"><svg class="i sm"><use href="#i-external"/></svg>Ouvrir Google Images</a>
+        </div>
+        <div class="inline" style="margin-top:8px">
+          <input id="pasteUrl" placeholder="Coller l'adresse de l'image…" autocomplete="off">
+          <button type="button" id="btnImportUrl" class="btn primary sm">Importer</button>
+        </div>
+      </div>
+      <div class="sect-t" style="margin-top:18px">Propositions automatiques <span class="muted small" style="font-weight:400">(Mouser, Wikimedia)</span></div>
       <p id="suggestInfo" class="muted small" style="margin:0 0 12px"></p>
       <div id="suggestGrid" class="sugg-grid"></div>
+      <button type="button" id="btnSuggestAI" class="btn ghost sm hidden" style="margin-top:12px"><svg class="i sm"><use href="#i-sparkles"/></svg>Chercher aussi avec l'IA</button>
     </div>
     <div class="card-f">
       <button type="button" class="btn secondary" id="btnSuggestClose">Fermer</button>
@@ -544,6 +578,8 @@ const ic = (name, cls = "") => `<svg class="i ${cls}"><use href="#i-${name}"/></
 function esc(s) { return (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function fmt(n) { return (n ?? 0).toLocaleString("fr-FR"); }
 function fmtDate(s) { if (!s) return ""; const d = new Date(s.replace(" ", "T") + "Z"); return isNaN(d) ? s : d.toLocaleDateString("fr-FR", { day:"numeric", month:"short", year:"numeric" }); }
+// Photo locale (fichier sur le serveur) ou lien vers une image distante (ex. Mouser)
+function src(p) { return /^https?:\/\//.test(p) ? p : "/photos/" + p; }
 function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } }
 async function api(path, opts = {}) {
   const r = await fetch(path, opts);
@@ -605,7 +641,7 @@ addEventListener("hashchange", route);
 // ---------- Dashboard ----------
 function rowItem(c, low) {
   return `<div class="rowi" data-id="${c.id}">
-    ${c.photo ? `<img class="th" src="/photos/${esc(c.photo)}" loading="lazy" alt="">` : `<div class="th">${ic("cpu", "sm")}</div>`}
+    ${c.photo ? `<img class="th" src="${esc(src(c.photo))}" loading="lazy" alt="">` : `<div class="th">${ic("cpu", "sm")}</div>`}
     <div style="min-width:0"><div class="t">${esc(c.name)}</div><div class="s">${esc([c.part_number, c.location].filter(Boolean).join(" · "))}</div></div>
     <span class="end pill ${low ? "amber" : "green"}">× ${c.quantity}</span></div>`;
 }
@@ -649,7 +685,7 @@ async function loadList() {
   $("#list").innerHTML = items.length ? items.map(c => {
     const low = c.quantity <= lowThreshold;
     return `<div class="card ccard" data-id="${c.id}">
-      <div class="ph">${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy" alt="">` : ic("cpu", "lg")}
+      <div class="ph">${c.photo ? `<img src="${esc(src(c.photo))}" loading="lazy" alt="">` : ic("cpu", "lg")}
         <span class="qty${low ? " low" : ""}">× ${c.quantity}</span>
         ${c.photos.length > 1 ? `<span class="cnt">${ic("image", "sm")}${c.photos.length}</span>` : ""}</div>
       <div class="bd">
@@ -699,8 +735,8 @@ async function openDetail(id) {
 function renderDetailGallery() {
   const p = current.photos;
   $("#dGallery").innerHTML = p.length ? `
-    <img class="dphoto" src="/photos/${esc(p[detailIdx])}" alt="" data-zoom>
-    ${p.length > 1 ? `<div class="thumbs">${p.map((x, i) => `<div class="tb${i === detailIdx ? " sel" : ""}" data-i="${i}"><img src="/photos/${esc(x)}" alt=""></div>`).join("")}</div>` : ""}`
+    <img class="dphoto" src="${esc(src(p[detailIdx]))}" alt="" data-zoom>
+    ${p.length > 1 ? `<div class="thumbs">${p.map((x, i) => `<div class="tb${i === detailIdx ? " sel" : ""}" data-i="${i}"><img src="${esc(src(x))}" alt=""></div>`).join("")}</div>` : ""}`
     : `<div class="dphoto-empty">${ic("image", "lg")}<span>Aucune photo</span><button class="btn secondary sm" id="dAddPhoto">${ic("pencil", "sm")}Ajouter des photos</button></div>`;
 }
 $("#dGallery").onclick = e => {
@@ -821,10 +857,10 @@ function renderGallery() {
   if (mainIdx >= currentPhotos.length) mainIdx = 0;
   const has = currentPhotos.length > 0;
   $("#formGallery").innerHTML = has ? `
-    <img class="dphoto" src="/photos/${esc(currentPhotos[mainIdx])}" alt="" data-zoom title="Agrandir">
+    <img class="dphoto" src="${esc(src(currentPhotos[mainIdx]))}" alt="" data-zoom title="Agrandir">
     <div class="thumbs">${currentPhotos.map((p, i) => `
       <div class="tb${i === mainIdx ? " sel" : ""}" data-i="${i}">
-        <img src="/photos/${esc(p)}" alt="">
+        <img src="${esc(src(p))}" alt="">
         ${i === 0 ? `<span class="star" title="Photo principale">${ic("star")}</span>` : ""}
         <button type="button" class="del" data-del="${i}" title="Retirer cette photo">${ic("x")}</button>
       </div>`).join("")}</div>`
@@ -863,7 +899,7 @@ $("#btnReidentify").onclick = async () => {
 let vPhotos = [], vIdx = 0;
 function openViewer(photos, i) { vPhotos = photos; vIdx = i; $("#viewer").classList.remove("hidden"); showViewer(); }
 function showViewer() {
-  $("#viewerImg").src = "/photos/" + vPhotos[vIdx];
+  $("#viewerImg").src = src(vPhotos[vIdx]);
   $("#viewerCount").textContent = `${vIdx + 1} / ${vPhotos.length}`;
   $("#viewerPrev").classList.toggle("hidden", vPhotos.length < 2);
   $("#viewerNext").classList.toggle("hidden", vPhotos.length < 2);
@@ -888,34 +924,59 @@ addEventListener("keydown", e => {
 });
 
 // ---------- Images proposées depuis le web ----------
-let suggestions = [];
-$("#btnSuggest").onclick = async () => {
+// Google Images (manuel, gratuit) + propositions automatiques gratuites (Mouser, Wikimedia) + IA en option
+let suggestions = [], suggestBody = null;
+function formQuery() {
   const f = $("#form");
-  const body = { name: f.name.value, part_number: f.part_number.value, manufacturer: f.manufacturer.value,
-                 package: f.package.value, category: f.category.value };
-  if (!body.name && !body.part_number) return toast("Renseignez au moins le nom ou la référence.");
+  return { name: f.name.value, part_number: f.part_number.value, manufacturer: f.manufacturer.value,
+           package: f.package.value, category: f.category.value };
+}
+$("#btnSuggest").onclick = () => {
+  suggestBody = formQuery();
+  if (!suggestBody.name && !suggestBody.part_number) return toast("Renseignez au moins le nom ou la référence.");
+  const q = [suggestBody.part_number || suggestBody.name, suggestBody.part_number && suggestBody.manufacturer].filter(Boolean).join(" ");
+  $("#btnGoogle").href = "https://www.google.com/search?udm=2&q=" + encodeURIComponent(q);
+  $("#pasteUrl").value = "";
   $("#suggest").classList.remove("hidden");
   suggestions = [];
-  $("#suggestGrid").innerHTML = `<div class="spinner" style="grid-column:1/-1"><div class="dot"></div>Recherche d'images sur le web…<br><span class="small">(cela peut prendre une trentaine de secondes)</span></div>`;
-  $("#suggestInfo").textContent = ""; updateSuggestButtons();
-  try {
-    const r = await api("/api/image-suggestions", json("POST", body));
-    suggestions = r.images.map(i => ({ ...i, sel: false }));
-    $("#suggestInfo").textContent = `${suggestions.length} image(s) trouvée(s) via ${r.ai_provider}. Touchez pour sélectionner.`;
-    renderSuggestions();
-  } catch (err) {
-    $("#suggestGrid").innerHTML = `<p class="empty" style="grid-column:1/-1">Aucune image : ${esc(err.message)}</p>`;
-  }
+  searchSuggestions(false);
 };
+async function searchSuggestions(useAi) {
+  const loading = `<div class="spinner" style="grid-column:1/-1"><div class="dot"></div>Recherche d'images${useAi ? " avec l'IA" : ""}…${useAi ? `<br><span class="small">(cela peut prendre une trentaine de secondes)</span>` : ""}</div>`;
+  if (useAi) $("#suggestGrid").insertAdjacentHTML("beforeend", loading); else $("#suggestGrid").innerHTML = loading;
+  $("#suggestInfo").textContent = ""; $("#btnSuggestAI").classList.add("hidden"); updateSuggestButtons();
+  try {
+    const r = await api("/api/image-suggestions", json("POST", { ...suggestBody, use_ai: useAi }));
+    const known = new Set(suggestions.map(s => s.url));
+    suggestions.push(...r.images.filter(i => !known.has(i.url)).map(i => ({ ...i, sel: false })));
+    $("#suggestInfo").textContent = r.notes.join(" · ");
+  } catch (err) { $("#suggestInfo").textContent = err.message; }
+  renderSuggestions();
+  const s = await api("/api/settings").catch(() => ({}));
+  $("#btnSuggestAI").classList.toggle("hidden", useAi || !s.ai_web_search);
+}
 function renderSuggestions() {
-  $("#suggestGrid").innerHTML = suggestions.map((s, i) => `
-    <div class="sugg${s.sel ? " sel" : ""}" data-i="${i}">
-      <img src="/photos/${esc(s.photo)}" alt="">
+  $("#suggestGrid").innerHTML = suggestions.length ? suggestions.map((s, i) => `
+    <div class="sugg${s.sel ? " sel" : ""}" data-i="${i}" title="${esc(s.title || "")}">
+      <img src="${esc(src(s.photo))}" alt="" onerror="this.parentNode.classList.add('broken')">
+      <span class="badge">${esc(s.source || "")}</span>
       <span class="check">${ic("check")}</span>
       <a href="${esc(s.page || s.url)}" target="_blank" rel="noopener" class="src">${esc(hostOf(s.page || s.url))}</a>
-    </div>`).join("");
+    </div>`).join("") : `<p class="empty" style="grid-column:1/-1;padding:12px">Aucune image trouvée automatiquement : utilisez Google Images ci-dessus.</p>`;
   updateSuggestButtons();
 }
+$("#btnSuggestAI").onclick = () => searchSuggestions(true);
+$("#btnImportUrl").onclick = async () => {
+  const url = $("#pasteUrl").value.trim(); if (!url) return $("#pasteUrl").focus();
+  const b = $("#btnImportUrl"); b.disabled = true;
+  try {
+    const r = await api("/api/photos/from-url", json("POST", { url }));
+    suggestions.unshift({ photo: r.photo, url, page: url.startsWith("data:") ? "" : url, source: "Google", sel: true });
+    $("#pasteUrl").value = ""; renderSuggestions(); toast("Image importée et sélectionnée.");
+  } catch (err) { toast(err.message); }
+  b.disabled = false;
+};
+$("#pasteUrl").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#btnImportUrl").click(); } };
 function updateSuggestButtons() {
   const n = suggestions.filter(s => s.sel).length;
   $("#btnSuggestAdd").disabled = $("#btnSuggestReplace").disabled = !n;
@@ -938,14 +999,19 @@ $("#btnSuggestReplace").onclick = () => applySuggestions(true);
 $("#btnSuggestClose").onclick = $("#btnSuggestX").onclick = () => $("#suggest").classList.add("hidden");
 
 // ---------- Paramètres ----------
+let mouserReady = false;
 async function refreshKeyBanner() {
   const s = await api("/api/settings");
   lowThreshold = s.low_stock_threshold;
+  mouserReady = !!s.mouser_key;
+  $("#btnMouser").classList.toggle("hidden", !mouserReady);
   $("#keyBanner").classList.toggle("hidden", s.ai_ready);
   return s;
 }
 async function loadSettings() {
   const s = await refreshKeyBanner();
+  $("#mouserStatus").innerHTML = s.mouser_key ? `<span class="pill green">Active</span> <span class="muted small">${esc(s.mouser_key)}</span>` : `<span class="pill gray">Non configurée</span>`;
+  $("#btnDelMouser").classList.toggle("hidden", !s.mouser_key);
   $("#envNote").classList.toggle("hidden", !s.api_key_from_env);
   $("#lowThreshold").value = s.low_stock_threshold;
   await loadConnectors();
@@ -957,6 +1023,36 @@ $("#btnSaveStock").onclick = async () => {
   if (isNaN(v) || v < 0) return;
   await api("/api/settings", json("PUT", { low_stock_threshold: v }));
   await loadSettings(); toast("Seuil enregistré.");
+};
+
+$("#btnSaveMouser").onclick = async () => {
+  const key = $("#mouserKey").value.trim(); if (!key) return $("#mouserKey").focus();
+  const b = $("#btnSaveMouser"); b.disabled = true;
+  try { await api("/api/settings", json("PUT", { mouser_api_key: key })); $("#mouserKey").value = ""; await loadSettings(); toast("Clé Mouser vérifiée et enregistrée."); }
+  catch (err) { toast(err.message); }
+  b.disabled = false;
+};
+$("#btnDelMouser").onclick = async () => {
+  if (!confirm("Supprimer la clé Mouser ?")) return;
+  await api("/api/settings", json("PUT", { mouser_api_key: "" })); await loadSettings(); toast("Clé Mouser supprimée.");
+};
+
+// Compléter la fiche avec Mouser : ne remplit que les champs vides (sauf la référence, remplacée par la référence exacte)
+$("#btnMouser").onclick = async () => {
+  const q = formQuery();
+  if (!q.name && !q.part_number) return toast("Renseignez au moins le nom ou la référence.");
+  const b = $("#btnMouser"); b.disabled = true;
+  try {
+    const m = await api("/api/mouser/lookup", json("POST", q));
+    const f = $("#form"), filled = [];
+    const set = (name, value, force) => { if (value && (force || !f[name].value)) { f[name].value = value; filled.push(name); } };
+    set("part_number", m.part_number, true);
+    set("manufacturer", m.manufacturer);
+    set("datasheet_url", m.datasheet_url);
+    set("description", m.description);
+    toast(filled.length ? `Mouser : ${m.part_number} (${m.manufacturer}) — ${filled.length} champ(s) complété(s).` : "Mouser : rien à compléter.");
+  } catch (err) { toast(err.message); }
+  b.disabled = false;
 };
 
 // Connecteurs IA

@@ -1,4 +1,5 @@
 """Inventaire de composants électroniques : API + interface web."""
+import base64
 import ipaddress
 import json
 import mimetypes
@@ -19,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import ai
+import sources
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "./data"))
 PHOTOS_DIR = DATA_DIR / "photos"
@@ -84,9 +86,15 @@ def referenced_photos():
         return {p for r in conn.execute("SELECT photos FROM components") for p in json.loads(r["photos"] or "[]")}
 
 
+def is_remote(photo: str) -> bool:
+    """Une photo est soit un fichier local, soit un lien vers une image que le serveur n'a pas pu copier (Mouser)."""
+    return photo.startswith(("http://", "https://"))
+
+
 def delete_photos(names):
     for name in names:
-        (PHOTOS_DIR / Path(name).name).unlink(missing_ok=True)
+        if not is_remote(name):
+            (PHOTOS_DIR / Path(name).name).unlink(missing_ok=True)
 
 
 def cleanup_orphan_photos(max_age=24 * 3600):
@@ -156,7 +164,7 @@ class Component(BaseModel):
     specs: dict = {}
 
     def db_values(self):
-        photos = [Path(p).name for p in self.photos]
+        photos = [p if is_remote(p) else Path(p).name for p in self.photos]
         values = {**self.model_dump(), "photos": json.dumps(photos),
                   "photo": photos[0] if photos else None,
                   "specs": json.dumps(self.specs, ensure_ascii=False)}
@@ -173,10 +181,16 @@ class ImageSearchIn(BaseModel):
     manufacturer: str | None = None
     package: str | None = None
     category: str | None = None
+    use_ai: bool = False
+
+
+class UrlIn(BaseModel):
+    url: str
 
 
 class Settings(BaseModel):
     low_stock_threshold: int | None = None
+    mouser_api_key: str | None = None  # "" pour supprimer la clé
 
 
 class ConnectorIn(BaseModel):
@@ -210,8 +224,12 @@ app = FastAPI(title="Lab Inventory")
 
 @app.get("/api/settings")
 def read_settings():
-    return {"ai_ready": bool(active_connectors()),
+    connectors = active_connectors()
+    mouser_key = get_setting("mouser_api_key")
+    return {"ai_ready": bool(connectors),
+            "ai_web_search": any(ai.PROVIDERS.get(c["provider"], {}).get("web_search") for c in connectors),
             "api_key_from_env": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "mouser_key": mask_key(mouser_key) if mouser_key else None,
             "low_stock_threshold": get_low_stock_threshold()}
 
 
@@ -221,6 +239,16 @@ def write_settings(s: Settings):
         if s.low_stock_threshold is not None:
             conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('low_stock_threshold', ?)",
                          (str(max(0, s.low_stock_threshold)),))
+        if s.mouser_api_key is not None:
+            key = s.mouser_api_key.strip()
+            if key:
+                try:  # vérifie la clé avant de l'enregistrer
+                    sources.mouser_search("NE555", key, records=1)
+                except Exception as e:
+                    raise HTTPException(400, f"Clé Mouser refusée : {e}")
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('mouser_api_key', ?)", (key,))
+            else:
+                conn.execute("DELETE FROM settings WHERE key='mouser_api_key'")
     return read_settings()
 
 
@@ -311,9 +339,10 @@ async def identify(body: IdentifyIn):
     connectors = active_connectors()
     if not connectors:
         raise HTTPException(400, "Aucune IA configurée : ajoutez un connecteur dans les Paramètres.")
-    if not body.photos:
-        raise HTTPException(400, "Aucune photo.")
-    images = [load_photo(p) for p in body.photos[:5]]
+    local = [p for p in body.photos if not is_remote(p)]
+    if not local:
+        raise HTTPException(400, "Aucune photo prise avec l'appareil à analyser.")
+    images = [load_photo(p) for p in local[:5]]
     errors = []
     for c in connectors:  # en cas d'échec, on essaie le connecteur actif suivant
         try:
@@ -338,10 +367,10 @@ def is_public_url(url: str) -> bool:
     return all(ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs)
 
 
-def download_image(url: str):
+def download_image(url: str, min_size: int = 3000):
     """Télécharge une image proposée ; renvoie le nom du fichier enregistré, ou None si ce n'est pas une image valable."""
     try:
-        with httpx.Client(timeout=15, headers={"User-Agent": "Mozilla/5.0 (Lab Inventory)"}) as client:
+        with httpx.Client(timeout=15, headers={"User-Agent": sources.UA}) as client:
             for _ in range(4):  # redirections suivies à la main pour vérifier chaque adresse
                 if not is_public_url(url):
                     return None
@@ -357,7 +386,7 @@ def download_image(url: str):
                         data += chunk
                         if len(data) > MAX_PHOTO:
                             return None
-                    if len(data) < 3000:  # icônes, pixels de suivi…
+                    if len(data) < min_size:  # icônes, pixels de suivi…
                         return None
                     return save_photo(data, media_type)
     except httpx.HTTPError:
@@ -365,33 +394,113 @@ def download_image(url: str):
     return None
 
 
+def save_data_url(url: str):
+    """Image collée sous forme « data:image/…;base64,… » (miniatures copiées depuis Google Images)."""
+    try:
+        header, payload = url.split(",", 1)
+        media_type = header[5:].split(";")[0].lower()
+        if media_type not in IMAGE_TYPES or ";base64" not in header:
+            return None
+        data = base64.b64decode(payload, validate=False)
+    except ValueError:
+        return None
+    return save_photo(data, media_type) if 500 < len(data) <= MAX_PHOTO else None
+
+
+@app.post("/api/photos/from-url")
+async def photo_from_url(body: UrlIn):
+    """Importe une image à partir de son adresse (copiée depuis Google Images, un site fabricant…)."""
+    url = body.url.strip()
+    photo = save_data_url(url) if url.startswith("data:") else await run_in_threadpool(download_image, url, 500)
+    if not photo:
+        raise HTTPException(400, "Impossible de récupérer une image à cette adresse. Copiez l'adresse de l'image "
+                                 "elle-même (appui long sur l'image, « Copier l'adresse de l'image »).")
+    return {"photo": photo}
+
+
+def mouser_key():
+    return get_setting("mouser_api_key")
+
+
+@app.post("/api/mouser/lookup")
+async def mouser_lookup(body: ImageSearchIn):
+    """Informations Mouser pour compléter une fiche : référence exacte, fabricant, datasheet, description."""
+    key = mouser_key()
+    if not key:
+        raise HTTPException(400, "Ajoutez une clé API Mouser dans les Paramètres.")
+    if not (body.part_number or body.name):
+        raise HTTPException(400, "Indiquez au moins le nom ou la référence du composant.")
+    try:
+        p = await run_in_threadpool(sources.mouser_best_part, body.part_number, body.name, key)
+    except Exception as e:
+        raise HTTPException(502, f"Mouser : {e}")
+    if not p:
+        raise HTTPException(404, "Aucun produit correspondant chez Mouser.")
+    return {"part_number": p.get("ManufacturerPartNumber"), "manufacturer": p.get("Manufacturer"),
+            "datasheet_url": p.get("DataSheetUrl") or None, "description": p.get("Description"),
+            "product_url": p.get("ProductDetailUrl"), "image": p.get("ImagePath")}
+
+
+def fetch_candidates(candidates, source, keep_remote=False):
+    """Copie localement les images proposées ; celles que le site refuse de servir restent en lien si keep_remote."""
+    urls = list(dict.fromkeys(c["url"] for c in candidates))[:10]
+    info = {c["url"]: c for c in candidates}
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        files = list(pool.map(lambda u: download_image(u, 1000), urls))
+    images = []
+    for u, f in zip(urls, files):
+        if f or keep_remote:
+            images.append({"photo": f or u, "url": u, "page": info[u].get("page"),
+                           "title": info[u].get("title"), "source": source})
+    return images
+
+
 @app.post("/api/image-suggestions")
 async def image_suggestions(body: ImageSearchIn):
-    """Cherche des photos du composant sur le web (via une IA avec recherche) et les enregistre comme propositions."""
-    desc = "\n".join(f"- {label} : {value}" for label, value in [
-        ("Nom", body.name), ("Référence", body.part_number), ("Fabricant", body.manufacturer),
-        ("Boîtier", body.package), ("Catégorie", body.category)] if value)
-    if not desc:
+    """Cherche des photos du composant : Mouser (clé gratuite), Wikimedia Commons, et l'IA si demandé."""
+    query = (body.part_number or body.name or "").strip()
+    if not query:
         raise HTTPException(400, "Indiquez au moins le nom ou la référence du composant.")
-    connectors = [c for c in active_connectors() if ai.PROVIDERS.get(c["provider"], {}).get("web_search")]
-    if not connectors:
-        raise HTTPException(400, "Aucune IA avec recherche web active (Claude, ChatGPT ou Gemini).")
-    errors = []
-    for c in connectors:
+    images, notes = [], []
+
+    def run(label, finder, keep_remote=False):
         try:
-            found = await run_in_threadpool(ai.find_images, desc, c["provider"], c["model"], c["api_key"])
+            found = finder()
         except Exception as e:
-            errors.append(f"{connector_label(c)} : {e}")
-            continue
-        urls = list(dict.fromkeys(i["url"] for i in found))[:10]
-        pages = {i["url"]: i.get("page") for i in found}
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            files = await run_in_threadpool(lambda: list(pool.map(download_image, urls)))
-        images = [{"photo": f, "url": u, "page": pages.get(u)} for u, f in zip(urls, files) if f]
-        if images:
-            return {"images": images, "ai_provider": connector_label(c)}
-        errors.append(f"{connector_label(c)} : aucune image exploitable trouvée")
-    raise HTTPException(502, " / ".join(errors))
+            notes.append(f"{label} : erreur ({e})")
+            return
+        got = fetch_candidates(found, label, keep_remote) if found else []
+        images.extend(got)
+        notes.append(f"{label} : {len(got)} image(s)")
+
+    key = mouser_key()
+    if key:
+        # Mouser bloque souvent les téléchargements depuis un serveur : on garde alors le lien, affiché par le navigateur.
+        await run_in_threadpool(run, "Mouser", lambda: sources.mouser_images(body.part_number, body.name, key), True)
+    else:
+        notes.append("Mouser : clé non configurée")
+
+    def wiki():
+        found = sources.wikimedia_images(query)
+        if not found and body.name and body.name != query:
+            found = sources.wikimedia_images(body.name)
+        return found
+    await run_in_threadpool(run, "Wikimedia", wiki)
+
+    if body.use_ai:
+        desc = "\n".join(f"- {label} : {value}" for label, value in [
+            ("Nom", body.name), ("Référence", body.part_number), ("Fabricant", body.manufacturer),
+            ("Boîtier", body.package), ("Catégorie", body.category)] if value)
+        connectors = [c for c in active_connectors() if ai.PROVIDERS.get(c["provider"], {}).get("web_search")]
+        if not connectors:
+            notes.append("IA : aucune IA avec recherche web active")
+        for c in connectors:  # premier connecteur qui répond ; les suivants servent de secours
+            before = len(images)
+            await run_in_threadpool(run, connector_label(c),
+                                    lambda c=c: ai.find_images(desc, c["provider"], c["model"], c["api_key"]))
+            if len(images) > before:
+                break
+    return {"images": images, "notes": notes}
 
 
 @app.get("/api/components")
