@@ -12,7 +12,7 @@ description: >-
   qu'à indiquer la quantité et l'emplacement. Recherche par nom, référence, catégorie ou tiroir.
 
 
-  Nécessite une clé API Claude (console.anthropic.com), à saisir dans les réglages ⚙️ de l'app.
+  Nécessite une clé API d'IA (Claude, ChatGPT, Gemini ou Mistral), à ajouter dans les Paramètres de l'app.
 developer: youbs
 website: https://github.com/youbs-dev/youbs-umbrel-app-store
 submitter: youbs
