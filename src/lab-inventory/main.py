@@ -1,10 +1,16 @@
 """Inventaire de composants électroniques : API + interface web."""
+import ipaddress
 import json
 import os
+import socket
 import sqlite3
+import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from urllib.parse import urljoin, urlparse
 
+import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
@@ -20,7 +26,9 @@ DB_PATH = DATA_DIR / "inventaire.db"
 STATIC_DIR = Path(__file__).parent / "static"
 
 FIELDS = ["name", "part_number", "manufacturer", "category", "package", "description",
-          "quantity", "location", "datasheet_url", "manufacturer_url", "notes", "photo"]
+          "quantity", "location", "datasheet_url", "manufacturer_url", "notes", "photo", "photos", "specs"]
+IMAGE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
+MAX_PHOTO = 5 * 1024 * 1024
 
 
 def db():
@@ -57,12 +65,51 @@ with db() as conn:
         conn.execute("INSERT INTO connectors (provider, model, api_key) VALUES ('claude', ?, ?)",
                      (ai.PROVIDERS["claude"]["default_model"], old_key["value"]))
     conn.execute("DELETE FROM settings WHERE key='anthropic_api_key'")
+    # Ancienne version : une seule photo par composant -> liste de photos (la première est la principale).
+    if "photos" not in [r["name"] for r in conn.execute("PRAGMA table_info(components)")]:
+        conn.execute("ALTER TABLE components ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'")
+        conn.execute("UPDATE components SET photos = json_array(photo) WHERE COALESCE(photo, '') != ''")
 
 
 def row_to_dict(row):
     d = dict(row)
     d["specs"] = json.loads(d.get("specs") or "{}")
+    d["photos"] = json.loads(d.get("photos") or "[]")
     return d
+
+
+def referenced_photos():
+    with db() as conn:
+        return {p for r in conn.execute("SELECT photos FROM components") for p in json.loads(r["photos"] or "[]")}
+
+
+def delete_photos(names):
+    for name in names:
+        (PHOTOS_DIR / Path(name).name).unlink(missing_ok=True)
+
+
+def cleanup_orphan_photos(max_age=24 * 3600):
+    """Supprime les photos jamais rattachées à un composant (ajout annulé, propositions non retenues)."""
+    used, now = referenced_photos(), time.time()
+    delete_photos([f.name for f in PHOTOS_DIR.iterdir()
+                   if f.is_file() and f.name not in used and now - f.stat().st_mtime > max_age])
+
+
+cleanup_orphan_photos()
+
+
+def save_photo(data: bytes, media_type: str) -> str:
+    filename = f"{uuid.uuid4().hex}.{IMAGE_TYPES.get(media_type, 'jpg')}"
+    (PHOTOS_DIR / filename).write_bytes(data)
+    return filename
+
+
+def load_photo(name: str) -> tuple[bytes, str]:
+    path = PHOTOS_DIR / Path(name).name
+    if not path.is_file():
+        raise HTTPException(404, f"Photo introuvable : {name}")
+    ext = path.suffix.lstrip(".").replace("jpg", "jpeg")
+    return path.read_bytes(), f"image/{ext}"
 
 
 def mask_key(key):
@@ -75,6 +122,10 @@ def connector_to_dict(row):
     d["api_key"] = mask_key(d["api_key"])
     d["provider_label"] = ai.PROVIDERS.get(d["provider"], {}).get("label", d["provider"])
     return d
+
+
+def connector_label(c):
+    return ai.PROVIDERS.get(c["provider"], {}).get("label", c["provider"])
 
 
 def active_connectors():
@@ -100,8 +151,27 @@ class Component(BaseModel):
     datasheet_url: str | None = None
     manufacturer_url: str | None = None
     notes: str | None = None
-    photo: str | None = None
+    photos: list[str] = []
     specs: dict = {}
+
+    def db_values(self):
+        photos = [Path(p).name for p in self.photos]
+        values = {**self.model_dump(), "photos": json.dumps(photos),
+                  "photo": photos[0] if photos else None,
+                  "specs": json.dumps(self.specs, ensure_ascii=False)}
+        return [values[f] for f in FIELDS]
+
+
+class IdentifyIn(BaseModel):
+    photos: list[str]
+
+
+class ImageSearchIn(BaseModel):
+    name: str | None = None
+    part_number: str | None = None
+    manufacturer: str | None = None
+    package: str | None = None
+    category: str | None = None
 
 
 class Settings(BaseModel):
@@ -222,32 +292,105 @@ def stats():
             "recent": [row_to_dict(r) for r in recent]}
 
 
+@app.post("/api/photos")
+async def upload_photos(photos: list[UploadFile] = File(...)):
+    """Enregistre une ou plusieurs photos ; elles seront rattachées au composant à l'enregistrement."""
+    names = []
+    for photo in photos:
+        data = await photo.read()
+        if len(data) > MAX_PHOTO:
+            raise HTTPException(413, "Photo trop lourde (5 Mo max).")
+        names.append(save_photo(data, photo.content_type))
+    return {"photos": names}
+
+
 @app.post("/api/identify")
-async def identify(photo: UploadFile = File(...)):
-    """Enregistre la photo et renvoie une fiche pré-remplie par l'IA (non encore sauvegardée)."""
+async def identify(body: IdentifyIn):
+    """Renvoie une fiche pré-remplie par l'IA à partir des photos déjà envoyées (non encore sauvegardée)."""
     connectors = active_connectors()
     if not connectors:
         raise HTTPException(400, "Aucune IA configurée : ajoutez un connecteur dans les Paramètres.")
-    data = await photo.read()
-    if len(data) > 5 * 1024 * 1024:
-        raise HTTPException(413, "Photo trop lourde (5 Mo max).")
-    media_type = photo.content_type if photo.content_type in (
-        "image/jpeg", "image/png", "image/webp", "image/gif") else "image/jpeg"
-    filename = f"{uuid.uuid4().hex}.{media_type.split('/')[1]}"
-    (PHOTOS_DIR / filename).write_bytes(data)
+    if not body.photos:
+        raise HTTPException(400, "Aucune photo.")
+    images = [load_photo(p) for p in body.photos[:5]]
     errors = []
     for c in connectors:  # en cas d'échec, on essaie le connecteur actif suivant
-        label = ai.PROVIDERS.get(c["provider"], {}).get("label", c["provider"])
         try:
-            result = await run_in_threadpool(ai.identify, data, media_type, c["provider"], c["model"], c["api_key"])
+            result = await run_in_threadpool(ai.identify, images, c["provider"], c["model"], c["api_key"])
         except Exception as e:
-            errors.append(f"{label} : {e}")
+            errors.append(f"{connector_label(c)} : {e}")
             continue
-        result["photo"] = filename
-        result["ai_provider"] = f"{label} ({c['model']})"
+        result["ai_provider"] = f"{connector_label(c)} ({c['model']})"
         return result
-    # on renvoie quand même la photo pour une saisie manuelle
-    return {"photo": filename, "error": " / ".join(errors)}
+    return {"error": " / ".join(errors)}
+
+
+def is_public_url(url: str) -> bool:
+    """Refuse les adresses locales : les URL viennent du web, elles ne doivent pas viser le réseau de la maison."""
+    u = urlparse(url)
+    if u.scheme not in ("http", "https") or not u.hostname:
+        return False
+    try:
+        addrs = {i[4][0] for i in socket.getaddrinfo(u.hostname, None)}
+    except OSError:
+        return False
+    return all(ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs)
+
+
+def download_image(url: str):
+    """Télécharge une image proposée ; renvoie le nom du fichier enregistré, ou None si ce n'est pas une image valable."""
+    try:
+        with httpx.Client(timeout=15, headers={"User-Agent": "Mozilla/5.0 (Lab Inventory)"}) as client:
+            for _ in range(4):  # redirections suivies à la main pour vérifier chaque adresse
+                if not is_public_url(url):
+                    return None
+                with client.stream("GET", url) as r:
+                    if r.is_redirect:
+                        url = urljoin(url, r.headers.get("location", ""))
+                        continue
+                    media_type = r.headers.get("content-type", "").split(";")[0].strip().lower()
+                    if r.status_code != 200 or media_type not in IMAGE_TYPES:
+                        return None
+                    data = b""
+                    for chunk in r.iter_bytes():
+                        data += chunk
+                        if len(data) > MAX_PHOTO:
+                            return None
+                    if len(data) < 3000:  # icônes, pixels de suivi…
+                        return None
+                    return save_photo(data, media_type)
+    except httpx.HTTPError:
+        return None
+    return None
+
+
+@app.post("/api/image-suggestions")
+async def image_suggestions(body: ImageSearchIn):
+    """Cherche des photos du composant sur le web (via une IA avec recherche) et les enregistre comme propositions."""
+    desc = "\n".join(f"- {label} : {value}" for label, value in [
+        ("Nom", body.name), ("Référence", body.part_number), ("Fabricant", body.manufacturer),
+        ("Boîtier", body.package), ("Catégorie", body.category)] if value)
+    if not desc:
+        raise HTTPException(400, "Indiquez au moins le nom ou la référence du composant.")
+    connectors = [c for c in active_connectors() if ai.PROVIDERS.get(c["provider"], {}).get("web_search")]
+    if not connectors:
+        raise HTTPException(400, "Aucune IA avec recherche web active (Claude, ChatGPT ou Gemini).")
+    errors = []
+    for c in connectors:
+        try:
+            found = await run_in_threadpool(ai.find_images, desc, c["provider"], c["model"], c["api_key"])
+        except Exception as e:
+            errors.append(f"{connector_label(c)} : {e}")
+            continue
+        urls = list(dict.fromkeys(i["url"] for i in found))[:10]
+        pages = {i["url"]: i.get("page") for i in found}
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            files = await run_in_threadpool(lambda: list(pool.map(download_image, urls)))
+        images = [{"photo": f, "url": u, "page": pages.get(u)} for u, f in zip(urls, files) if f]
+        if images:
+            return {"images": images, "ai_provider": connector_label(c)}
+        errors.append(f"{connector_label(c)} : aucune image exploitable trouvée")
+    raise HTTPException(502, " / ".join(errors))
 
 
 @app.get("/api/components")
@@ -281,30 +424,31 @@ def get_component(cid: int):
 
 @app.post("/api/components")
 def create_component(c: Component):
-    values = [getattr(c, f) for f in FIELDS] + [json.dumps(c.specs, ensure_ascii=False)]
     with db() as conn:
         cur = conn.execute(
-            f"INSERT INTO components ({', '.join(FIELDS)}, specs) VALUES ({', '.join('?' * (len(FIELDS) + 1))})",
-            values)
+            f"INSERT INTO components ({', '.join(FIELDS)}) VALUES ({', '.join('?' * len(FIELDS))})",
+            c.db_values())
         cid = cur.lastrowid
     return get_component(cid)
 
 
 @app.put("/api/components/{cid}")
 def update_component(cid: int, c: Component):
-    get_component(cid)
-    values = [getattr(c, f) for f in FIELDS] + [json.dumps(c.specs, ensure_ascii=False), cid]
+    old_photos = get_component(cid)["photos"]
     with db() as conn:
         conn.execute(
-            f"UPDATE components SET {', '.join(f + '=?' for f in FIELDS)}, specs=?, "
-            "updated_at=CURRENT_TIMESTAMP WHERE id=?", values)
+            f"UPDATE components SET {', '.join(f + '=?' for f in FIELDS)}, "
+            "updated_at=CURRENT_TIMESTAMP WHERE id=?", c.db_values() + [cid])
+    delete_photos(set(old_photos) - referenced_photos())  # photos retirées de la fiche
     return get_component(cid)
 
 
 @app.delete("/api/components/{cid}")
 def delete_component(cid: int):
+    photos = get_component(cid)["photos"]
     with db() as conn:
         conn.execute("DELETE FROM components WHERE id=?", (cid,))
+    delete_photos(set(photos) - referenced_photos())
     return {"ok": True}
 
 

@@ -39,7 +39,7 @@
   .row { display:flex; gap:8px; } .row > * { flex:1; }
   .list { display:grid; gap:10px; margin-top:12px; }
   .item { display:flex; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px; cursor:pointer; }
-  .item img, .thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; background:var(--border); flex:none; }
+  .item img, .thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; background:var(--border); flex:none; display:block; }
   .item.small img, .item.small .thumb { width:44px; height:44px; }
   .item .t { font-weight:600; } .s { font-size:13px; color:var(--muted); }
   .qty { margin-left:auto; font-weight:700; font-size:18px; align-self:center; white-space:nowrap; }
@@ -48,6 +48,34 @@
   .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
   .hidden { display:none !important; }
   .photo-big { width:100%; max-height:280px; object-fit:contain; border-radius:8px; background:var(--border); }
+  #galleryMain { cursor:zoom-in; }
+  .gthumbs { display:flex; gap:8px; overflow-x:auto; padding:8px 0 2px; }
+  .gthumb { position:relative; flex:none; width:64px; height:64px; border-radius:8px; overflow:hidden; border:2px solid transparent; cursor:pointer; }
+  .gthumb.sel { border-color:var(--accent); }
+  .gthumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .gthumb .gstar { position:absolute; left:3px; bottom:1px; color:#ffd33d; font-size:14px; text-shadow:0 0 3px #000; }
+  .gthumb .gdel { position:absolute; top:2px; right:2px; width:22px; height:22px; padding:0; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; font-size:12px; line-height:22px; }
+  .gactions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:6px 0 4px; }
+  .gactions button { padding:8px 10px; font-size:14px; }
+  .gactions #photoCount { flex:1 0 100%; }
+  .viewer { position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:10; display:flex; align-items:center; justify-content:center; }
+  .viewer img { max-width:100%; max-height:100%; object-fit:contain; }
+  .vnav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.15); color:#fff; font-size:32px; width:48px; height:64px; padding:0; }
+  .vnav.prev { left:8px; } .vnav.next { right:8px; }
+  .vcount { position:absolute; bottom:calc(16px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; color:#fff; font-size:14px; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9; display:flex; align-items:flex-end; justify-content:center; }
+  @media (min-width: 720px) { .modal { align-items:center; } }
+  .modal-box { background:var(--card); width:100%; max-width:720px; max-height:90vh; overflow:auto; border-radius:14px 14px 0 0; padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+  @media (min-width: 720px) { .modal-box { border-radius:14px; } }
+  .sugg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:8px; }
+  .sugg { position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:3px solid transparent; cursor:pointer; background:#fff; }
+  .sugg.sel { border-color:var(--accent); }
+  .sugg img { width:100%; height:100%; object-fit:contain; display:block; }
+  .sugg .check { position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:13px; text-align:center; line-height:22px; display:none; }
+  .sugg.sel .check { display:block; }
+  .sugg .src { position:absolute; left:0; right:0; bottom:0; font-size:10px; padding:2px 4px; background:rgba(0,0,0,.55); color:#fff; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pcount { position:absolute; right:2px; bottom:2px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; border-radius:6px; padding:0 4px; }
+  .pwrap { position:relative; flex:none; }
   .spinner { text-align:center; padding:40px 0; color:var(--muted); }
   .links a { display:inline-block; margin:6px 8px 0 0; color:var(--accent); }
   .banner { background:var(--warn-soft); color:var(--warn); padding:10px; border-radius:8px; margin-bottom:12px; }
@@ -147,7 +175,17 @@
   <!-- Formulaire -->
   <section id="viewForm" class="hidden">
     <div id="aiError" class="banner hidden"></div>
-    <img id="formPhoto" class="photo-big hidden" alt="">
+    <div class="gallery">
+      <img id="galleryMain" class="photo-big hidden" alt="" title="Agrandir">
+      <div id="galleryThumbs" class="gthumbs"></div>
+      <div class="gactions">
+        <span id="photoCount" class="s"></span>
+        <button type="button" id="btnAddPhotos">📷 Ajouter des photos</button>
+        <button type="button" id="btnSuggest">🌐 Proposer des images</button>
+        <button type="button" id="btnMainPhoto" class="hidden">★ Photo principale</button>
+        <button type="button" id="btnReidentify" class="hidden">🔍 Ré-identifier</button>
+      </div>
+    </div>
     <form id="form">
       <label>Nom</label><input name="name" required>
       <div class="row">
@@ -221,7 +259,30 @@
 </main>
 
 <datalist id="cats"></datalist>
-<input id="fileInput" type="file" accept="image/*" capture="environment" class="hidden">
+<input id="fileInput" type="file" accept="image/*" capture="environment" multiple class="hidden">
+<input id="addPhotosInput" type="file" accept="image/*" multiple class="hidden">
+
+<!-- Visionneuse plein écran -->
+<div id="viewer" class="viewer hidden">
+  <img id="viewerImg" alt="">
+  <button type="button" id="viewerPrev" class="vnav prev" aria-label="Photo précédente">‹</button>
+  <button type="button" id="viewerNext" class="vnav next" aria-label="Photo suivante">›</button>
+  <div id="viewerCount" class="vcount"></div>
+</div>
+
+<!-- Propositions d'images -->
+<div id="suggest" class="modal hidden">
+  <div class="modal-box">
+    <h3>Images proposées</h3>
+    <p id="suggestInfo" class="s" style="margin:0 0 10px"></p>
+    <div id="suggestGrid" class="sugg-grid"></div>
+    <div class="row wrap" style="margin-top:12px">
+      <button type="button" id="btnSuggestClose">Fermer</button>
+      <button type="button" id="btnSuggestAdd" class="primary">Ajouter</button>
+      <button type="button" id="btnSuggestReplace">Remplacer mes photos</button>
+    </div>
+  </div>
+</div>
 <button id="fab" class="primary fab hidden">📷 Ajouter</button>
 
 <script>
@@ -233,6 +294,7 @@ let editingId = null, currentPhoto = null, lowOnly = false, returnRoute = "compo
 
 function show(v) {
   views.forEach(x => $("#"+x).classList.toggle("hidden", x !== v));
+  $("#viewer").classList.add("hidden"); $("#suggest").classList.add("hidden");
   $("#fab").classList.toggle("hidden", !["viewDashboard","viewList"].includes(v));
   scrollTo(0,0);
 }
@@ -303,7 +365,8 @@ async function loadList() {
   $("#listCount").textContent = items.length ? `${items.length} référence(s)` : "";
   $("#list").innerHTML = items.length ? items.map(c => `
     <div class="item" data-id="${c.id}">
-      ${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy">` : `<div class="thumb"></div>`}
+      <div class="pwrap">${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy">` : `<div class="thumb"></div>`}
+        ${c.photos.length > 1 ? `<span class="pcount">📷${c.photos.length}</span>` : ""}</div>
       <div><div class="t">${esc(c.name)}</div>
         <div class="s">${esc([c.part_number, c.manufacturer].filter(Boolean).join(" · "))}</div>
         <div class="s">${esc([c.category, c.location].filter(Boolean).join(" · "))}</div></div>
@@ -323,9 +386,8 @@ function fillForm(c, error) {
   const f = $("#form"); f.reset();
   for (const el of f.elements) if (el.name && el.name !== "specs" && c[el.name] != null) el.value = c[el.name];
   f.specs.value = specsToText(c.specs);
-  currentPhoto = c.photo || null;
-  $("#formPhoto").classList.toggle("hidden", !currentPhoto);
-  if (currentPhoto) $("#formPhoto").src = "/photos/" + currentPhoto;
+  if (c.photos) { currentPhotos = [...c.photos]; mainIdx = 0; }
+  renderGallery();
   $("#formLinks").innerHTML = [c.datasheet_url && `<a href="${esc(c.datasheet_url)}" target="_blank">📄 Datasheet</a>`,
                                c.manufacturer_url && `<a href="${esc(c.manufacturer_url)}" target="_blank">🏭 Page fabricant</a>`].filter(Boolean).join("");
   const msg = error ? "Identification impossible : " + error + ". Complétez la fiche à la main."
@@ -352,23 +414,153 @@ function resize(file, max = 1600) {
   });
 }
 
+async function uploadPhotos(files) {
+  const fd = new FormData();
+  for (const file of files) fd.append("photos", await resize(file), "photo.jpg");
+  return (await api("/api/photos", { method: "POST", body: fd })).photos;
+}
+async function identifyPhotos(photos) {
+  try { return await api("/api/identify", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ photos }) }); }
+  catch (err) { return { error: err.message }; }
+}
+
+// Ajout d'un composant : une ou plusieurs photos, puis identification par l'IA sur l'ensemble
 $("#fab").onclick = () => $("#fileInput").click();
 $("#fileInput").onchange = async e => {
-  const file = e.target.files[0]; e.target.value = "";
-  if (!file) return;
+  const files = [...e.target.files]; e.target.value = "";
+  if (!files.length) return;
   editingId = null; returnRoute = currentRoute();
-  $("#loadingPhoto").src = URL.createObjectURL(file);
+  $("#loadingPhoto").src = URL.createObjectURL(files[0]);
   show("viewLoading");
   try {
-    const fd = new FormData(); fd.append("photo", await resize(file), "photo.jpg");
-    const r = await api("/api/identify", { method: "POST", body: fd });
-    fillForm(r, r.error);
-  } catch (err) { fillForm({}, err.message); }
+    const photos = await uploadPhotos(files);
+    const r = await identifyPhotos(photos);
+    fillForm({ ...r, photos }, r.error);
+  } catch (err) { currentPhotos = []; fillForm({ photos: [] }, err.message); }
 };
+
+// ---------- Galerie de la fiche ----------
+let currentPhotos = [], mainIdx = 0;
+function renderGallery() {
+  if (mainIdx >= currentPhotos.length) mainIdx = 0;
+  const has = currentPhotos.length > 0;
+  $("#galleryMain").classList.toggle("hidden", !has);
+  if (has) $("#galleryMain").src = "/photos/" + currentPhotos[mainIdx];
+  $("#galleryThumbs").innerHTML = currentPhotos.map((p, i) => `
+    <div class="gthumb${i === mainIdx ? " sel" : ""}" data-i="${i}">
+      <img src="/photos/${esc(p)}" alt="">
+      ${i === 0 ? `<span class="gstar" title="Photo principale">★</span>` : ""}
+      <button type="button" class="gdel" data-del="${i}" title="Retirer cette photo">✕</button>
+    </div>`).join("");
+  $("#btnMainPhoto").classList.toggle("hidden", mainIdx === 0 || !has);
+  $("#btnReidentify").classList.toggle("hidden", !has);
+  $("#photoCount").textContent = has ? `${currentPhotos.length} photo(s)` : "Aucune photo";
+}
+$("#galleryThumbs").onclick = e => {
+  const del = e.target.closest("[data-del]");
+  if (del) { currentPhotos.splice(+del.dataset.del, 1); return renderGallery(); }
+  const th = e.target.closest(".gthumb"); if (th) { mainIdx = +th.dataset.i; renderGallery(); }
+};
+$("#btnMainPhoto").onclick = () => { currentPhotos.unshift(...currentPhotos.splice(mainIdx, 1)); mainIdx = 0; renderGallery(); };
+$("#btnAddPhotos").onclick = () => $("#addPhotosInput").click();
+$("#addPhotosInput").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = "";
+  if (!files.length) return;
+  $("#photoCount").textContent = "Envoi…";
+  try { currentPhotos.push(...await uploadPhotos(files)); mainIdx = currentPhotos.length - 1; }
+  catch (err) { alert(err.message); }
+  renderGallery();
+};
+$("#btnReidentify").onclick = async () => {
+  if (!confirm("Relancer l'identification avec toutes les photos ? Les champs seront remplacés (sauf quantité, emplacement et notes).")) return;
+  const f = $("#form"), keep = { quantity: f.quantity.value, location: f.location.value, notes: f.notes.value };
+  const b = $("#btnReidentify"); b.disabled = true; b.textContent = "🔍 Identification…";
+  const r = await identifyPhotos(currentPhotos);
+  b.disabled = false; b.textContent = "🔍 Ré-identifier";
+  fillForm({ ...r, ...keep }, r.error);
+};
+
+// Visionneuse plein écran
+$("#galleryMain").onclick = () => openViewer(mainIdx);
+function openViewer(i) { mainIdx = i; $("#viewer").classList.remove("hidden"); showViewer(); }
+function showViewer() {
+  $("#viewerImg").src = "/photos/" + currentPhotos[mainIdx];
+  $("#viewerCount").textContent = `${mainIdx + 1} / ${currentPhotos.length}`;
+  $("#viewerPrev").classList.toggle("hidden", currentPhotos.length < 2);
+  $("#viewerNext").classList.toggle("hidden", currentPhotos.length < 2);
+}
+function stepViewer(d) { mainIdx = (mainIdx + d + currentPhotos.length) % currentPhotos.length; showViewer(); }
+function closeViewer() { $("#viewer").classList.add("hidden"); renderGallery(); }
+$("#viewerPrev").onclick = e => { e.stopPropagation(); stepViewer(-1); };
+$("#viewerNext").onclick = e => { e.stopPropagation(); stepViewer(1); };
+$("#viewer").onclick = closeViewer;
+let touchX = null;
+$("#viewer").addEventListener("touchstart", e => { touchX = e.touches[0].clientX; }, { passive: true });
+$("#viewer").addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - touchX;
+  if (Math.abs(dx) > 50 && currentPhotos.length > 1) { e.preventDefault(); stepViewer(dx < 0 ? 1 : -1); }
+});
+addEventListener("keydown", e => {
+  if ($("#viewer").classList.contains("hidden")) return;
+  if (e.key === "Escape") closeViewer();
+  if (e.key === "ArrowLeft") stepViewer(-1);
+  if (e.key === "ArrowRight") stepViewer(1);
+});
+
+// ---------- Images proposées depuis le web ----------
+let suggestions = [];
+$("#btnSuggest").onclick = async () => {
+  const f = $("#form");
+  const body = { name: f.name.value, part_number: f.part_number.value, manufacturer: f.manufacturer.value,
+                 package: f.package.value, category: f.category.value };
+  if (!body.name && !body.part_number) return alert("Renseignez au moins le nom ou la référence.");
+  $("#suggest").classList.remove("hidden");
+  $("#suggestGrid").innerHTML = `<div class="spinner" style="grid-column:1/-1">🔍 Recherche d'images sur le web…<br>(cela peut prendre une trentaine de secondes)</div>`;
+  $("#suggestInfo").textContent = ""; updateSuggestButtons();
+  try {
+    const r = await api("/api/image-suggestions", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    suggestions = r.images.map(i => ({ ...i, sel: false }));
+    $("#suggestInfo").textContent = `${suggestions.length} image(s) trouvée(s) via ${r.ai_provider}. Touchez pour sélectionner.`;
+    renderSuggestions();
+  } catch (err) {
+    suggestions = [];
+    $("#suggestGrid").innerHTML = `<p class="empty" style="grid-column:1/-1">Aucune image : ${esc(err.message)}</p>`;
+  }
+};
+function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }
+function renderSuggestions() {
+  $("#suggestGrid").innerHTML = suggestions.map((s, i) => `
+    <div class="sugg${s.sel ? " sel" : ""}" data-i="${i}">
+      <img src="/photos/${esc(s.photo)}" alt="">
+      <span class="check">✓</span>
+      <a href="${esc(s.page || s.url)}" target="_blank" rel="noopener" class="src">${esc(hostOf(s.page || s.url))}</a>
+    </div>`).join("");
+  updateSuggestButtons();
+}
+function updateSuggestButtons() {
+  const n = suggestions.filter(s => s.sel).length;
+  $("#btnSuggestAdd").disabled = $("#btnSuggestReplace").disabled = !n;
+  $("#btnSuggestAdd").textContent = n ? `Ajouter (${n})` : "Ajouter";
+}
+$("#suggestGrid").onclick = e => {
+  if (e.target.closest("a")) return;
+  const s = e.target.closest(".sugg"); if (!s) return;
+  suggestions[+s.dataset.i].sel = !suggestions[+s.dataset.i].sel; renderSuggestions();
+};
+function applySuggestions(replace) {
+  const chosen = suggestions.filter(s => s.sel).map(s => s.photo);
+  if (replace && currentPhotos.length && !confirm("Remplacer toutes les photos de la fiche par les images sélectionnées ?")) return;
+  currentPhotos = replace ? chosen : [...currentPhotos, ...chosen];
+  mainIdx = replace ? 0 : currentPhotos.length - chosen.length;
+  $("#suggest").classList.add("hidden"); renderGallery();
+}
+$("#btnSuggestAdd").onclick = () => applySuggestions(false);
+$("#btnSuggestReplace").onclick = () => applySuggestions(true);
+$("#btnSuggestClose").onclick = () => $("#suggest").classList.add("hidden");
 
 $("#form").onsubmit = async e => {
   e.preventDefault();
-  const f = e.target, body = { photo: currentPhoto };
+  const f = e.target, body = { photos: currentPhotos };
   for (const el of f.elements) if (el.name) body[el.name] = el.value || null;
   body.quantity = +f.quantity.value || 0;
   body.specs = textToSpecs(f.specs.value);

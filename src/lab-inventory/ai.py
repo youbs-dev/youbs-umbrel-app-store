@@ -1,4 +1,4 @@
-"""Identification d'un composant à partir d'une photo, via une IA (Claude, ChatGPT, Gemini, Mistral)."""
+"""Appels aux IA (Claude, ChatGPT, Gemini, Mistral) : identification par photo et recherche d'images."""
 import base64
 import json
 import re
@@ -6,7 +6,7 @@ import re
 import anthropic
 import httpx
 
-PROMPT = """Tu reçois la photo d'un composant électronique (ou de son emballage / étiquette).
+PROMPT = """Tu reçois une ou plusieurs photos d'un même composant électronique (ou de son emballage / étiquette).
 1. Identifie le composant : lis les marquages, le boîtier, le logo du fabricant.
 2. Utilise la recherche web pour trouver la référence exacte, la datasheet officielle (PDF de préférence,
    sur le site du fabricant) et la page produit du fabricant.
@@ -30,6 +30,15 @@ Ne mets que des URL que tu as réellement trouvées pendant la recherche."""
 NO_SEARCH_NOTE = """
 Tu n'as pas accès à la recherche web : ne donne une URL que si tu es certain qu'elle existe, sinon null."""
 
+IMAGES_PROMPT = """Trouve sur le web des photos produit du composant électronique suivant :
+{desc}
+Cherche sur les sites des fabricants et des distributeurs (Mouser, DigiKey, Farnell, LCSC, RS, Adafruit, SparkFun…)
+ou via une recherche d'images. Je veux les URL DIRECTES des fichiers image (se terminant généralement par .jpg, .jpeg,
+.png ou .webp), pas les pages web qui les contiennent. Privilégie des photos nettes sur fond neutre du composant lui-même.
+Réponds UNIQUEMENT avec un objet JSON (sans texte autour) de la forme :
+{{"images": [{{"url": "URL directe de l'image", "page": "URL de la page où tu l'as trouvée"}}]}}
+Donne jusqu'à 10 images, uniquement des URL que tu as réellement vues pendant la recherche."""
+
 TIMEOUT = httpx.Timeout(180.0, connect=15.0)
 
 # Fournisseurs proposés dans les paramètres. Le modèle par défaut reste modifiable par l'utilisateur.
@@ -45,24 +54,31 @@ PROVIDERS = {
 }
 
 
-def identify(image_bytes: bytes, media_type: str, provider: str, model: str, api_key: str) -> dict:
+def identify(images: list[tuple[bytes, str]], provider: str, model: str, api_key: str) -> dict:
+    """images : liste de (contenu, type MIME) d'un même composant."""
+    prompt = PROMPT if PROVIDERS[provider]["web_search"] else PROMPT + NO_SEARCH_NOTE
+    encoded = [(base64.b64encode(data).decode(), media_type) for data, media_type in images]
+    return _parse_json(_call(provider, model, api_key, prompt, encoded))
+
+
+def find_images(desc: str, provider: str, model: str, api_key: str) -> list[dict]:
+    """Demande à l'IA (avec recherche web) des URL d'images du composant décrit."""
+    data = _parse_json(_call(provider, model, api_key, IMAGES_PROMPT.format(desc=desc), []))
+    return [i for i in data.get("images", []) if isinstance(i, dict) and i.get("url")]
+
+
+def _call(provider, model, api_key, prompt, images):
     fn = {"claude": _claude, "openai": _openai, "gemini": _gemini, "mistral": _mistral}.get(provider)
     if not fn:
         raise RuntimeError(f"Fournisseur d'IA inconnu : {provider}")
-    b64 = base64.b64encode(image_bytes).decode()
-    prompt = PROMPT if PROVIDERS[provider]["web_search"] else PROMPT + NO_SEARCH_NOTE
-    return _parse_json(fn(b64, media_type, model or PROVIDERS[provider]["default_model"], api_key, prompt))
+    return fn(images, model or PROVIDERS[provider]["default_model"], api_key, prompt)
 
 
-def _claude(b64, media_type, model, api_key, prompt):
+def _claude(images, model, api_key, prompt):
     client = anthropic.Anthropic(api_key=api_key)
-    messages = [{
-        "role": "user",
-        "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-            {"type": "text", "text": prompt},
-        ],
-    }]
+    content = [{"type": "image", "source": {"type": "base64", "media_type": mt, "data": b64}}
+               for b64, mt in images]
+    messages = [{"role": "user", "content": content + [{"type": "text", "text": prompt}]}]
     tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}]
 
     # Un tour long de recherche web peut s'arrêter en "pause_turn" : on le relance.
@@ -81,21 +97,19 @@ def _claude(b64, media_type, model, api_key, prompt):
         messages.append({"role": "assistant", "content": response.content})
 
     if response.stop_reason == "refusal":
-        raise RuntimeError("L'IA a refusé d'analyser cette image.")
+        raise RuntimeError("L'IA a refusé d'analyser cette demande.")
     return "".join(b.text for b in response.content if b.type == "text")
 
 
-def _openai(b64, media_type, model, api_key, prompt):
+def _openai(images, model, api_key, prompt):
+    content = [{"type": "input_image", "image_url": f"data:{mt};base64,{b64}"} for b64, mt in images]
     r = httpx.post(
         "https://api.openai.com/v1/responses",
         headers={"Authorization": f"Bearer {api_key}"},
         json={
             "model": model,
             "tools": [{"type": "web_search"}],
-            "input": [{"role": "user", "content": [
-                {"type": "input_image", "image_url": f"data:{media_type};base64,{b64}"},
-                {"type": "input_text", "text": prompt},
-            ]}],
+            "input": [{"role": "user", "content": content + [{"type": "input_text", "text": prompt}]}],
         },
         timeout=TIMEOUT)
     data = _check(r)
@@ -103,13 +117,13 @@ def _openai(b64, media_type, model, api_key, prompt):
                    for c in item.get("content", []) if c.get("type") == "output_text")
 
 
-def _gemini(b64, media_type, model, api_key, prompt):
+def _gemini(images, model, api_key, prompt):
+    parts = [{"inline_data": {"mime_type": mt, "data": b64}} for b64, mt in images]
     r = httpx.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
         headers={"x-goog-api-key": api_key},
         json={
-            "contents": [{"parts": [{"inline_data": {"mime_type": media_type, "data": b64}},
-                                    {"text": prompt}]}],
+            "contents": [{"parts": parts + [{"text": prompt}]}],
             "tools": [{"google_search": {}}],
         },
         timeout=TIMEOUT)
@@ -118,16 +132,14 @@ def _gemini(b64, media_type, model, api_key, prompt):
     return "".join(p.get("text", "") for p in parts)
 
 
-def _mistral(b64, media_type, model, api_key, prompt):
+def _mistral(images, model, api_key, prompt):
+    content = [{"type": "image_url", "image_url": f"data:{mt};base64,{b64}"} for b64, mt in images]
     r = httpx.post(
         "https://api.mistral.ai/v1/chat/completions",
         headers={"Authorization": f"Bearer {api_key}"},
         json={
             "model": model,
-            "messages": [{"role": "user", "content": [
-                {"type": "image_url", "image_url": f"data:{media_type};base64,{b64}"},
-                {"type": "text", "text": prompt},
-            ]}],
+            "messages": [{"role": "user", "content": content + [{"type": "text", "text": prompt}]}],
             "response_format": {"type": "json_object"},
         },
         timeout=TIMEOUT)
