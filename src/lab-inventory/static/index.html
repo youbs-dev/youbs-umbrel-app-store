@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6feb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Lab Inventory</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1b1f24; --muted:#667085; --accent:#1f6feb; --accent-soft:#e8f0fe; --border:#e3e6ea; --danger:#d1242f; --warn:#b54708; --warn-soft:#fff4e5; --nav-h:64px; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e1116; --card:#171b22; --text:#e6e8eb; --muted:#8b949e; --border:#2a313b; --accent-soft:#1a2740; --warn:#f5a524; --warn-soft:#2d2210; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; background:var(--card); border-bottom:1px solid var(--border); padding:12px 16px; display:flex; gap:16px; align-items:center; z-index:3; }
+  header h1 { font-size:18px; margin:0; white-space:nowrap; }
+  main { padding:16px; max-width:900px; margin:0 auto; padding-bottom:calc(var(--nav-h) + 110px + env(safe-area-inset-bottom)); }
+  h2 { font-size:20px; margin:4px 0 14px; } h3 { font-size:15px; margin:0 0 10px; }
+
+  /* Menu : barre d'onglets en bas sur mobile, dans l'en-tête sur grand écran */
+  nav.menu { position:fixed; left:0; right:0; bottom:0; height:calc(var(--nav-h) + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom);
+             display:flex; background:var(--card); border-top:1px solid var(--border); z-index:3; }
+  nav.menu a { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-decoration:none; color:var(--muted); font-size:12px; }
+  nav.menu a .ic { font-size:22px; line-height:1; }
+  nav.menu a.active { color:var(--accent); font-weight:600; }
+  @media (min-width: 720px) {
+    :root { --nav-h:0px; }
+    nav.menu { position:static; height:auto; border:0; padding:0; background:none; gap:4px; }
+    nav.menu a { flex:none; flex-direction:row; gap:6px; font-size:14px; padding:8px 12px; border-radius:8px; }
+    nav.menu a .ic { font-size:16px; }
+    nav.menu a.active { background:var(--accent-soft); }
+  }
+
+  input, select, textarea { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--text); font:inherit; }
+  textarea { min-height:70px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  button { font:inherit; border:0; border-radius:8px; padding:10px 14px; background:var(--border); color:var(--text); cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; }
+  button.danger { background:var(--danger); color:#fff; }
+  .row { display:flex; gap:8px; } .row > * { flex:1; }
+  .list { display:grid; gap:10px; margin-top:12px; }
+  .item { display:flex; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px; cursor:pointer; }
+  .item img, .thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; background:var(--border); flex:none; }
+  .item.small img, .item.small .thumb { width:44px; height:44px; }
+  .item .t { font-weight:600; } .s { font-size:13px; color:var(--muted); }
+  .qty { margin-left:auto; font-weight:700; font-size:18px; align-self:center; white-space:nowrap; }
+  .qty.low { color:var(--warn); }
+  .fab { position:fixed; bottom:calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); padding:16px 28px; border-radius:40px; font-size:17px; box-shadow:0 4px 14px rgba(0,0,0,.25); z-index:2; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .hidden { display:none !important; }
+  .photo-big { width:100%; max-height:280px; object-fit:contain; border-radius:8px; background:var(--border); }
+  .spinner { text-align:center; padding:40px 0; color:var(--muted); }
+  .links a { display:inline-block; margin:6px 8px 0 0; color:var(--accent); }
+  .banner { background:var(--warn-soft); color:var(--warn); padding:10px; border-radius:8px; margin-bottom:12px; }
+  .banner a { color:inherit; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } td { padding:4px 0; border-bottom:1px solid var(--border); } td:first-child { color:var(--muted); width:45%; }
+  .chip { display:inline-block; background:var(--accent-soft); color:var(--accent); border-radius:20px; padding:4px 10px; font-size:13px; margin-bottom:10px; cursor:pointer; }
+
+  /* Dashboard */
+  .tiles { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:12px; }
+  @media (min-width: 720px) { .tiles { grid-template-columns:repeat(4, 1fr); } }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .tile[data-go] { cursor:pointer; }
+  .tile .v { font-size:28px; font-weight:700; line-height:1.1; } .tile .l { font-size:13px; color:var(--muted); }
+  .tile.warn .v { color:var(--warn); }
+  .dash-grid { display:grid; gap:12px; }
+  @media (min-width: 720px) { .dash-grid { grid-template-columns:1fr 1fr; } .dash-grid .wide { grid-column:1 / -1; } }
+  .bars { display:grid; gap:8px; }
+  .bar { display:grid; grid-template-columns:minmax(90px, 34%) 1fr auto; gap:10px; align-items:center; font-size:14px; cursor:pointer; }
+  .bar .track { height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
+  .bar .fill { height:100%; background:var(--accent); border-radius:5px; }
+  .bar .n { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .empty { color:var(--muted); font-size:14px; text-align:center; padding:12px 0; }
+  dl.info { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:14px; margin:0; } dl.info dt { color:var(--muted); } dl.info dd { margin:0; }
+  .settings { display:grid; gap:12px; }
+  .row.wrap { flex-wrap:wrap; } .row.wrap > * { min-width:160px; }
+  .table-wrap { overflow-x:auto; margin-top:10px; }
+  table.conn { min-width:480px; } table.conn th { text-align:left; font-size:12px; color:var(--muted); font-weight:500; padding:6px 8px 6px 0; border-bottom:1px solid var(--border); }
+  table.conn td { padding:8px 8px 8px 0; width:auto; color:var(--text); vertical-align:middle; }
+  table.conn td.key { font-family:ui-monospace,monospace; font-size:12px; color:var(--muted); }
+  table.conn tr.off td:not(:last-child) { opacity:.5; }
+  table.conn .acts { white-space:nowrap; text-align:right; }
+  table.conn button { padding:6px 10px; font-size:13px; }
+  .badge { display:inline-block; font-size:12px; border-radius:20px; padding:2px 8px; white-space:nowrap; }
+  .badge.on { background:#dafbe1; color:#1a7f37; } .badge.off { background:var(--border); color:var(--muted); }
+  @media (prefers-color-scheme: dark) { .badge.on { background:#12361f; color:#56d364; } }
+  .settings > * { min-width:0; }
+  /* Sur téléphone, chaque connecteur devient une petite fiche */
+  @media (max-width: 560px) {
+    table.conn { min-width:0; } table.conn thead { display:none; }
+    table.conn tr { display:grid; grid-template-columns:1fr auto; gap:2px 8px; padding:10px 0; border-bottom:1px solid var(--border); }
+    table.conn td { padding:0; border:0; }
+    table.conn td:nth-child(1) { font-weight:600; } table.conn td:nth-child(4) { grid-row:1; grid-column:2; text-align:right; }
+    table.conn td:nth-child(2), table.conn td.key { grid-column:1 / -1; font-size:13px; color:var(--muted); }
+    table.conn td.acts { grid-column:1 / -1; text-align:left; margin-top:6px; }
+    table.conn td[colspan] { grid-column:1 / -1; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔌 Lab Inventory</h1>
+  <nav class="menu" id="menu">
+    <a href="#/dashboard" data-route="dashboard"><span class="ic">📊</span>Dashboard</a>
+    <a href="#/composants" data-route="composants"><span class="ic">📦</span>Composants</a>
+    <a href="#/parametres" data-route="parametres"><span class="ic">⚙️</span>Paramètres</a>
+  </nav>
+</header>
+
+<main>
+  <div id="keyBanner" class="banner hidden">Ajoutez une IA (Claude, ChatGPT, Gemini…) dans les <a href="#/parametres">Paramètres</a> pour activer l'identification par photo.</div>
+
+  <!-- Dashboard -->
+  <section id="viewDashboard" class="hidden">
+    <h2>Dashboard</h2>
+    <div class="tiles">
+      <div class="tile" data-go="composants"><div class="v" id="stRefs">–</div><div class="l">Références</div></div>
+      <div class="tile" data-go="composants"><div class="v" id="stPieces">–</div><div class="l">Pièces en stock</div></div>
+      <div class="tile"><div class="v" id="stLocations">–</div><div class="l">Emplacements</div></div>
+      <div class="tile warn" data-go="lowstock"><div class="v" id="stLow">–</div><div class="l" id="stLowLabel">Stock bas</div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="card wide"><h3>Répartition par catégorie</h3><div id="dashCats" class="bars"></div></div>
+      <div class="card"><h3>Stock bas</h3><div id="dashLow" class="list" style="margin-top:0"></div></div>
+      <div class="card"><h3>Derniers ajouts</h3><div id="dashRecent" class="list" style="margin-top:0"></div></div>
+    </div>
+    <p class="s" id="dashNoDs" style="margin-top:12px"></p>
+  </section>
+
+  <!-- Composants -->
+  <section id="viewList" class="hidden">
+    <h2>Composants</h2>
+    <span id="lowChip" class="chip hidden" title="Retirer le filtre">⚠️ Stock bas uniquement ✕</span>
+    <div class="row">
+      <input id="search" type="search" placeholder="Rechercher (nom, référence, tiroir…)">
+      <select id="filterCat" style="flex:0 0 38%"><option value="">Toutes catégories</option></select>
+    </div>
+    <p class="s" id="listCount" style="margin:10px 0 0"></p>
+    <div id="list" class="list"></div>
+  </section>
+
+  <!-- Identification en cours -->
+  <section id="viewLoading" class="hidden">
+    <img id="loadingPhoto" class="photo-big" alt="">
+    <div class="spinner">🔍 Identification en cours et recherche de la datasheet…<br>(cela peut prendre une trentaine de secondes)</div>
+  </section>
+
+  <!-- Formulaire -->
+  <section id="viewForm" class="hidden">
+    <div id="aiError" class="banner hidden"></div>
+    <img id="formPhoto" class="photo-big hidden" alt="">
+    <form id="form">
+      <label>Nom</label><input name="name" required>
+      <div class="row">
+        <div><label>Référence</label><input name="part_number"></div>
+        <div><label>Fabricant</label><input name="manufacturer"></div>
+      </div>
+      <div class="row">
+        <div><label>Catégorie</label><input name="category" list="cats"></div>
+        <div><label>Boîtier</label><input name="package"></div>
+      </div>
+      <div class="row">
+        <div><label>Quantité</label><input name="quantity" type="number" min="0" value="1"></div>
+        <div><label>Emplacement</label><input name="location" placeholder="ex. Tiroir A3"></div>
+      </div>
+      <label>Description</label><textarea name="description"></textarea>
+      <label>Datasheet (URL)</label><input name="datasheet_url" type="url">
+      <label>Page fabricant (URL)</label><input name="manufacturer_url" type="url">
+      <div class="links" id="formLinks"></div>
+      <label>Caractéristiques (une par ligne, « clé : valeur »)</label><textarea name="specs" rows="5"></textarea>
+      <label>Notes</label><textarea name="notes"></textarea>
+      <div class="row" style="margin-top:16px">
+        <button type="button" id="btnCancel">Annuler</button>
+        <button type="submit" class="primary">Enregistrer</button>
+      </div>
+      <button type="button" id="btnDelete" class="danger hidden" style="width:100%;margin-top:10px">Supprimer</button>
+    </form>
+  </section>
+
+  <!-- Paramètres -->
+  <section id="viewSettings" class="hidden">
+    <h2>Paramètres</h2>
+    <div class="settings">
+      <div class="card">
+        <h3>Intelligence artificielle</h3>
+        <p class="s" style="margin:0">L'identification utilise le premier connecteur actif ; les suivants servent de secours s'il échoue.</p>
+        <div class="table-wrap">
+          <table class="conn">
+            <thead><tr><th>IA</th><th>Modèle</th><th>Clé</th><th>État</th><th></th></tr></thead>
+            <tbody id="connRows"></tbody>
+          </table>
+        </div>
+        <p id="envNote" class="s hidden" style="margin:8px 0 0">Une clé Claude est aussi fournie par la configuration Umbrel ; elle sert si aucun connecteur n'est actif.</p>
+
+        <h3 style="margin:18px 0 0">Ajouter un connecteur</h3>
+        <div class="row wrap">
+          <div><label>IA</label><select id="connProvider"></select></div>
+          <div><label>Modèle</label><input id="connModel" autocomplete="off"></div>
+        </div>
+        <label>Clé API <a id="connKeyLink" target="_blank" rel="noopener" class="s">(obtenir une clé)</a></label>
+        <input id="connKey" type="password" autocomplete="off">
+        <p id="connSearchNote" class="s hidden" style="margin:6px 0 0">Cette IA n'a pas de recherche web : les liens datasheet seront souvent vides.</p>
+        <button id="btnAddConn" class="primary" style="margin-top:12px">Ajouter</button>
+      </div>
+      <div class="card">
+        <h3>Stock</h3>
+        <label>Seuil de stock bas (un composant est signalé quand sa quantité est inférieure ou égale à ce nombre)</label>
+        <input id="lowThreshold" type="number" min="0" step="1">
+        <button id="btnSaveStock" class="primary" style="margin-top:12px">Enregistrer le seuil</button>
+      </div>
+      <div class="card">
+        <h3>À propos</h3>
+        <dl class="info">
+          <dt>Application</dt><dd>Lab Inventory</dd>
+          <dt>Références</dt><dd id="aboutRefs">–</dd>
+          <dt>Pièces</dt><dd id="aboutPieces">–</dd>
+        </dl>
+      </div>
+      <p id="settingsMsg" class="s hidden" style="text-align:center"></p>
+    </div>
+  </section>
+</main>
+
+<datalist id="cats"></datalist>
+<input id="fileInput" type="file" accept="image/*" capture="environment" class="hidden">
+<button id="fab" class="primary fab hidden">📷 Ajouter</button>
+
+<script>
+const CATEGORIES = ["Résistance","Condensateur","Inductance","Diode","LED","Transistor","Circuit intégré","Microcontrôleur","Régulateur","Capteur","Module","Connecteur","Interrupteur","Relais","Afficheur","Quartz/Oscillateur","Câble","Autre"];
+const $ = s => document.querySelector(s);
+const views = ["viewDashboard","viewList","viewLoading","viewForm","viewSettings"];
+const ROUTES = { dashboard: "viewDashboard", composants: "viewList", parametres: "viewSettings" };
+let editingId = null, currentPhoto = null, lowOnly = false, returnRoute = "composants";
+
+function show(v) {
+  views.forEach(x => $("#"+x).classList.toggle("hidden", x !== v));
+  $("#fab").classList.toggle("hidden", !["viewDashboard","viewList"].includes(v));
+  scrollTo(0,0);
+}
+function esc(s) { return (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function fmt(n) { return (n ?? 0).toLocaleString("fr-FR"); }
+async function api(path, opts={}) {
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || r.statusText);
+  return data;
+}
+
+// ---------- Navigation (#/dashboard, #/composants, #/parametres) ----------
+function currentRoute() { const r = location.hash.replace(/^#\/?/, ""); return ROUTES[r] ? r : "dashboard"; }
+function route() {
+  const r = currentRoute();
+  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === r));
+  show(ROUTES[r]);
+  if (r === "dashboard") loadDashboard();
+  if (r === "composants") loadList();
+  if (r === "parametres") loadSettings();
+}
+function go(r) { if (currentRoute() === r && location.hash) route(); else location.hash = "#/" + r; }
+addEventListener("hashchange", route);
+
+// ---------- Dashboard ----------
+function miniItem(c, low) {
+  return `<div class="item small" data-id="${c.id}">
+    ${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy">` : `<div class="thumb"></div>`}
+    <div><div class="t">${esc(c.name)}</div><div class="s">${esc([c.part_number, c.location].filter(Boolean).join(" · "))}</div></div>
+    <div class="qty${low ? " low" : ""}">×${c.quantity}</div></div>`;
+}
+async function loadDashboard() {
+  const s = await api("/api/stats");
+  $("#stRefs").textContent = fmt(s.refs);
+  $("#stPieces").textContent = fmt(s.pieces);
+  $("#stLocations").textContent = fmt(s.locations);
+  $("#stLow").textContent = fmt(s.low_stock_count);
+  $("#stLowLabel").textContent = `Stock bas (≤ ${s.low_stock_threshold})`;
+  const max = Math.max(1, ...s.by_category.map(c => c.refs));
+  $("#dashCats").innerHTML = s.by_category.length ? s.by_category.map(c => `
+    <div class="bar" data-cat="${esc(c.category)}">
+      <span>${esc(c.category)}</span>
+      <div class="track"><div class="fill" style="width:${(c.refs / max * 100).toFixed(1)}%"></div></div>
+      <span class="n">${c.refs} réf. · ${fmt(c.pieces)} pcs</span>
+    </div>`).join("") : `<div class="empty">Aucun composant pour l'instant.</div>`;
+  $("#dashLow").innerHTML = s.low_stock.length ? s.low_stock.map(c => miniItem(c, true)).join("") : `<div class="empty">Rien à racheter 👍</div>`;
+  $("#dashRecent").innerHTML = s.recent.length ? s.recent.map(c => miniItem(c)).join("") : `<div class="empty">Touchez « 📷 Ajouter » pour commencer.</div>`;
+  $("#dashNoDs").textContent = s.no_datasheet ? `📄 ${s.no_datasheet} composant(s) sans datasheet.` : "";
+}
+$("#viewDashboard").onclick = e => {
+  const it = e.target.closest(".item"); if (it) return openEdit(+it.dataset.id);
+  const bar = e.target.closest(".bar");
+  if (bar) { lowOnly = false; $("#search").value = ""; $("#filterCat").value = bar.dataset.cat; return go("composants"); }
+  const tile = e.target.closest(".tile[data-go]");
+  if (tile) { lowOnly = tile.dataset.go === "lowstock"; $("#search").value = ""; $("#filterCat").value = ""; go("composants"); }
+};
+
+// ---------- Composants ----------
+CATEGORIES.forEach(c => { $("#filterCat").add(new Option(c, c)); $("#cats").append(new Option(c)); });
+$("#filterCat").add(new Option("Sans catégorie", "Sans catégorie"));
+
+async function loadList() {
+  const q = encodeURIComponent($("#search").value), cat = encodeURIComponent($("#filterCat").value);
+  $("#lowChip").classList.toggle("hidden", !lowOnly);
+  const items = await api(`/api/components?q=${q}&category=${cat}${lowOnly ? "&low_stock=true" : ""}`);
+  const filtered = q || cat || lowOnly;
+  $("#listCount").textContent = items.length ? `${items.length} référence(s)` : "";
+  $("#list").innerHTML = items.length ? items.map(c => `
+    <div class="item" data-id="${c.id}">
+      ${c.photo ? `<img src="/photos/${esc(c.photo)}" loading="lazy">` : `<div class="thumb"></div>`}
+      <div><div class="t">${esc(c.name)}</div>
+        <div class="s">${esc([c.part_number, c.manufacturer].filter(Boolean).join(" · "))}</div>
+        <div class="s">${esc([c.category, c.location].filter(Boolean).join(" · "))}</div></div>
+      <div class="qty">×${c.quantity}</div>
+    </div>`).join("") : `<p class="empty">${filtered ? "Aucun composant ne correspond." : "Aucun composant. Touchez « 📷 Ajouter » pour photographier le premier."}</p>`;
+}
+$("#list").onclick = e => { const it = e.target.closest(".item"); if (it) openEdit(+it.dataset.id); };
+let t; $("#search").oninput = () => { clearTimeout(t); t = setTimeout(loadList, 250); };
+$("#filterCat").onchange = loadList;
+$("#lowChip").onclick = () => { lowOnly = false; loadList(); };
+
+// ---------- Fiche composant ----------
+function specsToText(s) { return Object.entries(s || {}).map(([k,v]) => `${k} : ${v}`).join("\n"); }
+function textToSpecs(t) { const o = {}; t.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) o[l.slice(0,i).trim()] = l.slice(i+1).trim(); }); return o; }
+
+function fillForm(c, error) {
+  const f = $("#form"); f.reset();
+  for (const el of f.elements) if (el.name && el.name !== "specs" && c[el.name] != null) el.value = c[el.name];
+  f.specs.value = specsToText(c.specs);
+  currentPhoto = c.photo || null;
+  $("#formPhoto").classList.toggle("hidden", !currentPhoto);
+  if (currentPhoto) $("#formPhoto").src = "/photos/" + currentPhoto;
+  $("#formLinks").innerHTML = [c.datasheet_url && `<a href="${esc(c.datasheet_url)}" target="_blank">📄 Datasheet</a>`,
+                               c.manufacturer_url && `<a href="${esc(c.manufacturer_url)}" target="_blank">🏭 Page fabricant</a>`].filter(Boolean).join("");
+  const msg = error ? "Identification impossible : " + error + ". Complétez la fiche à la main."
+            : c.confidence && c.confidence !== "haute" ? `Confiance de l'IA${c.ai_provider ? " (" + c.ai_provider + ")" : ""} : ${c.confidence}. ${c.notes || ""} Vérifiez avant d'enregistrer.` : "";
+  $("#aiError").textContent = msg; $("#aiError").classList.toggle("hidden", !msg);
+  $("#btnDelete").classList.toggle("hidden", !editingId);
+  show("viewForm");
+}
+
+async function openEdit(id) { returnRoute = currentRoute(); editingId = id; fillForm(await api("/api/components/" + id)); }
+function closeForm() { go(returnRoute); }
+
+// Photo : redimensionnée dans le navigateur (envoi rapide, limite 5 Mo de l'IA)
+function resize(file, max = 1600) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = img.width * k; c.height = img.height * k;
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => res(b), "image/jpeg", 0.85);
+    };
+    img.onerror = rej; img.src = URL.createObjectURL(file);
+  });
+}
+
+$("#fab").onclick = () => $("#fileInput").click();
+$("#fileInput").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  editingId = null; returnRoute = currentRoute();
+  $("#loadingPhoto").src = URL.createObjectURL(file);
+  show("viewLoading");
+  try {
+    const fd = new FormData(); fd.append("photo", await resize(file), "photo.jpg");
+    const r = await api("/api/identify", { method: "POST", body: fd });
+    fillForm(r, r.error);
+  } catch (err) { fillForm({}, err.message); }
+};
+
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, body = { photo: currentPhoto };
+  for (const el of f.elements) if (el.name) body[el.name] = el.value || null;
+  body.quantity = +f.quantity.value || 0;
+  body.specs = textToSpecs(f.specs.value);
+  await api(editingId ? "/api/components/" + editingId : "/api/components",
+            { method: editingId ? "PUT" : "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+  closeForm();
+};
+$("#btnCancel").onclick = closeForm;
+$("#btnDelete").onclick = async () => {
+  if (!confirm("Supprimer ce composant ?")) return;
+  await api("/api/components/" + editingId, { method: "DELETE" }); closeForm();
+};
+
+// ---------- Paramètres ----------
+function flash(msg) { const m = $("#settingsMsg"); m.textContent = msg; m.classList.remove("hidden"); setTimeout(() => m.classList.add("hidden"), 2500); }
+async function refreshKeyBanner() {
+  const s = await api("/api/settings");
+  $("#keyBanner").classList.toggle("hidden", s.ai_ready);
+  return s;
+}
+async function loadSettings() {
+  const s = await refreshKeyBanner();
+  $("#envNote").classList.toggle("hidden", !s.api_key_from_env);
+  $("#lowThreshold").value = s.low_stock_threshold;
+  await loadConnectors();
+  const st = await api("/api/stats");
+  $("#aboutRefs").textContent = fmt(st.refs); $("#aboutPieces").textContent = fmt(st.pieces);
+}
+async function saveSettings(body, msg) {
+  await api("/api/settings", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+  await loadSettings(); flash(msg);
+}
+
+// Connecteurs IA
+let PROVIDERS = [];
+function renderConnectors(list) {
+  $("#connRows").innerHTML = list.length ? list.map(c => `
+    <tr class="${c.enabled ? "" : "off"}" data-id="${c.id}">
+      <td>${esc(c.provider_label)}</td>
+      <td>${esc(c.model)}</td>
+      <td class="key">${esc(c.api_key)}</td>
+      <td><span class="badge ${c.enabled ? "on" : "off"}">${c.enabled ? "Actif" : "Désactivé"}</span></td>
+      <td class="acts">
+        <button data-act="toggle" data-enabled="${c.enabled ? 0 : 1}">${c.enabled ? "Désactiver" : "Activer"}</button>
+        <button data-act="delete" class="danger" title="Supprimer">🗑</button>
+      </td>
+    </tr>`).join("") : `<tr><td colspan="5" class="empty">Aucun connecteur. Ajoutez-en un ci-dessous.</td></tr>`;
+}
+async function loadConnectors() {
+  if (!PROVIDERS.length) {
+    PROVIDERS = await api("/api/providers");
+    PROVIDERS.forEach(p => $("#connProvider").add(new Option(p.label, p.id)));
+    onProviderChange();
+  }
+  renderConnectors(await api("/api/connectors"));
+}
+function onProviderChange() {
+  const p = PROVIDERS.find(x => x.id === $("#connProvider").value);
+  $("#connModel").value = p.default_model;
+  $("#connKeyLink").href = p.key_url;
+  $("#connSearchNote").classList.toggle("hidden", p.web_search);
+}
+$("#connProvider").onchange = onProviderChange;
+$("#btnAddConn").onclick = async () => {
+  const key = $("#connKey").value.trim();
+  if (!key) return $("#connKey").focus();
+  try {
+    renderConnectors(await api("/api/connectors", { method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ provider: $("#connProvider").value, model: $("#connModel").value, api_key: key }) }));
+    $("#connKey").value = ""; refreshKeyBanner(); flash("Connecteur ajouté.");
+  } catch (err) { flash(err.message); }
+};
+$("#connRows").onclick = async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const id = b.closest("tr").dataset.id;
+  if (b.dataset.act === "delete") {
+    if (!confirm("Supprimer ce connecteur et sa clé API ?")) return;
+    renderConnectors(await api("/api/connectors/" + id, { method: "DELETE" }));
+  } else {
+    renderConnectors(await api("/api/connectors/" + id, { method: "PATCH", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ enabled: b.dataset.enabled === "1" }) }));
+  }
+  refreshKeyBanner();
+};
+$("#btnSaveStock").onclick = () => {
+  const v = parseInt($("#lowThreshold").value, 10);
+  if (isNaN(v) || v < 0) return;
+  saveSettings({ low_stock_threshold: v }, "Seuil enregistré.");
+};
+
+refreshKeyBanner(); route();
+</script>
+</body>
+</html>
