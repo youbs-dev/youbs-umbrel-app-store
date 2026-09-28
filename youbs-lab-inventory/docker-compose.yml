@@ -9,7 +9,7 @@ services:
 
   web:
     # Image construite depuis src/lab-inventory par .github/workflows/lab-inventory-image.yml
-    image: ghcr.io/youbs-dev/lab-inventory:0.6.0
+    image: ghcr.io/youbs-dev/lab-inventory:0.7.0
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data

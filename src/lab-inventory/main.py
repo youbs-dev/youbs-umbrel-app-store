@@ -636,20 +636,6 @@ def update_component(cid: int, c: Component):
     return get_component(cid)
 
 
-class QuantityPatch(BaseModel):
-    quantity: int
-
-
-@app.patch("/api/components/{cid}")
-def update_quantity(cid: int, p: QuantityPatch):
-    """Ajustement rapide du stock depuis la fiche en lecture."""
-    with db() as conn:
-        if not conn.execute("UPDATE components SET quantity=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                            (max(0, p.quantity), cid)).rowcount:
-            raise HTTPException(404, "Composant introuvable")
-    return get_component(cid)
-
-
 @app.delete("/api/components/{cid}")
 def delete_component(cid: int):
     photos = get_component(cid)["photos"]

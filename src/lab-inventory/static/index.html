@@ -188,7 +188,6 @@
   .stock { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
   .stock .big { font-size:2.4rem; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; min-width:70px; text-align:center; }
   .stock .big.low { color:var(--warning); }
-  .qbtn { width:44px; height:44px; border-radius:10px; }
   .kv { display:grid; grid-template-columns:auto 1fr; gap:10px 16px; margin:0; }
   .kv dt { color:var(--text-secondary); font-size:.9rem; display:flex; align-items:center; gap:6px; } .kv dd { margin:0; font-weight:500; min-width:0; overflow-wrap:anywhere; }
   table.specs { width:100%; border-collapse:collapse; } table.specs td { padding:8px 0; border-bottom:1px solid var(--border); vertical-align:top; }
@@ -343,9 +342,7 @@
         <div class="card"><div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3><span id="dLowPill" class="pill amber hidden">Stock bas</span></div>
           <div class="card-c">
             <div class="stock">
-              <button class="btn secondary qbtn" id="qMinus" aria-label="Retirer une pièce"><svg class="i"><use href="#i-minus"/></svg></button>
               <div class="big" id="dQty">0</div>
-              <button class="btn secondary qbtn" id="qPlus" aria-label="Ajouter une pièce"><svg class="i"><use href="#i-plus"/></svg></button>
               <span class="muted small">pièce(s)</span>
             </div>
             <dl class="kv" style="margin-top:18px">
@@ -404,7 +401,7 @@
             <div class="grid2">
               <div><label>Référence</label><input name="part_number"></div>
               <div><label>Fabricant</label><input name="manufacturer"></div>
-              <div><label>Catégorie</label><input name="category" list="cats"></div>
+              <div><label>Catégorie <a href="#/parametres" class="small">(gérer)</a></label><select name="category" id="formCat"></select></div>
               <div><label>Boîtier</label><input name="package"></div>
             </div>
             <label>Description</label><textarea name="description"></textarea>
@@ -502,7 +499,6 @@
 </div>
 </main>
 
-<datalist id="cats"></datalist>
 <input id="fileInput" type="file" accept="image/*" capture="environment" multiple class="hidden">
 <input id="addPhotosInput" type="file" accept="image/*" multiple class="hidden">
 
@@ -698,8 +694,16 @@ async function loadCategories() {
   CATEGORIES.forEach(c => sel.add(new Option(c.name, c.name)));
   sel.add(new Option("Sans catégorie", "Sans catégorie"));
   sel.value = [...sel.options].some(o => o.value === keep) ? keep : "";
-  $("#cats").innerHTML = CATEGORIES.map(c => `<option value="${esc(c.name)}">`).join("");
+  fillFormCategories($("#formCat").value);
   return CATEGORIES;
+}
+// Liste déroulante de la fiche : catégories des paramètres (+ celle du composant si elle n'y est plus)
+function fillFormCategories(value) {
+  const names = CATEGORIES.map(c => c.name);
+  if (value && !names.some(n => n.toLowerCase() === value.toLowerCase())) names.push(value);
+  $("#formCat").innerHTML = `<option value="">Sans catégorie</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  const match = names.find(n => n.toLowerCase() === (value || "").toLowerCase());
+  $("#formCat").value = match || "";
 }
 
 async function loadList() {
@@ -775,14 +779,7 @@ function renderQty() {
   $("#dQty").textContent = current.quantity;
   $("#dQty").classList.toggle("low", low);
   $("#dLowPill").classList.toggle("hidden", !low);
-  $("#qMinus").disabled = current.quantity <= 0;
 }
-async function changeQty(delta) {
-  current = await api("/api/components/" + current.id, json("PATCH", { quantity: current.quantity + delta }));
-  renderQty();
-}
-$("#qMinus").onclick = () => changeQty(-1);
-$("#qPlus").onclick = () => changeQty(1);
 $("#btnBack").onclick = () => history.length > 1 ? history.back() : go("#/composants");
 $("#btnEdit").onclick = () => go(`#/composants/${current.id}/modifier`);
 async function deleteComponent(id) {
@@ -799,8 +796,9 @@ function textToSpecs(t) { const o = {}; t.split("\n").forEach(l => { const i = l
 
 function fillFields(c) {
   const f = $("#form");
-  for (const el of f.elements) if (el.name && el.name !== "specs") el.value = c[el.name] ?? (el.name === "quantity" ? 1 : "");
+  for (const el of f.elements) if (el.name && el.name !== "specs" && el.name !== "category") el.value = c[el.name] ?? (el.name === "quantity" ? 1 : "");
   f.specs.value = specsToText(c.specs);
+  fillFormCategories(c.category);
 }
 function setAiMessage(c, error) {
   const msg = error ? "Identification impossible : " + error + ". Complétez la fiche à la main."
