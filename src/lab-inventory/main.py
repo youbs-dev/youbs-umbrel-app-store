@@ -72,6 +72,12 @@ with db() as conn:
     if "photos" not in [r["name"] for r in conn.execute("PRAGMA table_info(components)")]:
         conn.execute("ALTER TABLE components ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'")
         conn.execute("UPDATE components SET photos = json_array(photo) WHERE COALESCE(photo, '') != ''")
+    # Catégories modifiables dans les paramètres : liste par défaut + celles déjà utilisées par des composants.
+    if not conn.execute("SELECT name FROM sqlite_master WHERE name='categories'").fetchone():
+        conn.execute("CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE)")
+        conn.executemany("INSERT OR IGNORE INTO categories (name) VALUES (?)", [(c,) for c in ai.DEFAULT_CATEGORIES])
+        conn.execute("INSERT OR IGNORE INTO categories (name) "
+                     "SELECT DISTINCT TRIM(category) FROM components WHERE TRIM(COALESCE(category, '')) != ''")
 
 
 def row_to_dict(row):
@@ -252,6 +258,80 @@ def write_settings(s: Settings):
     return read_settings()
 
 
+class CategoryIn(BaseModel):
+    name: str
+
+
+def category_names():
+    with db() as conn:
+        return [r["name"] for r in conn.execute("SELECT name FROM categories ORDER BY name COLLATE NOCASE")]
+
+
+def clean_category_name(name: str) -> str:
+    name = " ".join(name.split())
+    if not name:
+        raise HTTPException(400, "Le nom de la catégorie est vide.")
+    if name.lower() == "sans catégorie":
+        raise HTTPException(400, "« Sans catégorie » est réservé aux composants sans catégorie.")
+    return name
+
+
+def remember_category(conn, name):
+    """Une catégorie saisie librement dans une fiche rejoint la liste des paramètres."""
+    name = " ".join((name or "").split())
+    if name and name.lower() != "sans catégorie":
+        conn.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (name,))
+
+
+@app.get("/api/categories")
+def list_categories():
+    """Catégories avec le nombre de composants de chacune."""
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT c.id, c.name, COUNT(p.id) AS count FROM categories c "
+            "LEFT JOIN components p ON p.category = c.name COLLATE NOCASE "
+            "GROUP BY c.id ORDER BY c.name COLLATE NOCASE").fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/categories")
+def create_category(c: CategoryIn):
+    name = clean_category_name(c.name)
+    with db() as conn:
+        try:
+            conn.execute("INSERT INTO categories (name) VALUES (?)", (name,))
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, f"La catégorie « {name} » existe déjà.")
+    return list_categories()
+
+
+@app.put("/api/categories/{cat_id}")
+def rename_category(cat_id: int, c: CategoryIn):
+    """Renomme la catégorie et met à jour les composants qui l'utilisent."""
+    name = clean_category_name(c.name)
+    with db() as conn:
+        row = conn.execute("SELECT name FROM categories WHERE id=?", (cat_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Catégorie introuvable")
+        try:
+            conn.execute("UPDATE categories SET name=? WHERE id=?", (name, cat_id))
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, f"La catégorie « {name} » existe déjà.")
+        conn.execute("UPDATE components SET category=? WHERE category=? COLLATE NOCASE", (name, row["name"]))
+    return list_categories()
+
+
+@app.delete("/api/categories/{cat_id}")
+def delete_category(cat_id: int):
+    """Supprime la catégorie ; ses composants passent en « Sans catégorie »."""
+    with db() as conn:
+        row = conn.execute("SELECT name FROM categories WHERE id=?", (cat_id,)).fetchone()
+        if row:
+            conn.execute("UPDATE components SET category=NULL WHERE category=? COLLATE NOCASE", (row["name"],))
+            conn.execute("DELETE FROM categories WHERE id=?", (cat_id,))
+    return list_categories()
+
+
 @app.get("/api/providers")
 def list_providers():
     return [{"id": k, **v} for k, v in ai.PROVIDERS.items()]
@@ -346,7 +426,8 @@ async def identify(body: IdentifyIn):
     errors = []
     for c in connectors:  # en cas d'échec, on essaie le connecteur actif suivant
         try:
-            result = await run_in_threadpool(ai.identify, images, c["provider"], c["model"], c["api_key"])
+            result = await run_in_threadpool(ai.identify, images, c["provider"], c["model"], c["api_key"],
+                                             category_names())
         except Exception as e:
             errors.append(f"{connector_label(c)} : {e}")
             continue
@@ -539,6 +620,7 @@ def create_component(c: Component):
             f"INSERT INTO components ({', '.join(FIELDS)}) VALUES ({', '.join('?' * len(FIELDS))})",
             c.db_values())
         cid = cur.lastrowid
+        remember_category(conn, c.category)
     return get_component(cid)
 
 
@@ -549,6 +631,7 @@ def update_component(cid: int, c: Component):
         conn.execute(
             f"UPDATE components SET {', '.join(f + '=?' for f in FIELDS)}, "
             "updated_at=CURRENT_TIMESTAMP WHERE id=?", c.db_values() + [cid])
+        remember_category(conn, c.category)
     delete_photos(set(old_photos) - referenced_photos())  # photos retirées de la fiche
     return get_component(cid)
 

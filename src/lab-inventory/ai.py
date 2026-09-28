@@ -15,7 +15,7 @@ PROMPT = """Tu reçois une ou plusieurs photos d'un même composant électroniqu
   "name": "nom court lisible, ex. 'Régulateur de tension 5V'",
   "part_number": "référence exacte, ex. 'LM7805CT'",
   "manufacturer": "fabricant",
-  "category": "une catégorie parmi : Résistance, Condensateur, Inductance, Diode, LED, Transistor, Circuit intégré, Microcontrôleur, Régulateur, Capteur, Module, Connecteur, Interrupteur, Relais, Afficheur, Quartz/Oscillateur, Câble, Autre",
+  "category": "une catégorie parmi : __CATEGORIES__",
   "package": "boîtier, ex. TO-220, DIP-8, SMD 0805",
   "description": "2 ou 3 phrases en français sur ce que fait le composant",
   "specs": {"caractéristique": "valeur", "...": "..."},
@@ -54,9 +54,17 @@ PROVIDERS = {
 }
 
 
-def identify(images: list[tuple[bytes, str]], provider: str, model: str, api_key: str) -> dict:
-    """images : liste de (contenu, type MIME) d'un même composant."""
-    prompt = PROMPT if PROVIDERS[provider]["web_search"] else PROMPT + NO_SEARCH_NOTE
+DEFAULT_CATEGORIES = ["Résistance", "Condensateur", "Inductance", "Diode", "LED", "Transistor", "Circuit intégré",
+                      "Microcontrôleur", "Régulateur", "Capteur", "Module", "Connecteur", "Interrupteur", "Relais",
+                      "Afficheur", "Quartz/Oscillateur", "Câble", "Autre"]
+
+
+def identify(images: list[tuple[bytes, str]], provider: str, model: str, api_key: str,
+             categories: list[str] | None = None) -> dict:
+    """images : liste de (contenu, type MIME) d'un même composant ; categories : celles définies dans les paramètres."""
+    prompt = PROMPT.replace("__CATEGORIES__", ", ".join(categories or DEFAULT_CATEGORIES))
+    if not PROVIDERS[provider]["web_search"]:
+        prompt += NO_SEARCH_NOTE
     encoded = [(base64.b64encode(data).decode(), media_type) for data, media_type in images]
     return _parse_json(_call(provider, model, api_key, prompt, encoded))
 

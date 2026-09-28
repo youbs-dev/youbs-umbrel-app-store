@@ -243,6 +243,12 @@
   .sugg img { width:100%; height:100%; object-fit:contain; display:block; }
   .sugg .check { position:absolute; top:5px; right:5px; width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:none; align-items:center; justify-content:center; }
   .sugg.sel .check { display:flex; } .sugg .check svg { width:14px; height:14px; stroke-width:3; }
+  .cat-list { margin-top:12px; border:1px solid var(--border); border-radius:10px; max-height:420px; overflow-y:auto; }
+  .cat-row { display:flex; align-items:center; gap:8px; padding:6px 8px 6px 14px; border-bottom:1px solid var(--border); min-height:48px; }
+  .cat-row:last-child { border-bottom:0; }
+  .cat-row .nm { flex:1; min-width:0; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cat-row input { flex:1; min-width:0; padding:6px 10px; }
+  .cat-row .btn.icon { padding:7px; }
   .sect { padding:14px; border-radius:10px; background:var(--bg-primary); border:1px solid var(--border); }
   .sect-t { display:flex; align-items:center; gap:8px; font-weight:600; margin-bottom:6px; }
   .sect-t svg { color:var(--accent); }
@@ -464,6 +470,17 @@
         </div>
       </div>
       <div class="card">
+        <div class="card-h"><svg class="i"><use href="#i-layers"/></svg><h3>Catégories</h3><span id="catCount" class="muted small"></span></div>
+        <div class="card-c">
+          <div class="inline">
+            <input id="newCat" placeholder="Nouvelle catégorie (ex. Potentiomètre)" autocomplete="off">
+            <button id="btnAddCat" class="btn primary"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button>
+          </div>
+          <div id="catRows" class="cat-list"></div>
+          <p class="muted small" style="margin:10px 0 0">Renommer une catégorie met à jour ses composants. En supprimer une fait passer ses composants en « Sans catégorie ». L'IA choisit parmi cette liste.</p>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3></div>
         <div class="card-c">
           <label style="margin-top:0">Seuil de stock bas (un composant est signalé quand sa quantité est inférieure ou égale à ce nombre)</label>
@@ -567,7 +584,6 @@
 </svg>
 
 <script>
-const CATEGORIES = ["Résistance","Condensateur","Inductance","Diode","LED","Transistor","Circuit intégré","Microcontrôleur","Régulateur","Capteur","Module","Connecteur","Interrupteur","Relais","Afficheur","Quartz/Oscillateur","Câble","Autre"];
 const $ = s => document.querySelector(s);
 const views = ["viewDashboard","viewList","viewDetail","viewLoading","viewForm","viewSettings"];
 let lowOnly = false, lowThreshold = 2, returnHash = "#/composants";
@@ -673,8 +689,18 @@ $("#viewDashboard").onclick = e => {
 };
 
 // ---------- Composants : liste ----------
-CATEGORIES.forEach(c => { $("#filterCat").add(new Option(c, c)); $("#cats").append(new Option(c)); });
-$("#filterCat").add(new Option("Sans catégorie", "Sans catégorie"));
+// Catégories définies dans les paramètres : filtre de la liste et suggestions du champ Catégorie
+let CATEGORIES = [];
+async function loadCategories() {
+  CATEGORIES = (await api("/api/categories")).sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
+  const sel = $("#filterCat"), keep = sel.value;
+  sel.length = 1;
+  CATEGORIES.forEach(c => sel.add(new Option(c.name, c.name)));
+  sel.add(new Option("Sans catégorie", "Sans catégorie"));
+  sel.value = [...sel.options].some(o => o.value === keep) ? keep : "";
+  $("#cats").innerHTML = CATEGORIES.map(c => `<option value="${esc(c.name)}">`).join("");
+  return CATEGORIES;
+}
 
 async function loadList() {
   const q = encodeURIComponent($("#search").value), cat = encodeURIComponent($("#filterCat").value);
@@ -807,7 +833,7 @@ $("#form").onsubmit = async e => {
   body.quantity = +f.quantity.value || 0;
   body.specs = textToSpecs(f.specs.value);
   const saved = await api(editingId ? "/api/components/" + editingId : "/api/components", json(editingId ? "PUT" : "POST", body));
-  draft = null; toast("Composant enregistré.");
+  draft = null; toast("Composant enregistré."); loadCategories();
   if (editingId) history.replaceState(null, "", `#/composants/${saved.id}`);
   go(`#/composants/${saved.id}`);
 };
@@ -1014,6 +1040,7 @@ async function loadSettings() {
   $("#btnDelMouser").classList.toggle("hidden", !s.mouser_key);
   $("#envNote").classList.toggle("hidden", !s.api_key_from_env);
   $("#lowThreshold").value = s.low_stock_threshold;
+  renderCategories(await loadCategories());
   await loadConnectors();
   const st = await api("/api/stats");
   $("#aboutRefs").textContent = fmt(st.refs); $("#aboutPieces").textContent = fmt(st.pieces);
@@ -1053,6 +1080,56 @@ $("#btnMouser").onclick = async () => {
     toast(filled.length ? `Mouser : ${m.part_number} (${m.manufacturer}) — ${filled.length} champ(s) complété(s).` : "Mouser : rien à compléter.");
   } catch (err) { toast(err.message); }
   b.disabled = false;
+};
+
+// Catégories : ajout, renommage (en place) et suppression
+let editingCat = null;
+function renderCategories(list) {
+  $("#catCount").textContent = `${list.length} catégorie(s)`;
+  $("#catRows").innerHTML = list.length ? list.map(c => c.id === editingCat ? `
+    <div class="cat-row" data-id="${c.id}">
+      <input class="cat-edit" value="${esc(c.name)}" autocomplete="off">
+      <button class="btn primary icon" data-act="save" title="Enregistrer">${ic("check", "sm")}</button>
+      <button class="btn ghost icon" data-act="cancel" title="Annuler">${ic("x", "sm")}</button>
+    </div>` : `
+    <div class="cat-row" data-id="${c.id}">
+      <span class="nm">${esc(c.name)}</span>
+      <span class="pill ${c.count ? "green" : "gray"}">${c.count} composant${c.count > 1 ? "s" : ""}</span>
+      <button class="btn ghost icon" data-act="edit" title="Renommer">${ic("pencil", "sm")}</button>
+      <button class="btn ghost icon" data-act="delete" title="Supprimer">${ic("trash", "sm")}</button>
+    </div>`).join("") : `<div class="empty">Aucune catégorie.</div>`;
+  const input = $("#catRows .cat-edit");
+  if (input) { input.focus(); input.select(); }
+}
+async function catAction(fn, msg) {
+  try { const list = await fn(); editingCat = null; CATEGORIES = list; await loadCategories(); renderCategories(CATEGORIES); if (msg) toast(msg); }
+  catch (err) { toast(err.message); }
+}
+$("#btnAddCat").onclick = () => {
+  const name = $("#newCat").value.trim(); if (!name) return $("#newCat").focus();
+  catAction(() => api("/api/categories", json("POST", { name })), `Catégorie « ${name} » ajoutée.`).then(() => { $("#newCat").value = ""; });
+};
+$("#newCat").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#btnAddCat").click(); } };
+$("#catRows").onclick = e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const id = +b.closest(".cat-row").dataset.id, cat = CATEGORIES.find(c => c.id === id);
+  if (b.dataset.act === "edit") { editingCat = id; renderCategories(CATEGORIES); }
+  else if (b.dataset.act === "cancel") { editingCat = null; renderCategories(CATEGORIES); }
+  else if (b.dataset.act === "save") {
+    const name = $("#catRows .cat-edit").value.trim();
+    if (!name || name === cat.name) { editingCat = null; return renderCategories(CATEGORIES); }
+    catAction(() => api("/api/categories/" + id, json("PUT", { name })),
+              `Catégorie renommée en « ${name} »${cat.count ? ` (${cat.count} composant(s) mis à jour)` : ""}.`);
+  } else if (b.dataset.act === "delete") {
+    const warn = cat.count ? `\n\n${cat.count} composant(s) passeront en « Sans catégorie ».` : "";
+    if (!confirm(`Supprimer la catégorie « ${cat.name} » ?${warn}`)) return;
+    catAction(() => api("/api/categories/" + id, { method: "DELETE" }), `Catégorie « ${cat.name} » supprimée.`);
+  }
+};
+$("#catRows").onkeydown = e => {
+  if (!e.target.classList.contains("cat-edit")) return;
+  if (e.key === "Enter") { e.preventDefault(); $('#catRows [data-act="save"]').click(); }
+  if (e.key === "Escape") { editingCat = null; renderCategories(CATEGORIES); }
 };
 
 // Connecteurs IA
@@ -1105,7 +1182,7 @@ $("#connRows").onclick = async e => {
   refreshKeyBanner();
 };
 
-refreshKeyBanner().finally(route);
+Promise.allSettled([refreshKeyBanner(), loadCategories()]).then(route);
 </script>
 </body>
 </html>
