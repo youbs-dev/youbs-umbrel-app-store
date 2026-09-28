@@ -1,0 +1,29 @@
+manifestVersion: 1
+id: youbs-inventaire
+name: Inventaire composants
+tagline: Inventoriez vos composants électroniques en les prenant en photo
+icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/inventaire/icon.svg
+category: files
+version: "0.1.0"
+port: 8765
+description: >-
+  Prenez un composant en photo depuis votre smartphone : l'IA (Claude) l'identifie,
+  retrouve sa datasheet et la page du fabricant, et pré-remplit sa fiche. Il ne reste
+  qu'à indiquer la quantité et l'emplacement. Recherche par nom, référence, catégorie ou tiroir.
+
+
+  Nécessite une clé API Claude (console.anthropic.com), à saisir dans les réglages ⚙️ de l'app.
+developer: youbs
+website: https://github.com/youbs-dev/youbs-umbrel-app-store
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/inventaire
+support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
+gallery: []
+releaseNotes: >-
+  Première version : ajout par photo avec identification par l'IA, datasheet et page fabricant,
+  quantités, emplacements et recherche.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

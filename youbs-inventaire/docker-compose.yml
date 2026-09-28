@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-inventaire_web_1
+      APP_PORT: 8000
+
+  web:
+    # Image construite depuis src/inventaire par .github/workflows/inventaire-image.yml
+    image: ghcr.io/youbs-dev/inventaire-composants:0.1.0
+    restart: unless-stopped
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
