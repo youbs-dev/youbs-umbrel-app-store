@@ -1,16 +1,12 @@
 """Inventaire de composants électroniques : API + interface web."""
 import base64
-import ipaddress
 import json
 import mimetypes
 import os
-import socket
 import sqlite3
-import time
-import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -20,111 +16,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import ai
+import extras
 import sources
-
-DATA_DIR = Path(os.environ.get("DATA_DIR", "./data"))
-PHOTOS_DIR = DATA_DIR / "photos"
-PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
-DB_PATH = DATA_DIR / "inventaire.db"
-STATIC_DIR = Path(__file__).parent / "static"
-
-FIELDS = ["name", "part_number", "manufacturer", "category", "package", "description",
-          "quantity", "location", "datasheet_url", "manufacturer_url", "notes", "photo", "photos", "specs"]
-IMAGE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
-MAX_PHOTO = 5 * 1024 * 1024
-
-
-def db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-with db() as conn:
-    conn.executescript("""
-    CREATE TABLE IF NOT EXISTS components (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        part_number TEXT, manufacturer TEXT, category TEXT, package TEXT, description TEXT,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        location TEXT, datasheet_url TEXT, manufacturer_url TEXT, notes TEXT, photo TEXT,
-        specs TEXT NOT NULL DEFAULT '{}',
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
-    CREATE TABLE IF NOT EXISTS connectors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        provider TEXT NOT NULL,
-        model TEXT NOT NULL,
-        api_key TEXT NOT NULL,
-        enabled INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    """)
-    # Ancienne version : une seule clé Claude dans les réglages -> devient un connecteur.
-    old_key = conn.execute("SELECT value FROM settings WHERE key='anthropic_api_key'").fetchone()
-    if old_key and old_key["value"]:
-        conn.execute("INSERT INTO connectors (provider, model, api_key) VALUES ('claude', ?, ?)",
-                     (ai.PROVIDERS["claude"]["default_model"], old_key["value"]))
-    conn.execute("DELETE FROM settings WHERE key='anthropic_api_key'")
-    # Ancienne version : une seule photo par composant -> liste de photos (la première est la principale).
-    if "photos" not in [r["name"] for r in conn.execute("PRAGMA table_info(components)")]:
-        conn.execute("ALTER TABLE components ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'")
-        conn.execute("UPDATE components SET photos = json_array(photo) WHERE COALESCE(photo, '') != ''")
-    # Catégories modifiables dans les paramètres : liste par défaut + celles déjà utilisées par des composants.
-    if not conn.execute("SELECT name FROM sqlite_master WHERE name='categories'").fetchone():
-        conn.execute("CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE)")
-        conn.executemany("INSERT OR IGNORE INTO categories (name) VALUES (?)", [(c,) for c in ai.DEFAULT_CATEGORIES])
-        conn.execute("INSERT OR IGNORE INTO categories (name) "
-                     "SELECT DISTINCT TRIM(category) FROM components WHERE TRIM(COALESCE(category, '')) != ''")
-
-
-def row_to_dict(row):
-    d = dict(row)
-    d["specs"] = json.loads(d.get("specs") or "{}")
-    d["photos"] = json.loads(d.get("photos") or "[]")
-    return d
-
-
-def referenced_photos():
-    with db() as conn:
-        return {p for r in conn.execute("SELECT photos FROM components") for p in json.loads(r["photos"] or "[]")}
-
-
-def is_remote(photo: str) -> bool:
-    """Une photo est soit un fichier local, soit un lien vers une image que le serveur n'a pas pu copier (Mouser)."""
-    return photo.startswith(("http://", "https://"))
-
-
-def delete_photos(names):
-    for name in names:
-        if not is_remote(name):
-            (PHOTOS_DIR / Path(name).name).unlink(missing_ok=True)
-
-
-def cleanup_orphan_photos(max_age=24 * 3600):
-    """Supprime les photos jamais rattachées à un composant (ajout annulé, propositions non retenues)."""
-    used, now = referenced_photos(), time.time()
-    delete_photos([f.name for f in PHOTOS_DIR.iterdir()
-                   if f.is_file() and f.name not in used and now - f.stat().st_mtime > max_age])
-
-
-cleanup_orphan_photos()
-
-
-def save_photo(data: bytes, media_type: str) -> str:
-    filename = f"{uuid.uuid4().hex}.{IMAGE_TYPES.get(media_type, 'jpg')}"
-    (PHOTOS_DIR / filename).write_bytes(data)
-    return filename
-
-
-def load_photo(name: str) -> tuple[bytes, str]:
-    path = PHOTOS_DIR / Path(name).name
-    if not path.is_file():
-        raise HTTPException(404, f"Photo introuvable : {name}")
-    ext = path.suffix.lstrip(".").replace("jpg", "jpeg")
-    return path.read_bytes(), f"image/{ext}"
+from store import (DATASHEETS_DIR, FIELDS, IMAGE_TYPES, MAX_PHOTO, PHOTOS_DIR, STATIC_DIR, db, delete_photos,
+                   get_low_stock_threshold, get_setting, is_public_url, is_remote, load_photo, log_movement,
+                   referenced_photos, remember, row_to_dict, save_photo)
 
 
 def mask_key(key):
@@ -209,22 +105,6 @@ class ConnectorPatch(BaseModel):
     enabled: bool
 
 
-DEFAULT_LOW_STOCK = 2
-
-
-def get_setting(key, default=None):
-    with db() as conn:
-        row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
-    return row["value"] if row else default
-
-
-def get_low_stock_threshold():
-    try:
-        return int(get_setting("low_stock_threshold", DEFAULT_LOW_STOCK))
-    except ValueError:
-        return DEFAULT_LOW_STOCK
-
-
 app = FastAPI(title="Lab Inventory")
 
 
@@ -274,13 +154,6 @@ def clean_category_name(name: str) -> str:
     if name.lower() == "sans catégorie":
         raise HTTPException(400, "« Sans catégorie » est réservé aux composants sans catégorie.")
     return name
-
-
-def remember_category(conn, name):
-    """Une catégorie saisie librement dans une fiche rejoint la liste des paramètres."""
-    name = " ".join((name or "").split())
-    if name and name.lower() != "sans catégorie":
-        conn.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (name,))
 
 
 @app.get("/api/categories")
@@ -436,18 +309,6 @@ async def identify(body: IdentifyIn):
     return {"error": " / ".join(errors)}
 
 
-def is_public_url(url: str) -> bool:
-    """Refuse les adresses locales : les URL viennent du web, elles ne doivent pas viser le réseau de la maison."""
-    u = urlparse(url)
-    if u.scheme not in ("http", "https") or not u.hostname:
-        return False
-    try:
-        addrs = {i[4][0] for i in socket.getaddrinfo(u.hostname, None)}
-    except OSError:
-        return False
-    return all(ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs)
-
-
 def download_image(url: str, min_size: int = 3000):
     """Télécharge une image proposée ; renvoie le nom du fichier enregistré, ou None si ce n'est pas une image valable."""
     try:
@@ -585,7 +446,7 @@ async def image_suggestions(body: ImageSearchIn):
 
 
 @app.get("/api/components")
-def list_components(q: str = "", category: str = "", low_stock: bool = False):
+def list_components(q: str = "", category: str = "", location: str = "", low_stock: bool = False):
     sql = "SELECT * FROM components WHERE 1=1"
     args = []
     if q:
@@ -596,6 +457,11 @@ def list_components(q: str = "", category: str = "", low_stock: bool = False):
     elif category:
         sql += " AND category = ?"
         args.append(category)
+    if location == "Sans emplacement":
+        sql += " AND COALESCE(location, '') = ''"
+    elif location:
+        sql += " AND location = ? COLLATE NOCASE"
+        args.append(location)
     if low_stock:
         sql += " AND quantity <= ?"
         args.append(get_low_stock_threshold())
@@ -620,28 +486,36 @@ def create_component(c: Component):
             f"INSERT INTO components ({', '.join(FIELDS)}) VALUES ({', '.join('?' * len(FIELDS))})",
             c.db_values())
         cid = cur.lastrowid
-        remember_category(conn, c.category)
+        remember(conn, "categories", c.category)
+        remember(conn, "locations", c.location)
+        log_movement(conn, cid, c.quantity, c.quantity, "Ajout à l'inventaire")
     return get_component(cid)
 
 
 @app.put("/api/components/{cid}")
 def update_component(cid: int, c: Component):
-    old_photos = get_component(cid)["photos"]
+    old = get_component(cid)
     with db() as conn:
         conn.execute(
             f"UPDATE components SET {', '.join(f + '=?' for f in FIELDS)}, "
             "updated_at=CURRENT_TIMESTAMP WHERE id=?", c.db_values() + [cid])
-        remember_category(conn, c.category)
-    delete_photos(set(old_photos) - referenced_photos())  # photos retirées de la fiche
+        remember(conn, "categories", c.category)
+        remember(conn, "locations", c.location)
+        log_movement(conn, cid, c.quantity - old["quantity"], c.quantity, "Correction dans la fiche")
+    delete_photos(set(old["photos"]) - referenced_photos())  # photos retirées de la fiche
     return get_component(cid)
 
 
 @app.delete("/api/components/{cid}")
 def delete_component(cid: int):
-    photos = get_component(cid)["photos"]
+    old = get_component(cid)
     with db() as conn:
         conn.execute("DELETE FROM components WHERE id=?", (cid,))
-    delete_photos(set(photos) - referenced_photos())
+        conn.execute("DELETE FROM movements WHERE component_id=?", (cid,))
+        conn.execute("UPDATE project_items SET component_id=NULL WHERE component_id=?", (cid,))
+    delete_photos(set(old["photos"]) - referenced_photos())
+    if old.get("datasheet_file"):
+        (DATASHEETS_DIR / Path(old["datasheet_file"]).name).unlink(missing_ok=True)
     return {"ok": True}
 
 
@@ -653,14 +527,17 @@ def get_photo(name: str):
     return FileResponse(path)
 
 
+app.include_router(extras.router)
+
 mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 
 class Static(StaticFiles):
     """Fichiers de l'interface ; la page est toujours revalidée pour qu'une mise à jour de l'app soit vue tout de suite."""
     async def get_response(self, path, scope):
         response = await super().get_response(path, scope)
-        if path in ("", ".", "index.html"):
+        if path in ("", ".", "index.html", "sw.js"):
             response.headers["Cache-Control"] = "no-cache"
         return response
 

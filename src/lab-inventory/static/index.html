@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Lab Inventory</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lab Inventory">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
   // Thème appliqué avant l'affichage (sombre / clair / système), comme Bambuddy
   (function () {
@@ -249,6 +254,17 @@
   .cat-row .nm { flex:1; min-width:0; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .cat-row input { flex:1; min-width:0; padding:6px 10px; }
   .cat-row .btn.icon { padding:7px; }
+  .addopts { display:flex; flex-direction:column; gap:10px; }
+  .addopt { display:flex; align-items:center; gap:14px; width:100%; text-align:left; font:inherit; color:var(--text-primary); cursor:pointer;
+            background:var(--bg-primary); border:1px solid var(--border); border-radius:12px; padding:14px; transition:border-color .15s; }
+  .addopt:hover { border-color:var(--accent); }
+  .addopt .ic { width:48px; height:48px; border-radius:12px; flex:none; display:flex; align-items:center; justify-content:center;
+                background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+  .addopt b { display:block; } .addopt small { color:var(--text-secondary); font-size:.85rem; }
+  .camview { position:relative; background:#000; border-radius:10px; overflow:hidden; aspect-ratio:16/9; }
+  .camview video { width:100%; height:100%; object-fit:contain; display:block; }
+  .flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; }
+  .flash.on { animation:flash .35s ease-out; } @keyframes flash { from { opacity:.8; } to { opacity:0; } }
   .sect { padding:14px; border-radius:10px; background:var(--bg-primary); border:1px solid var(--border); }
   .sect-t { display:flex; align-items:center; gap:8px; font-weight:600; margin-bottom:6px; }
   .sect-t svg { color:var(--accent); }
@@ -257,6 +273,66 @@
   .sugg.broken img { visibility:hidden; }
   .sugg.broken::after { content:"Image non disponible"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; font-size:.8rem; color:#666; padding:8px; }
   .sugg .src { position:absolute; left:0; right:0; bottom:0; font-size:.72rem; padding:3px 6px; background:rgba(0,0,0,.6); color:#fff; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* ---------- Bandeau d'information (doublons) ---------- */
+  .banner.info { border-color:color-mix(in srgb, var(--accent) 45%, transparent); background:color-mix(in srgb, var(--accent) 10%, transparent); }
+  .banner.info svg { color:var(--accent); }
+  .banner .dup { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+  .pill.red { background:color-mix(in srgb, var(--error) 16%, transparent); color:var(--error); }
+
+  /* ---------- Historique ---------- */
+  .moves { display:flex; flex-direction:column; }
+  .mv { display:grid; grid-template-columns:52px 1fr auto; gap:10px; align-items:center; padding:8px 4px; border-bottom:1px solid var(--border); }
+  .mv:last-child { border-bottom:0; } .mv[data-id] { cursor:pointer; border-radius:6px; } .mv[data-id]:hover { background:var(--hover); }
+  .mv .d { font-weight:700; font-variant-numeric:tabular-nums; text-align:center; border-radius:6px; padding:2px 0; }
+  .mv .d.up { color:var(--ok); background:color-mix(in srgb, var(--ok) 14%, transparent); }
+  .mv .d.down { color:var(--error); background:color-mix(in srgb, var(--error) 14%, transparent); }
+  .mv .r { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  @media (max-width: 599px) { .mv { grid-template-columns:48px 1fr; } .mv .a { grid-column:2; } }
+
+  /* ---------- Datasheet locale ---------- */
+  .dslocal { margin-top:8px; } .dslocal:empty { display:none; }
+  .dsrow { display:flex; gap:6px; align-items:center; } .dsrow .doclink { flex:1; min-width:0; }
+
+  /* ---------- Emplacements et projets ---------- */
+  .lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:14px; }
+  .lcard, .pcard { display:flex; gap:14px; align-items:center; padding:16px; text-decoration:none; color:var(--text-primary); transition:border-color .15s; }
+  .lcard:hover, .pcard:hover { border-color:var(--accent); }
+  .lcard .ic, .pcard .ic { width:44px; height:44px; border-radius:10px; flex:none; display:flex; align-items:center; justify-content:center;
+    background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+  .lcard .t, .pcard .t { font-weight:600; } .lcard .s, .pcard .s { font-size:.85rem; color:var(--text-secondary); }
+  .muted-card .ic { background:var(--bg-tertiary); color:var(--text-muted); }
+  .plist { display:flex; flex-direction:column; gap:12px; }
+  .pcard .pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  @media (max-width: 599px) { .pcard { flex-wrap:wrap; } .pcard .pills { width:100%; justify-content:flex-start; } }
+  .pbar { display:flex; flex-direction:column; gap:12px; }
+  table.bom { width:100%; border-collapse:collapse; min-width:760px; }
+  table.bom th { text-align:left; font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); font-weight:600; padding:10px 12px; border-bottom:1px solid var(--border); }
+  table.bom td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  table.bom tr:last-child td { border-bottom:0; }
+  table.bom .qin { width:72px; padding:6px 8px; }
+  table.bom .csel { min-width:220px; padding:6px 8px; }
+
+  /* ---------- Étiquettes ---------- */
+  .pick { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:12px; max-height:220px; overflow:auto; }
+  .chk { display:flex; align-items:center; gap:6px; margin:0; color:var(--text-primary); font-weight:400; font-size:.92rem; cursor:pointer; }
+  .chk input { width:auto; }
+  .sheet { display:grid; gap:10px; }
+  .sheet.size-s { grid-template-columns:repeat(4, 1fr); } .sheet.size-m { grid-template-columns:repeat(3, 1fr); } .sheet.size-l { grid-template-columns:repeat(2, 1fr); }
+  .lbl { display:flex; gap:10px; align-items:center; background:#fff; color:#111; border:1px dashed #999; border-radius:8px; padding:8px; break-inside:avoid; page-break-inside:avoid; }
+  .lbl img { width:30%; aspect-ratio:1; flex:none; }
+  .size-l .lbl img { width:35%; }
+  .lbl .lt { display:flex; flex-direction:column; min-width:0; gap:2px; }
+  .lbl b { font-size:1rem; line-height:1.2; overflow-wrap:anywhere; } .lbl span { font-size:.78rem; color:#444; overflow-wrap:anywhere; }
+  .size-s .lbl b { font-size:.85rem; } .size-l .lbl b { font-size:1.25rem; }
+  @media (max-width: 599px) { .sheet.size-m, .sheet.size-s { grid-template-columns:repeat(2, 1fr); } .sheet.size-l { grid-template-columns:1fr; } }
+  @media print {
+    @page { margin:10mm; }
+    html, body { background:#fff !important; }
+    aside, .topbar, .scrim, .noprint, #keyBanner, #toast, .banner { display:none !important; }
+    main { margin:0 !important; padding:0 !important; } .page { padding:0 !important; max-width:none; }
+    .sheet.size-s { grid-template-columns:repeat(4, 1fr); } .sheet.size-m { grid-template-columns:repeat(3, 1fr); } .sheet.size-l { grid-template-columns:repeat(2, 1fr); }
+    .fade { animation:none; }
+  }
 </style>
 </head>
 <body>
@@ -277,6 +353,9 @@
   <nav class="menu" id="menu">
     <a href="#/dashboard" data-route="dashboard"><svg class="i"><use href="#i-dashboard"/></svg>Dashboard</a>
     <a href="#/composants" data-route="composants"><svg class="i"><use href="#i-cpu"/></svg>Composants</a>
+    <a href="#/emplacements" data-route="emplacements"><svg class="i"><use href="#i-pin"/></svg>Emplacements</a>
+    <a href="#/projets" data-route="projets"><svg class="i"><use href="#i-folder"/></svg>Projets</a>
+    <a href="#/courses" data-route="courses"><svg class="i"><use href="#i-cart"/></svg>Courses</a>
     <a href="#/parametres" data-route="parametres"><svg class="i"><use href="#i-sliders"/></svg>Paramètres</a>
   </nav>
   <div class="side-foot">
@@ -306,6 +385,7 @@
       <div class="card wide"><div class="card-h"><svg class="i"><use href="#i-layers"/></svg><h3>Répartition par catégorie</h3></div><div class="card-c"><div id="dashCats" class="bars"></div></div></div>
       <div class="card"><div class="card-h"><svg class="i"><use href="#i-alert"/></svg><h3>Stock bas</h3></div><div class="card-c"><div id="dashLow" class="rows"></div></div></div>
       <div class="card"><div class="card-h"><svg class="i"><use href="#i-clock"/></svg><h3>Derniers ajouts</h3></div><div class="card-c"><div id="dashRecent" class="rows"></div></div></div>
+      <div class="card wide"><div class="card-h"><svg class="i"><use href="#i-history"/></svg><h3>Derniers mouvements de stock</h3></div><div class="card-c"><div id="dashMoves" class="moves"></div></div></div>
     </div>
     <p class="muted small" id="dashNoDs" style="margin-top:14px"></p>
   </section>
@@ -319,6 +399,7 @@
     <div class="card toolbar">
       <div class="search"><svg class="i sm"><use href="#i-search"/></svg><input id="search" type="search" placeholder="Rechercher (nom, référence, tiroir…)"></div>
       <select id="filterCat"><option value="">Toutes catégories</option></select>
+      <select id="filterLoc"><option value="">Tous emplacements</option></select>
       <button class="btn secondary toggle" id="btnLow"><svg class="i sm"><use href="#i-alert"/></svg>Stock bas</button>
     </div>
     <div id="list" class="cgrid"></div>
@@ -331,13 +412,14 @@
       <div class="titles"><h1 id="dName"></h1><p id="dSub"></p></div>
       <div class="acts">
         <button class="btn primary" id="btnEdit"><svg class="i"><use href="#i-pencil"/></svg>Modifier</button>
+        <button class="btn secondary" id="btnLabel" title="Imprimer l'étiquette QR"><svg class="i"><use href="#i-qr"/></svg><span>Étiquette</span></button>
         <button class="btn ghost" id="btnDelDetail" title="Supprimer"><svg class="i"><use href="#i-trash"/></svg></button>
       </div>
     </div>
     <div class="detail">
       <div class="stack">
         <div class="card"><div class="card-c" id="dGallery"></div></div>
-        <div class="card" id="dDocsCard"><div class="card-h"><svg class="i"><use href="#i-file"/></svg><h3>Documentation</h3></div><div class="card-c"><div class="doclinks" id="dDocs"></div></div></div>
+        <div class="card" id="dDocsCard"><div class="card-h"><svg class="i"><use href="#i-file"/></svg><h3>Documentation</h3></div><div class="card-c"><div class="doclinks" id="dDocs"></div><div id="dDsLocal" class="dslocal"></div></div></div>
       </div>
       <div class="stack">
         <div class="card"><div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3><span id="dLowPill" class="pill amber hidden">Stock bas</span></div>
@@ -355,6 +437,7 @@
         <div class="card" id="dDescCard"><div class="card-h"><svg class="i"><use href="#i-info"/></svg><h3>Description</h3></div><div class="card-c"><p class="prose" id="dDesc"></p></div></div>
         <div class="card" id="dSpecsCard"><div class="card-h"><svg class="i"><use href="#i-list"/></svg><h3>Caractéristiques</h3></div><div class="card-c"><table class="specs" id="dSpecs"></table></div></div>
         <div class="card" id="dNotesCard"><div class="card-h"><svg class="i"><use href="#i-pencil"/></svg><h3>Notes</h3></div><div class="card-c"><p class="prose" id="dNotes"></p></div></div>
+        <div class="card"><div class="card-h"><svg class="i"><use href="#i-history"/></svg><h3>Historique du stock</h3></div><div class="card-c"><div id="dMoves" class="moves"></div></div></div>
         <p class="muted small" id="dDates" style="margin:0"></p>
       </div>
     </div>
@@ -376,6 +459,7 @@
       <div class="titles"><h1 id="formTitle">Modifier</h1><p id="formSub"></p></div>
     </div>
     <div id="aiError" class="banner hidden"><svg class="i"><use href="#i-alert"/></svg><div id="aiErrorText"></div></div>
+    <div id="dupBanner" class="banner info hidden"></div>
     <form id="form" class="detail">
       <div class="stack">
         <div class="card"><div class="card-h"><svg class="i"><use href="#i-image"/></svg><h3>Photos</h3><span id="photoCount" class="muted small"></span></div>
@@ -411,7 +495,7 @@
           <div class="card-c" style="padding-top:6px">
             <div class="grid2">
               <div><label>Quantité</label><input name="quantity" type="number" min="0" value="1"></div>
-              <div><label>Emplacement</label><input name="location" placeholder="ex. Tiroir A3"></div>
+              <div><label>Emplacement <a href="#/parametres" class="small">(gérer)</a></label><select name="location" id="formLoc"></select></div>
             </div>
           </div></div>
         <div class="card"><div class="card-h"><svg class="i"><use href="#i-list"/></svg><h3>Caractéristiques et notes</h3></div>
@@ -426,6 +510,104 @@
         </div>
       </div>
     </form>
+  </section>
+
+
+  <!-- ===== Emplacements ===== -->
+  <section id="viewLocations" class="hidden fade">
+    <div class="page-head">
+      <div class="titles"><h1>Emplacements</h1><p id="locCount">&nbsp;</p></div>
+      <div class="acts">
+        <a class="btn secondary" href="#/etiquettes/emplacements"><svg class="i"><use href="#i-qr"/></svg>Étiquettes</a>
+        <a class="btn ghost" href="#/parametres" title="Gérer la liste"><svg class="i"><use href="#i-sliders"/></svg></a>
+      </div>
+    </div>
+    <div id="locGrid" class="lgrid"></div>
+  </section>
+
+  <section id="viewLocation" class="hidden fade">
+    <div class="page-head">
+      <button class="btn ghost icon" id="btnLocBack" title="Retour"><svg class="i lg"><use href="#i-back"/></svg></button>
+      <div class="titles"><h1 id="locName"></h1><p id="locSub"></p></div>
+      <div class="acts"><button class="btn secondary" id="btnLocLabel"><svg class="i"><use href="#i-qr"/></svg><span>Étiquette</span></button></div>
+    </div>
+    <div id="locList" class="cgrid"></div>
+  </section>
+
+  <!-- ===== Projets ===== -->
+  <section id="viewProjects" class="hidden fade">
+    <div class="page-head">
+      <div class="titles"><h1>Projets</h1><p>Nomenclatures, pièces manquantes et consommation du stock</p></div>
+      <div class="acts"><button class="btn primary" id="btnNewProject"><svg class="i"><use href="#i-plus"/></svg>Nouveau projet</button></div>
+    </div>
+    <div id="projNew" class="card hidden" style="margin-bottom:16px"><div class="card-c">
+      <div class="grid2">
+        <div><label style="margin-top:0">Nom du projet</label><input id="projNewName" placeholder="ex. Clignotant 555"></div>
+        <div><label style="margin-top:0">Nombre d'exemplaires</label><input id="projNewBuilds" type="number" min="1" value="1"></div>
+      </div>
+      <label>Description</label><input id="projNewDesc">
+      <div class="formbar" style="margin-top:14px"><button class="btn secondary" id="btnProjCancel">Annuler</button><button class="btn primary" id="btnProjCreate">Créer</button></div>
+    </div></div>
+    <div id="projList" class="plist"></div>
+  </section>
+
+  <section id="viewProject" class="hidden fade">
+    <div class="page-head">
+      <button class="btn ghost icon" id="btnProjBack" title="Retour"><svg class="i lg"><use href="#i-back"/></svg></button>
+      <div class="titles"><h1 id="pName"></h1><p id="pDesc"></p></div>
+      <div class="acts">
+        <button class="btn secondary" id="btnProjEdit"><svg class="i"><use href="#i-pencil"/></svg><span>Renommer</span></button>
+        <button class="btn ghost" id="btnProjDelete" title="Supprimer le projet"><svg class="i"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>
+    <div class="stats" id="pStats"></div>
+    <div class="card" style="margin-bottom:16px"><div class="card-c pbar">
+      <div class="inline" style="align-items:center">
+        <label style="margin:0">Exemplaires à fabriquer</label>
+        <input id="pBuilds" type="number" min="1" style="width:90px;flex:none">
+      </div>
+      <div class="inline">
+        <button class="btn secondary" id="btnImportBom"><svg class="i"><use href="#i-upload"/></svg>Importer une nomenclature (CSV)</button>
+        <button class="btn secondary" id="btnAddLine"><svg class="i"><use href="#i-plus"/></svg>Ajouter une ligne</button>
+        <button class="btn primary" id="btnConsume"><svg class="i"><use href="#i-minus"/></svg>Retirer du stock</button>
+      </div>
+      <p class="muted small" style="margin:0">CSV exporté de KiCad (Reference, Value, Footprint, Qty), de JLCPCB, ou tableur avec une colonne MPN. Les lignes sont reliées automatiquement aux composants du stock par référence ou par valeur ; sinon, choisissez le composant dans la ligne.</p>
+    </div></div>
+    <div class="card"><div class="table-wrap"><table class="bom" id="pItems"></table></div></div>
+    <input id="bomInput" type="file" accept=".csv,text/csv,text/plain" class="hidden">
+  </section>
+
+  <!-- ===== Liste de courses ===== -->
+  <section id="viewShopping" class="hidden fade">
+    <div class="page-head">
+      <div class="titles"><h1>Liste de courses</h1><p id="shopSub">&nbsp;</p></div>
+      <div class="acts">
+        <button class="btn secondary" id="btnPrices"><svg class="i"><use href="#i-search"/></svg><span>Prix Mouser</span></button>
+        <button class="btn primary" id="btnShopCsv"><svg class="i"><use href="#i-download"/></svg><span>Exporter (CSV)</span></button>
+      </div>
+    </div>
+    <div class="card"><div class="table-wrap"><table class="bom" id="shopTable"></table></div></div>
+    <p class="muted small" id="shopTotal" style="margin-top:12px"></p>
+  </section>
+
+  <!-- ===== Étiquettes QR ===== -->
+  <section id="viewLabels" class="hidden fade">
+    <div class="page-head noprint">
+      <button class="btn ghost icon" id="btnLabelsBack" title="Retour"><svg class="i lg"><use href="#i-back"/></svg></button>
+      <div class="titles"><h1>Étiquettes QR</h1><p>Scannez l'étiquette avec le téléphone pour ouvrir la fiche ou le contenu du tiroir.</p></div>
+      <div class="acts"><button class="btn primary" id="btnPrint"><svg class="i"><use href="#i-printer"/></svg>Imprimer</button></div>
+    </div>
+    <div class="card noprint" style="margin-bottom:16px"><div class="card-c">
+      <div class="inline" style="align-items:center">
+        <select id="labelKind" style="flex:0 1 220px;width:auto"><option value="emplacements">Emplacements</option><option value="composants">Composants</option></select>
+        <select id="labelSize" style="flex:0 1 220px;width:auto"><option value="m">Moyennes (3 par ligne)</option><option value="s">Petites (4 par ligne)</option><option value="l">Grandes (2 par ligne)</option></select>
+        <button class="btn ghost sm" id="btnLabelsAll">Tout cocher</button>
+        <button class="btn ghost sm" id="btnLabelsNone">Tout décocher</button>
+      </div>
+      <div id="labelPick" class="pick"></div>
+      <p class="muted small" id="labelBase" style="margin:10px 0 0"></p>
+    </div></div>
+    <div id="labelSheet" class="sheet"></div>
   </section>
 
   <!-- ===== Paramètres ===== -->
@@ -479,6 +661,32 @@
         </div>
       </div>
       <div class="card">
+        <div class="card-h"><svg class="i"><use href="#i-pin"/></svg><h3>Emplacements</h3><span id="locSetCount" class="muted small"></span></div>
+        <div class="card-c">
+          <div class="inline">
+            <input id="newLoc" placeholder="Nouvel emplacement (ex. Tiroir B7)" autocomplete="off">
+            <button id="btnAddLoc" class="btn primary"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button>
+          </div>
+          <div id="locRows" class="cat-list"></div>
+          <p class="muted small" style="margin:10px 0 0">Renommer un emplacement met à jour ses composants. En supprimer un fait passer ses composants en « Sans emplacement ».</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><svg class="i"><use href="#i-download"/></svg><h3>Export et sauvegarde</h3></div>
+        <div class="card-c">
+          <div class="inline">
+            <a class="btn secondary" href="/api/export/components.csv"><svg class="i"><use href="#i-file"/></svg>Exporter l'inventaire (CSV)</a>
+            <a class="btn secondary" href="/api/backup.zip"><svg class="i"><use href="#i-download"/></svg>Télécharger une sauvegarde</a>
+            <button class="btn secondary" id="btnRestore"><svg class="i"><use href="#i-upload"/></svg>Restaurer…</button>
+          </div>
+          <p class="muted small" style="margin:10px 0 0">La sauvegarde (.zip) contient la base, les photos et les datasheets. La restauration remplace l'inventaire actuel ; l'ancienne base est conservée à côté par sécurité.</p>
+          <input id="restoreInput" type="file" accept=".zip,application/zip" class="hidden">
+          <h3 style="margin:20px 0 6px;font-size:1rem">Datasheets hors ligne</h3>
+          <p class="muted small" style="margin:0 0 10px" id="dsStatus"></p>
+          <button class="btn secondary" id="btnDsAll"><svg class="i"><use href="#i-download"/></svg>Copier toutes les datasheets</button>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-h"><svg class="i"><use href="#i-box"/></svg><h3>Stock</h3></div>
         <div class="card-c">
           <label style="margin-top:0">Seuil de stock bas (un composant est signalé quand sa quantité est inférieure ou égale à ce nombre)</label>
@@ -501,6 +709,7 @@
 </main>
 
 <input id="fileInput" type="file" accept="image/*" capture="environment" multiple class="hidden">
+<input id="pickInput" type="file" accept="image/*" multiple class="hidden">
 <input id="addPhotosInput" type="file" accept="image/*" multiple class="hidden">
 
 <!-- Visionneuse plein écran -->
@@ -510,6 +719,42 @@
   <button type="button" id="viewerNext" class="vnav next" aria-label="Photo suivante"><svg class="i lg"><use href="#i-right"/></svg></button>
   <button type="button" id="viewerClose" class="vclose" aria-label="Fermer"><svg class="i lg"><use href="#i-x"/></svg></button>
   <div id="viewerCount" class="vcount"></div>
+</div>
+
+<!-- Menu « Ajouter » : photo / webcam, images existantes ou saisie manuelle -->
+<div id="addMenu" class="modal hidden">
+  <div class="card" style="max-width:520px">
+    <div class="card-h"><svg class="i"><use href="#i-plus"/></svg><h3>Ajouter un composant</h3>
+      <button type="button" class="btn ghost icon" id="btnAddX" aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="card-c addopts">
+      <button type="button" class="addopt" data-add="camera"><span class="ic"><svg class="i lg"><use href="#i-camera"/></svg></span>
+        <span><b id="addCamTitle">Prendre une photo</b><small id="addCamSub">Appareil photo du téléphone, identification par l'IA</small></span></button>
+      <button type="button" class="addopt" data-add="files"><span class="ic"><svg class="i lg"><use href="#i-image"/></svg></span>
+        <span><b>Choisir des images</b><small>Photos déjà prises ou fichiers de l'ordinateur</small></span></button>
+      <button type="button" class="addopt" data-add="manual"><span class="ic"><svg class="i lg"><use href="#i-pencil"/></svg></span>
+        <span><b>Saisie manuelle</b><small>Remplir la fiche sans photo ni IA</small></span></button>
+      <p id="addAiNote" class="muted small hidden" style="margin:4px 0 0">Aucune IA configurée : les photos seront jointes à la fiche, à compléter à la main.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Capture par webcam (ordinateur) -->
+<div id="webcam" class="modal hidden">
+  <div class="card" style="max-width:760px">
+    <div class="card-h"><svg class="i"><use href="#i-camera"/></svg><h3>Webcam</h3>
+      <select id="camSelect" class="hidden" style="width:auto;max-width:260px;padding:6px 10px"></select>
+      <button type="button" class="btn ghost icon" id="btnCamX" aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="card-c">
+      <div class="camview"><video id="camVideo" autoplay playsinline muted></video><div id="camFlash" class="flash"></div></div>
+      <p id="camMsg" class="muted small" style="margin:10px 0 0">Placez le composant devant la caméra, marquages bien visibles. Vous pouvez prendre plusieurs vues.</p>
+      <div id="camShots" class="thumbs"></div>
+    </div>
+    <div class="card-f">
+      <button type="button" class="btn secondary" id="btnCamCancel">Annuler</button>
+      <button type="button" class="btn secondary" id="btnCamShot"><svg class="i"><use href="#i-camera"/></svg>Capturer</button>
+      <button type="button" class="btn primary" id="btnCamDone" disabled>Continuer</button>
+    </div>
+  </div>
 </div>
 
 <!-- Propositions d'images -->
@@ -578,11 +823,19 @@
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
   <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
 </svg>
 
 <script>
 const $ = s => document.querySelector(s);
-const views = ["viewDashboard","viewList","viewDetail","viewLoading","viewForm","viewSettings"];
+const views = ["viewDashboard","viewList","viewDetail","viewLoading","viewForm","viewSettings","viewLocations",
+               "viewLocation","viewProjects","viewProject","viewShopping","viewLabels"];
 let lowOnly = false, lowThreshold = 2, returnHash = "#/composants";
 let current = null;          // composant affiché en lecture
 let draft = null;            // fiche en cours de création (après identification)
@@ -606,7 +859,8 @@ function toast(msg) { $("#toastText").textContent = msg; $("#toast").classList.r
 
 function show(v) {
   views.forEach(x => $("#"+x).classList.toggle("hidden", x !== v));
-  $("#viewer").classList.add("hidden"); $("#suggest").classList.add("hidden");
+  $("#viewer").classList.add("hidden"); $("#suggest").classList.add("hidden"); $("#addMenu").classList.add("hidden");
+  if (!$("#webcam").classList.contains("hidden")) closeWebcam();
   document.body.classList.remove("drawer-open");
   scrollTo(0, 0);
 }
@@ -633,20 +887,29 @@ $("#btnDrawer").onclick = () => document.body.classList.add("drawer-open");
 $("#scrim").onclick = () => document.body.classList.remove("drawer-open");
 
 // ---------- Navigation ----------
-// #/dashboard  #/composants  #/composants/12  #/composants/12/modifier  #/composants/nouveau  #/parametres
-function parseHash() { return location.hash.replace(/^#\/?/, "").split("/").filter(Boolean); }
+// #/dashboard  #/composants[/12[/modifier]|/nouveau]  #/emplacements[/3|/sans]  #/projets[/4]  #/courses
+// #/etiquettes/emplacements|composants[?ids=1,2]  #/parametres
+function parseHash() { return location.hash.replace(/^#\/?/, "").split("?")[0].split("/").filter(Boolean).map(decodeURIComponent); }
+function hashQuery() { return new URLSearchParams(location.hash.split("?")[1] || ""); }
+const SECTIONS = { dashboard: "dashboard", composants: "composants", emplacements: "emplacements", projets: "projets",
+                   courses: "courses", parametres: "parametres", etiquettes: "emplacements" };
+function setMenu(section) { document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === section)); }
 async function route() {
   const [page, id, action] = parseHash();
-  const section = ["dashboard", "composants", "parametres"].includes(page) ? page : "dashboard";
-  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === section));
+  const section = SECTIONS[page] ? page : "dashboard";
+  setMenu(SECTIONS[section]);
   try {
     if (section === "dashboard") { show("viewDashboard"); await loadDashboard(); }
     else if (section === "parametres") { show("viewSettings"); await loadSettings(); }
+    else if (section === "emplacements") { if (id) await openLocation(id); else { show("viewLocations"); await loadLocationsPage(); } }
+    else if (section === "projets") { if (id) await openProject(+id); else { show("viewProjects"); await loadProjects(); } }
+    else if (section === "courses") { show("viewShopping"); await loadShopping(); }
+    else if (section === "etiquettes") { show("viewLabels"); await loadLabels(id || "emplacements"); }
     else if (id === "nouveau") { if (draft) openForm(draft, null); else location.replace("#/composants"); }
     else if (id && action === "modifier") { openForm(await api("/api/components/" + id), +id); }
     else if (id) { await openDetail(+id); }
     else { show("viewList"); await loadList(); }
-  } catch (err) { toast(err.message); if (id) location.replace("#/composants"); }
+  } catch (err) { toast(err.message); if (id) location.replace("#/" + page); }
 }
 function go(hash) { if (location.hash === hash) route(); else location.hash = hash; }
 addEventListener("hashchange", route);
@@ -676,9 +939,20 @@ async function loadDashboard() {
   $("#dashLow").innerHTML = s.low_stock.length ? s.low_stock.map(c => rowItem(c, true)).join("") : `<div class="empty">Rien à racheter 👍</div>`;
   $("#dashRecent").innerHTML = s.recent.length ? s.recent.map(c => rowItem(c, c.quantity <= lowThreshold)).join("") : `<div class="empty">Touchez « Ajouter » pour commencer.</div>`;
   $("#dashNoDs").textContent = s.no_datasheet ? `${s.no_datasheet} composant(s) sans datasheet.` : "";
+  const moves = await api("/api/movements?limit=8");
+  $("#dashMoves").innerHTML = moves.length ? moves.map(m => moveRow(m, true)).join("") : `<div class="empty">Aucun mouvement pour l'instant.</div>`;
 }
+// Ligne d'historique : +3 / -2, stock après, motif, date (et composant sur le dashboard)
+function moveRow(m, withName) {
+  const up = m.delta > 0;
+  return `<div class="mv"${withName && m.component_id ? ` data-id="${m.component_id}"` : ""}>
+    <span class="d ${up ? "up" : "down"}">${up ? "+" : ""}${m.delta}</span>
+    <span class="r">${withName ? `<b>${esc(m.component_name || "Composant supprimé")}</b> · ` : ""}${esc(m.reason || "")}</span>
+    <span class="a muted small">stock ${m.quantity_after} · ${fmtDateTime(m.created_at)}</span></div>`;
+}
+function fmtDateTime(s) { if (!s) return ""; const d = new Date(s.replace(" ", "T") + "Z"); return isNaN(d) ? s : d.toLocaleString("fr-FR", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }); }
 $("#viewDashboard").onclick = e => {
-  const it = e.target.closest(".rowi"); if (it) return go("#/composants/" + it.dataset.id);
+  const it = e.target.closest(".rowi, .mv[data-id]"); if (it) return go("#/composants/" + it.dataset.id);
   const bar = e.target.closest(".bar");
   if (bar) { lowOnly = false; $("#search").value = ""; $("#filterCat").value = bar.dataset.cat; return go("#/composants"); }
   const st = e.target.closest(".stat[data-go]");
@@ -698,6 +972,27 @@ async function loadCategories() {
   fillFormCategories($("#formCat").value);
   return CATEGORIES;
 }
+// Emplacements définis dans les paramètres : filtre de la liste et liste déroulante de la fiche
+let LOCATIONS = [], UNPLACED = 0;
+async function loadLocations() {
+  const r = await api("/api/locations");
+  LOCATIONS = r.locations.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true, sensitivity: "base" }));
+  UNPLACED = r.unplaced;
+  const sel = $("#filterLoc"), keep = sel.value;
+  sel.length = 1;
+  LOCATIONS.forEach(l => sel.add(new Option(l.name, l.name)));
+  sel.add(new Option("Sans emplacement", "Sans emplacement"));
+  sel.value = [...sel.options].some(o => o.value === keep) ? keep : "";
+  fillFormLocations($("#formLoc").value);
+  return LOCATIONS;
+}
+function fillSelect(sel, emptyLabel, names, value) {
+  names = [...names];
+  if (value && !names.some(n => n.toLowerCase() === value.toLowerCase())) names.push(value);
+  sel.innerHTML = `<option value="">${emptyLabel}</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  sel.value = names.find(n => n.toLowerCase() === (value || "").toLowerCase()) || "";
+}
+function fillFormLocations(value) { fillSelect($("#formLoc"), "Sans emplacement", LOCATIONS.map(l => l.name), value); }
 // Liste déroulante de la fiche : catégories des paramètres (+ celle du composant si elle n'y est plus)
 function fillFormCategories(value) {
   const names = CATEGORIES.map(c => c.name);
@@ -707,36 +1002,39 @@ function fillFormCategories(value) {
   $("#formCat").value = match || "";
 }
 
-async function loadList() {
-  const q = encodeURIComponent($("#search").value), cat = encodeURIComponent($("#filterCat").value);
-  $("#btnLow").classList.toggle("on", lowOnly);
-  const items = await api(`/api/components?q=${q}&category=${cat}${lowOnly ? "&low_stock=true" : ""}`);
-  const filtered = q || cat || lowOnly;
-  $("#listCount").textContent = items.length ? `${items.length} référence(s)${filtered ? " correspondante(s)" : ""}` : "Aucune référence";
-  $("#list").innerHTML = items.length ? items.map(c => {
-    const low = c.quantity <= lowThreshold;
-    return `<div class="card ccard" data-id="${c.id}">
-      <div class="ph">${c.photo ? `<img src="${esc(src(c.photo))}" loading="lazy" alt="">` : ic("cpu", "lg")}
-        <span class="qty${low ? " low" : ""}">× ${c.quantity}</span>
-        ${c.photos.length > 1 ? `<span class="cnt">${ic("image", "sm")}${c.photos.length}</span>` : ""}</div>
-      <div class="bd">
-        <div class="t">${esc(c.name)}</div>
-        <div class="s">${esc([c.part_number, c.manufacturer].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
-        <div class="meta">${c.category ? `<span class="pill">${esc(c.category)}</span>` : ""}${c.location ? `<span class="pill gray">${ic("pin", "sm")}${esc(c.location)}</span>` : ""}</div>
-      </div>
-      <div class="ft">
-        <button class="btn ghost sm" data-act="view">${ic("eye", "sm")}<span>Voir</span></button>
-        <button class="btn ghost sm" data-act="edit">${ic("pencil", "sm")}<span>Modifier</span></button>
-      </div></div>`;
-  }).join("") : `<div class="empty" style="grid-column:1/-1">${filtered ? "Aucun composant ne correspond." : "Aucun composant. Touchez « Ajouter » pour photographier le premier."}</div>`;
+function compCard(c) {
+  const low = c.quantity <= lowThreshold;
+  return `<div class="card ccard" data-id="${c.id}">
+    <div class="ph">${c.photo ? `<img src="${esc(src(c.photo))}" loading="lazy" alt="">` : ic("cpu", "lg")}
+      <span class="qty${low ? " low" : ""}">× ${c.quantity}</span>
+      ${c.photos.length > 1 ? `<span class="cnt">${ic("image", "sm")}${c.photos.length}</span>` : ""}</div>
+    <div class="bd">
+      <div class="t">${esc(c.name)}</div>
+      <div class="s">${esc([c.part_number, c.manufacturer].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
+      <div class="meta">${c.category ? `<span class="pill">${esc(c.category)}</span>` : ""}${c.location ? `<span class="pill gray">${ic("pin", "sm")}${esc(c.location)}</span>` : ""}</div>
+    </div>
+    <div class="ft">
+      <button class="btn ghost sm" data-act="view">${ic("eye", "sm")}<span>Voir</span></button>
+      <button class="btn ghost sm" data-act="edit">${ic("pencil", "sm")}<span>Modifier</span></button>
+    </div></div>`;
 }
-$("#list").onclick = e => {
+function onCardClick(e) {
   const card = e.target.closest(".ccard"); if (!card) return;
-  const edit = e.target.closest('[data-act="edit"]');
-  go(`#/composants/${card.dataset.id}${edit ? "/modifier" : ""}`);
-};
+  go(`#/composants/${card.dataset.id}${e.target.closest('[data-act="edit"]') ? "/modifier" : ""}`);
+}
+async function loadList() {
+  const q = encodeURIComponent($("#search").value), cat = encodeURIComponent($("#filterCat").value), loc = encodeURIComponent($("#filterLoc").value);
+  $("#btnLow").classList.toggle("on", lowOnly);
+  const items = await api(`/api/components?q=${q}&category=${cat}&location=${loc}${lowOnly ? "&low_stock=true" : ""}`);
+  const filtered = q || cat || loc || lowOnly;
+  $("#listCount").textContent = items.length ? `${items.length} référence(s)${filtered ? " correspondante(s)" : ""}` : "Aucune référence";
+  $("#list").innerHTML = items.length ? items.map(compCard).join("")
+    : `<div class="empty" style="grid-column:1/-1">${filtered ? "Aucun composant ne correspond." : "Aucun composant. Touchez « Ajouter » pour photographier le premier."}</div>`;
+}
+$("#list").onclick = onCardClick;
 let t; $("#search").oninput = () => { clearTimeout(t); t = setTimeout(loadList, 250); };
 $("#filterCat").onchange = loadList;
+$("#filterLoc").onchange = loadList;
 $("#btnLow").onclick = () => { lowOnly = !lowOnly; loadList(); };
 
 // ---------- Composant : lecture ----------
@@ -747,11 +1045,13 @@ async function openDetail(id) {
   $("#dName").textContent = c.name;
   $("#dSub").textContent = [c.part_number, c.manufacturer].filter(Boolean).join(" · ") || " ";
   renderDetailGallery(); renderQty();
-  $("#dLoc").textContent = c.location || "—";
+  const loc = LOCATIONS.find(l => l.name.toLowerCase() === (c.location || "").toLowerCase());
+  $("#dLoc").innerHTML = c.location ? (loc ? `<a href="#/emplacements/${loc.id}">${esc(c.location)}</a>` : esc(c.location)) : "—";
   $("#dCat").textContent = c.category || "—";
   $("#dPkg").textContent = c.package || "—";
   const docs = [c.datasheet_url && ["file", "Datasheet", c.datasheet_url], c.manufacturer_url && ["external", "Page fabricant", c.manufacturer_url]].filter(Boolean);
-  $("#dDocsCard").classList.toggle("hidden", !docs.length);
+  $("#dDocsCard").classList.toggle("hidden", !docs.length && !c.datasheet_file);
+  renderLocalDatasheet();
   $("#dDocs").innerHTML = docs.map(([i, l, u]) => `<a class="doclink" href="${esc(u)}" target="_blank" rel="noopener">
     <span class="ic">${ic(i)}</span><span style="min-width:0"><b>${l}</b><div class="u">${esc(hostOf(u))}</div></span></a>`).join("");
   $("#dDescCard").classList.toggle("hidden", !c.description); $("#dDesc").textContent = c.description || "";
@@ -760,6 +1060,9 @@ async function openDetail(id) {
   $("#dSpecsCard").classList.toggle("hidden", !specs.length);
   $("#dSpecs").innerHTML = specs.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
   $("#dDates").textContent = `Ajouté le ${fmtDate(c.created_at)} · modifié le ${fmtDate(c.updated_at)}`;
+  api(`/api/components/${c.id}/movements`).then(m => {
+    $("#dMoves").innerHTML = m.length ? m.map(x => moveRow(x, false)).join("") : `<div class="empty">Aucun mouvement enregistré.</div>`;
+  });
   document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === "composants"));
   show("viewDetail");
 }
@@ -783,6 +1086,28 @@ function renderQty() {
 }
 $("#btnBack").onclick = () => history.length > 1 ? history.back() : go("#/composants");
 $("#btnEdit").onclick = () => go(`#/composants/${current.id}/modifier`);
+$("#btnLabel").onclick = () => go(`#/etiquettes/composants?ids=${current.id}`);
+
+// Datasheet hors ligne : copie du PDF dans l'app
+function renderLocalDatasheet() {
+  const c = current;
+  $("#dDsLocal").innerHTML = c.datasheet_file
+    ? `<div class="dsrow"><a class="doclink" href="/datasheets/${esc(c.datasheet_file)}" target="_blank"><span class="ic">${ic("download")}</span>
+        <span style="min-width:0"><b>Datasheet (copie locale)</b><div class="u">disponible même hors ligne</div></span></a>
+        <button class="btn ghost icon" id="dsRefresh" title="Mettre à jour la copie">${ic("history", "sm")}</button>
+        <button class="btn ghost icon" id="dsRemove" title="Supprimer la copie">${ic("trash", "sm")}</button></div>`
+    : c.datasheet_url ? `<button class="btn secondary sm" id="dsSave">${ic("download", "sm")}Garder une copie hors ligne</button>` : "";
+}
+$("#dDsLocal").onclick = async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  b.disabled = true;
+  try {
+    if (b.id === "dsRemove") { if (!confirm("Supprimer la copie locale de la datasheet ?")) { b.disabled = false; return; }
+      current = await api(`/api/components/${current.id}/datasheet`, { method: "DELETE" }); toast("Copie supprimée."); }
+    else { toast("Téléchargement de la datasheet…"); current = await api(`/api/components/${current.id}/datasheet`, { method: "POST" }); toast("Datasheet copiée dans l'app."); }
+  } catch (err) { toast(err.message); }
+  renderLocalDatasheet();
+};
 async function deleteComponent(id) {
   if (!confirm("Supprimer ce composant et ses photos ?")) return;
   await api("/api/components/" + id, { method: "DELETE" });
@@ -797,9 +1122,10 @@ function textToSpecs(t) { const o = {}; t.split("\n").forEach(l => { const i = l
 
 function fillFields(c) {
   const f = $("#form");
-  for (const el of f.elements) if (el.name && el.name !== "specs" && el.name !== "category") el.value = c[el.name] ?? (el.name === "quantity" ? 1 : "");
+  for (const el of f.elements) if (el.name && !["specs", "category", "location"].includes(el.name)) el.value = c[el.name] ?? (el.name === "quantity" ? 1 : "");
   f.specs.value = specsToText(c.specs);
   fillFormCategories(c.category);
+  fillFormLocations(c.location);
 }
 function setAiMessage(c, error) {
   const msg = error ? "Identification impossible : " + error + ". Complétez la fiche à la main."
@@ -812,11 +1138,36 @@ function openForm(c, id) {
   currentPhotos = [...(c.photos || [])]; mainIdx = 0; renderGallery();
   setAiMessage(c, c.error);
   $("#formTitle").textContent = id ? "Modifier" : "Nouveau composant";
-  $("#formSub").textContent = id ? c.name : (c.ai_provider ? "Pré-rempli par " + c.ai_provider : "Complétez la fiche");
+  $("#formSub").textContent = id ? c.name : c.ai_provider ? "Pré-rempli par " + c.ai_provider : c.manual ? "Saisie manuelle" : "Complétez la fiche";
   $("#btnDelete").classList.toggle("hidden", !id);
-  document.querySelectorAll("#menu a").forEach(a => a.classList.toggle("active", a.dataset.route === "composants"));
+  setMenu("composants");
   show("viewForm");
+  checkDuplicates();
 }
+// Doublons : à l'ajout, si la même référence (ou le même nom) est déjà en stock, proposer d'y ajouter les pièces
+let dupT;
+async function checkDuplicates() {
+  $("#dupBanner").classList.add("hidden");
+  if (editingId) return;
+  const f = $("#form"), pn = f.part_number.value.trim(), name = f.name.value.trim();
+  if (!pn && !name) return;
+  const dups = await api(`/api/duplicates?part_number=${encodeURIComponent(pn)}&name=${encodeURIComponent(pn ? "" : name)}`).catch(() => []);
+  if (!dups.length || editingId) return;
+  $("#dupBanner").innerHTML = `${ic("info")}<div style="flex:1"><b>Déjà en stock :</b> ${dups.map(d => `
+    <div class="dup"><span><a href="#/composants/${d.id}">${esc(d.name)}</a> ${esc(d.part_number || "")} — ${d.quantity} pièce(s)${d.location ? ` · ${esc(d.location)}` : ""}</span>
+    <button type="button" class="btn primary sm" data-merge="${d.id}">Ajouter les pièces à cette fiche</button></div>`).join("")}
+    <div class="muted small">Les photos prises seront ajoutées à la fiche existante. Sinon, enregistrez normalement pour créer une nouvelle fiche.</div></div>`;
+  $("#dupBanner").classList.remove("hidden");
+}
+$("#dupBanner").onclick = async e => {
+  const b = e.target.closest("[data-merge]"); if (!b) return;
+  const qty = +$("#form").quantity.value || 0;
+  const r = await api(`/api/components/${b.dataset.merge}/merge`, json("POST", { quantity: qty, photos: currentPhotos }));
+  draft = null; toast(`${qty} pièce(s) ajoutée(s) : ${r.quantity} en stock.`);
+  go(`#/composants/${r.id}`);
+};
+$("#form").part_number.addEventListener("input", () => { clearTimeout(dupT); dupT = setTimeout(checkDuplicates, 500); });
+$("#form").name.addEventListener("input", () => { clearTimeout(dupT); dupT = setTimeout(checkDuplicates, 500); });
 function cancelForm() {
   if (editingId) go(`#/composants/${editingId}`);
   else { draft = null; go(returnHash); }
@@ -832,7 +1183,7 @@ $("#form").onsubmit = async e => {
   body.quantity = +f.quantity.value || 0;
   body.specs = textToSpecs(f.specs.value);
   const saved = await api(editingId ? "/api/components/" + editingId : "/api/components", json(editingId ? "PUT" : "POST", body));
-  draft = null; toast("Composant enregistré."); loadCategories();
+  draft = null; toast("Composant enregistré."); loadCategories(); loadLocations();
   if (editingId) history.replaceState(null, "", `#/composants/${saved.id}`);
   go(`#/composants/${saved.id}`);
 };
@@ -860,10 +1211,30 @@ async function identifyPhotos(photos) {
   catch (err) { return { error: err.message }; }
 }
 
-// Ajout d'un composant : une ou plusieurs photos, puis identification par l'IA sur l'ensemble
-document.querySelectorAll(".js-add").forEach(b => b.onclick = () => $("#fileInput").click());
-$("#fileInput").onchange = async e => {
-  const files = [...e.target.files]; e.target.value = "";
+// Ajout d'un composant : menu (photo / webcam, images, saisie manuelle), puis identification par l'IA
+let aiReady = false;
+const isTouch = matchMedia("(pointer: coarse)").matches;
+const canWebcam = !isTouch && isSecureContext && !!navigator.mediaDevices?.getUserMedia;
+function openAddMenu() {
+  $("#addCamTitle").textContent = isTouch ? "Prendre une photo" : canWebcam ? "Utiliser la webcam" : "Prendre une photo";
+  $("#addCamSub").textContent = isTouch ? "Appareil photo du téléphone" + (aiReady ? ", identification par l'IA" : "")
+    : canWebcam ? "Caméra de l'ordinateur" + (aiReady ? ", identification par l'IA" : "")
+    : "Webcam indisponible sur cette adresse (https requis) : choix de fichier à la place";
+  $("#addAiNote").classList.toggle("hidden", aiReady);
+  $("#addMenu").classList.remove("hidden");
+}
+document.querySelectorAll(".js-add").forEach(b => b.onclick = openAddMenu);
+$("#btnAddX").onclick = () => $("#addMenu").classList.add("hidden");
+$("#addMenu").onclick = e => {
+  if (e.target === $("#addMenu")) return $("#addMenu").classList.add("hidden");
+  const b = e.target.closest("[data-add]"); if (!b) return;
+  $("#addMenu").classList.add("hidden");
+  if (b.dataset.add === "manual") { returnHash = location.hash || "#/dashboard"; draft = { quantity: 1, photos: [], manual: true }; go("#/composants/nouveau"); }
+  else if (b.dataset.add === "files") $("#pickInput").click();
+  else if (canWebcam) openWebcam();
+  else $("#fileInput").click();
+};
+async function addFromFiles(files) {
   if (!files.length) return;
   returnHash = location.hash || "#/dashboard";
   $("#loadingPhoto").src = URL.createObjectURL(files[0]);
@@ -871,11 +1242,58 @@ $("#fileInput").onchange = async e => {
   let photos = [];
   try {
     photos = await uploadPhotos(files);
-    draft = { ...(await identifyPhotos(photos)), photos };
+    draft = aiReady ? { ...(await identifyPhotos(photos)), photos } : { photos, quantity: 1 };
   } catch (err) { draft = { photos, error: err.message }; }
   if (draft.error && !draft.name) draft.quantity = 1;
   location.hash = "#/composants/nouveau";
+}
+$("#fileInput").onchange = e => { const files = [...e.target.files]; e.target.value = ""; addFromFiles(files); };
+$("#pickInput").onchange = e => { const files = [...e.target.files]; e.target.value = ""; addFromFiles(files); };
+
+// Webcam (ordinateur) : aperçu en direct, plusieurs captures, puis même suite que les photos
+let camStream = null, camShots = [];
+async function startCamera(deviceId) {
+  stopCamera();
+  camStream = await navigator.mediaDevices.getUserMedia({ audio: false,
+    video: deviceId ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+                    : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
+  $("#camVideo").srcObject = camStream;
+}
+function stopCamera() { if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+async function openWebcam() {
+  camShots = []; renderShots();
+  $("#webcam").classList.remove("hidden");
+  $("#camMsg").textContent = "Autorisez l'accès à la caméra si le navigateur le demande.";
+  try {
+    await startCamera();
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+    const current = camStream.getVideoTracks()[0]?.getSettings().deviceId;
+    $("#camSelect").innerHTML = cams.map((c, i) => `<option value="${esc(c.deviceId)}">${esc(c.label || "Caméra " + (i + 1))}</option>`).join("");
+    $("#camSelect").value = current || "";
+    $("#camSelect").classList.toggle("hidden", cams.length < 2);
+    $("#camMsg").textContent = "Placez le composant devant la caméra, marquages bien visibles. Vous pouvez prendre plusieurs vues.";
+  } catch (err) {
+    $("#camMsg").textContent = "Caméra inaccessible (" + (err.name === "NotAllowedError" ? "accès refusé" : err.message) + "). Utilisez « Choisir des images ».";
+  }
+}
+$("#camSelect").onchange = () => startCamera($("#camSelect").value).catch(err => toast(err.message));
+function closeWebcam() { stopCamera(); $("#webcam").classList.add("hidden"); }
+$("#btnCamX").onclick = $("#btnCamCancel").onclick = closeWebcam;
+$("#btnCamShot").onclick = () => {
+  const v = $("#camVideo"); if (!v.videoWidth) return;
+  const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext("2d").drawImage(v, 0, 0);
+  c.toBlob(b => { camShots.push(new File([b], `webcam-${camShots.length + 1}.jpg`, { type: "image/jpeg" })); renderShots(); }, "image/jpeg", 0.9);
+  $("#camFlash").classList.remove("on"); void $("#camFlash").offsetWidth; $("#camFlash").classList.add("on");
 };
+function renderShots() {
+  $("#camShots").innerHTML = camShots.map((f, i) => `<div class="tb"><img src="${URL.createObjectURL(f)}" alt="">
+    <button type="button" class="del" data-shot="${i}" title="Retirer">${ic("x")}</button></div>`).join("");
+  $("#btnCamDone").disabled = !camShots.length;
+  $("#btnCamDone").textContent = camShots.length ? `Continuer (${camShots.length})` : "Continuer";
+}
+$("#camShots").onclick = e => { const b = e.target.closest("[data-shot]"); if (b) { camShots.splice(+b.dataset.shot, 1); renderShots(); } };
+$("#btnCamDone").onclick = () => { const files = camShots; closeWebcam(); addFromFiles(files); };
 
 // Galerie de la fiche en modification
 function renderGallery() {
@@ -1023,6 +1441,233 @@ $("#btnSuggestAdd").onclick = () => applySuggestions(false);
 $("#btnSuggestReplace").onclick = () => applySuggestions(true);
 $("#btnSuggestClose").onclick = $("#btnSuggestX").onclick = () => $("#suggest").classList.add("hidden");
 
+// ---------- Emplacements ----------
+async function loadLocationsPage() {
+  await loadLocations();
+  $("#locCount").textContent = `${LOCATIONS.length} emplacement(s) · ${fmt(LOCATIONS.reduce((n, l) => n + l.count, 0))} référence(s) rangée(s)`;
+  $("#locGrid").innerHTML = LOCATIONS.map(l => `
+    <a class="card lcard" href="#/emplacements/${l.id}">
+      <div class="ic">${ic("pin")}</div>
+      <div style="min-width:0"><div class="t">${esc(l.name)}</div>
+        <div class="s">${l.count} référence(s) · ${fmt(l.pieces)} pièce(s)</div>
+        ${l.description ? `<div class="s">${esc(l.description)}</div>` : ""}</div>
+    </a>`).join("") + (UNPLACED ? `
+    <a class="card lcard muted-card" href="#/emplacements/sans"><div class="ic">${ic("box")}</div>
+      <div><div class="t">Sans emplacement</div><div class="s">${UNPLACED} référence(s) à ranger</div></div></a>` : "")
+    || `<div class="empty" style="grid-column:1/-1">Aucun emplacement. Ajoutez-en dans les Paramètres ou choisissez-en un dans une fiche.</div>`;
+}
+let currentLoc = null;
+async function openLocation(id) {
+  if (!LOCATIONS.length) await loadLocations();
+  currentLoc = id === "sans" ? { id: "sans", name: "Sans emplacement" } : LOCATIONS.find(l => l.id === +id);
+  if (!currentLoc) throw new Error("Emplacement introuvable");
+  const items = await api(`/api/components?location=${encodeURIComponent(currentLoc.name)}`);
+  $("#locName").textContent = currentLoc.name;
+  $("#locSub").textContent = `${items.length} référence(s) · ${fmt(items.reduce((n, c) => n + c.quantity, 0))} pièce(s)${currentLoc.description ? " · " + currentLoc.description : ""}`;
+  $("#btnLocLabel").classList.toggle("hidden", id === "sans");
+  $("#locList").innerHTML = items.map(compCard).join("") || `<div class="empty" style="grid-column:1/-1">Cet emplacement est vide.</div>`;
+  show("viewLocation");
+}
+$("#locList").onclick = onCardClick;
+$("#btnLocBack").onclick = () => go("#/emplacements");
+$("#btnLocLabel").onclick = () => go(`#/etiquettes/emplacements?ids=${currentLoc.id}`);
+
+// ---------- Projets ----------
+async function loadProjects() {
+  const list = await api("/api/projects");
+  $("#projList").innerHTML = list.map(p => `
+    <a class="card pcard" href="#/projets/${p.id}">
+      <div class="ic">${ic("folder")}</div>
+      <div style="flex:1;min-width:0"><div class="t">${esc(p.name)}</div>
+        <div class="s">${p.item_count} ligne(s) · ${p.builds} exemplaire(s)${p.description ? " · " + esc(p.description) : ""}</div></div>
+      <div class="pills">${p.counts.ok ? `<span class="pill green">${p.counts.ok} OK</span>` : ""}${p.counts.short ? `<span class="pill amber">${p.counts.short} insuffisant(s)</span>` : ""}${p.counts.missing ? `<span class="pill red">${p.counts.missing} manquant(s)</span>` : ""}</div>
+    </a>`).join("") || `<div class="empty">Aucun projet. Créez-en un puis importez sa nomenclature (CSV).</div>`;
+}
+$("#btnNewProject").onclick = () => { $("#projNew").classList.remove("hidden"); $("#projNewName").focus(); };
+$("#btnProjCancel").onclick = () => $("#projNew").classList.add("hidden");
+$("#btnProjCreate").onclick = async () => {
+  const name = $("#projNewName").value.trim(); if (!name) return $("#projNewName").focus();
+  try {
+    const p = await api("/api/projects", json("POST", { name, description: $("#projNewDesc").value.trim() || null, builds: +$("#projNewBuilds").value || 1 }));
+    $("#projNew").classList.add("hidden"); $("#projNewName").value = $("#projNewDesc").value = ""; go(`#/projets/${p.id}`);
+  } catch (err) { toast(err.message); }
+};
+
+let project = null, stockOptions = [];
+const STATUS = { ok: ["green", "En stock"], short: ["amber", "Insuffisant"], missing: ["red", "Manquant"] };
+async function openProject(id) {
+  const [p, comps] = await Promise.all([api(`/api/projects/${id}`), api("/api/components")]);
+  stockOptions = comps.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
+  project = p; renderProject(); show("viewProject");
+}
+function componentSelect(selected) {
+  return `<select class="csel"><option value="">— Non relié —</option>${stockOptions.map(c =>
+    `<option value="${c.id}"${c.id === selected ? " selected" : ""}>${esc(c.name)}${c.part_number && c.part_number !== c.name ? " (" + esc(c.part_number) + ")" : ""} — ${c.quantity} en stock</option>`).join("")}</select>`;
+}
+function renderProject() {
+  const p = project;
+  $("#pName").textContent = p.name;
+  $("#pDesc").textContent = p.description || `${p.items.length} ligne(s) de nomenclature`;
+  $("#pBuilds").value = p.builds;
+  $("#pStats").innerHTML = [["ok", "check", "En stock"], ["short", "alert", "Insuffisants"], ["missing", "x", "Manquants"]].map(([k, i, l]) =>
+    `<div class="card stat ${k === "ok" ? "" : "warn"}"><div class="ic">${ic(i, "lg")}</div><div><div class="v">${p.counts[k]}</div><div class="l">${l}</div></div></div>`).join("")
+    + `<div class="card stat"><div class="ic">${ic("list", "lg")}</div><div><div class="v">${fmt(p.items.reduce((n, it) => n + it.needed, 0))}</div><div class="l">Pièces nécessaires</div></div></div>`;
+  $("#pItems").innerHTML = `<thead><tr><th>Repères</th><th>Valeur / référence</th><th>Empreinte</th><th>Qté / ex.</th><th>Besoin</th><th>Composant du stock</th><th>État</th><th></th></tr></thead><tbody>`
+    + (p.items.map(it => `<tr data-item="${it.id}">
+      <td class="small">${esc(it.designators || "")}</td>
+      <td><b>${esc(it.value || "")}</b>${it.part_number ? `<div class="muted small">${esc(it.part_number)}</div>` : ""}</td>
+      <td class="small muted">${esc(it.footprint || "")}</td>
+      <td><input class="qin" type="number" min="1" value="${it.qty_per_build}"></td>
+      <td><b>${it.needed}</b></td>
+      <td>${componentSelect(it.component_id)}</td>
+      <td><span class="pill ${STATUS[it.status][0]}">${STATUS[it.status][1]}${it.component_id ? ` · ${it.stock}` : ""}</span></td>
+      <td><button class="btn ghost icon" data-del title="Supprimer la ligne">${ic("trash", "sm")}</button></td></tr>`).join("")
+      || `<tr><td colspan="8" class="empty">Importez une nomenclature ou ajoutez des lignes.</td></tr>`)
+    + `</tbody>`;
+}
+function itemBody(tr) {
+  const it = project.items.find(x => x.id === +tr.dataset.item);
+  return { component_id: +tr.querySelector(".csel").value || null, designators: it.designators, value: it.value,
+           footprint: it.footprint, part_number: it.part_number, qty_per_build: +tr.querySelector(".qin").value || 1 };
+}
+$("#pItems").onchange = async e => {
+  const tr = e.target.closest("tr[data-item]"); if (!tr) return;
+  project = await api(`/api/projects/${project.id}/items/${tr.dataset.item}`, json("PUT", itemBody(tr))); renderProject();
+};
+$("#pItems").onclick = async e => {
+  const b = e.target.closest("[data-del]"); if (!b) return;
+  project = await api(`/api/projects/${project.id}/items/${b.closest("tr").dataset.item}`, { method: "DELETE" }); renderProject();
+};
+$("#pBuilds").onchange = async () => {
+  project = await api(`/api/projects/${project.id}`, json("PUT", { name: project.name, description: project.description, builds: +$("#pBuilds").value || 1 }));
+  renderProject();
+};
+$("#btnProjEdit").onclick = async () => {
+  const name = prompt("Nom du projet", project.name); if (name === null || !name.trim()) return;
+  const description = prompt("Description (facultative)", project.description || ""); if (description === null) return;
+  project = await api(`/api/projects/${project.id}`, json("PUT", { name, description: description.trim() || null, builds: project.builds }));
+  renderProject();
+};
+$("#btnProjDelete").onclick = async () => {
+  if (!confirm(`Supprimer le projet « ${project.name} » ? Le stock n'est pas modifié.`)) return;
+  await api(`/api/projects/${project.id}`, { method: "DELETE" }); toast("Projet supprimé."); go("#/projets");
+};
+$("#btnProjBack").onclick = () => go("#/projets");
+$("#btnImportBom").onclick = () => $("#bomInput").click();
+$("#bomInput").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  const replace = project.items.length ? confirm("Remplacer les lignes actuelles par cette nomenclature ?\n\nOK : remplacer · Annuler : ajouter à la suite") : false;
+  const fd = new FormData(); fd.append("file", file);
+  try {
+    project = await api(`/api/projects/${project.id}/import?replace=${replace}`, { method: "POST", body: fd });
+    toast(`${project.imported} ligne(s) importée(s).`); renderProject();
+  } catch (err) { toast(err.message); }
+};
+$("#btnAddLine").onclick = async () => {
+  const value = prompt("Valeur ou nom du composant (ex. 10k, NE555)"); if (!value || !value.trim()) return;
+  const qty = +prompt("Quantité par exemplaire", "1") || 1;
+  project = await api(`/api/projects/${project.id}/items`, json("POST", { value: value.trim(), qty_per_build: qty }));
+  renderProject();
+};
+$("#btnConsume").onclick = async () => {
+  const builds = project.builds;
+  if (!confirm(`Retirer du stock les pièces de ${builds} exemplaire(s) de « ${project.name} » ?\n\nChaque sortie est notée dans l'historique.`)) return;
+  const run = force => api(`/api/projects/${project.id}/consume`, json("POST", { builds, force }));
+  try { project = await run(false); }
+  catch (err) {
+    if (!confirm(err.message + "\n\nRetirer quand même les pièces disponibles ?")) return;
+    try { project = await run(true); } catch (e2) { return toast(e2.message); }
+  }
+  toast(`${project.consumed} pièce(s) retirée(s) du stock.`);
+  openProject(project.id);
+};
+
+// ---------- Liste de courses ----------
+let shopping = [], prices = {};
+async function loadShopping() {
+  const r = await api("/api/shopping");
+  shopping = r.items; prices = {};
+  $("#shopSub").textContent = shopping.length ? `${shopping.length} référence(s) à acheter (stock bas ≤ ${r.threshold} et pièces manquantes des projets)` : "Rien à acheter pour l'instant.";
+  renderShopping();
+}
+function renderShopping() {
+  $("#shopTable").innerHTML = `<thead><tr><th>Composant</th><th>Pourquoi</th><th>En stock</th><th>À acheter</th><th>Prix Mouser</th></tr></thead><tbody>`
+    + (shopping.map(it => {
+      const pr = prices[it.key];
+      const price = !pr ? `<span class="muted small">—</span>` : pr.error ? `<span class="muted small">${esc(pr.error)}</span>`
+        : `<a href="${esc(pr.url)}" target="_blank" rel="noopener">${pr.price ? esc(pr.price) : "voir"}</a><div class="muted small">${esc(pr.availability || "")}</div>`;
+      return `<tr data-key="${esc(it.key)}">
+        <td>${it.component_id ? `<a href="#/composants/${it.component_id}"><b>${esc(it.name)}</b></a>` : `<b>${esc(it.name)}</b>`}
+          <div class="muted small">${esc([it.part_number, it.footprint, it.location].filter(Boolean).join(" · "))}</div></td>
+        <td class="small">${it.reasons.map(esc).join("<br>")}</td>
+        <td>${it.in_stock}</td>
+        <td><input class="qin" type="number" min="0" value="${it.to_buy}"></td>
+        <td>${price}</td></tr>`;
+    }).join("") || `<tr><td colspan="5" class="empty">Rien à acheter 👍</td></tr>`) + `</tbody>`;
+  const totals = {};
+  shopping.forEach(it => { const pr = prices[it.key]; const v = pr && pr.price ? parseFloat(pr.price.replace(/[^\d,.-]/g, "").replace(",", ".")) : NaN;
+    if (!isNaN(v)) totals[pr.currency || ""] = (totals[pr.currency || ""] || 0) + v * it.to_buy; });
+  $("#shopTotal").textContent = Object.keys(totals).length ? "Total estimé (prix unitaires Mouser × quantités) : " + Object.entries(totals).map(([c, v]) => `${v.toFixed(2)} ${c}`).join(" + ") : "";
+}
+$("#shopTable").onchange = e => {
+  const tr = e.target.closest("tr[data-key]"); if (!tr) return;
+  shopping.find(x => x.key === tr.dataset.key).to_buy = Math.max(0, +e.target.value || 0); renderShopping();
+};
+$("#btnPrices").onclick = async () => {
+  if (!shopping.length) return;
+  const b = $("#btnPrices"); b.disabled = true; toast("Interrogation de Mouser…");
+  try { prices = await api("/api/shopping/prices", json("POST", { items: shopping })); renderShopping(); }
+  catch (err) { toast(err.message); }
+  b.disabled = false;
+};
+$("#btnShopCsv").onclick = () => {
+  const rows = [["Composant", "Référence", "Empreinte", "Emplacement", "En stock", "À acheter", "Prix unitaire Mouser", "Lien", "Pourquoi"]];
+  shopping.filter(it => it.to_buy > 0).forEach(it => { const pr = prices[it.key] || {};
+    rows.push([it.name, it.part_number || "", it.footprint || "", it.location || "", it.in_stock, it.to_buy, pr.price || "", pr.url || "", it.reasons.join(" / ")]); });
+  const csv = "\ufeff" + rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `liste-de-courses-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+};
+
+// ---------- Étiquettes QR ----------
+let labelKind = "emplacements", labelItems = [], labelSel = new Set();
+async function loadLabels(kind) {
+  labelKind = kind === "composants" ? "composants" : "emplacements";
+  $("#labelKind").value = labelKind;
+  const ids = (hashQuery().get("ids") || "").split(",").filter(Boolean).map(x => +x);
+  if (labelKind === "emplacements") {
+    await loadLocations();
+    labelItems = LOCATIONS.map(l => ({ id: l.id, title: l.name, sub: l.description || `${l.count} référence(s)`, url: appUrl(`#/emplacements/${l.id}`) }));
+  } else {
+    const comps = await api("/api/components");
+    labelItems = comps.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true })).map(c => ({ id: c.id, title: c.name,
+      sub: [c.part_number !== c.name && c.part_number, c.location].filter(Boolean).join(" · "), url: appUrl(`#/composants/${c.id}`) }));
+  }
+  labelSel = new Set(ids.length ? ids : labelKind === "emplacements" ? labelItems.map(x => x.id) : []);
+  $("#labelBase").textContent = `Les QR codes pointent vers ${location.origin} : scannez-les depuis un appareil qui accède à l'app à cette adresse.`;
+  renderLabels();
+}
+function appUrl(hash) { return location.origin + location.pathname + hash; }
+function renderLabels() {
+  $("#labelPick").innerHTML = labelItems.map(x => `<label class="chk"><input type="checkbox" value="${x.id}"${labelSel.has(x.id) ? " checked" : ""}> ${esc(x.title)}</label>`).join("")
+    || `<div class="empty">Rien à étiqueter.</div>`;
+  const chosen = labelItems.filter(x => labelSel.has(x.id));
+  $("#labelSheet").className = "sheet size-" + $("#labelSize").value;
+  $("#labelSheet").innerHTML = chosen.map(x => `<div class="lbl"><img src="/api/qr.svg?data=${encodeURIComponent(x.url)}" alt="">
+    <div class="lt"><b>${esc(x.title)}</b><span>${esc(x.sub || "")}</span></div></div>`).join("")
+    || `<div class="empty noprint">Cochez les étiquettes à imprimer.</div>`;
+  $("#btnPrint").disabled = !chosen.length;
+}
+$("#labelPick").onchange = e => { const id = +e.target.value; e.target.checked ? labelSel.add(id) : labelSel.delete(id); renderLabels(); };
+$("#labelKind").onchange = () => go(`#/etiquettes/${$("#labelKind").value}`);
+$("#labelSize").onchange = renderLabels;
+$("#btnLabelsAll").onclick = () => { labelSel = new Set(labelItems.map(x => x.id)); renderLabels(); };
+$("#btnLabelsNone").onclick = () => { labelSel = new Set(); renderLabels(); };
+$("#btnPrint").onclick = () => print();
+$("#btnLabelsBack").onclick = () => history.length > 1 ? history.back() : go("#/emplacements");
+
 // ---------- Paramètres ----------
 let mouserReady = false;
 async function refreshKeyBanner() {
@@ -1031,6 +1676,7 @@ async function refreshKeyBanner() {
   mouserReady = !!s.mouser_key;
   $("#btnMouser").classList.toggle("hidden", !mouserReady);
   $("#keyBanner").classList.toggle("hidden", s.ai_ready);
+  aiReady = s.ai_ready;
   return s;
 }
 async function loadSettings() {
@@ -1039,7 +1685,8 @@ async function loadSettings() {
   $("#btnDelMouser").classList.toggle("hidden", !s.mouser_key);
   $("#envNote").classList.toggle("hidden", !s.api_key_from_env);
   $("#lowThreshold").value = s.low_stock_threshold;
-  renderCategories(await loadCategories());
+  await Promise.all([loadCategories(), loadLocations()]);
+  catManager.render(); locManager.render(); refreshDsStatus();
   await loadConnectors();
   const st = await api("/api/stats");
   $("#aboutRefs").textContent = fmt(st.refs); $("#aboutPieces").textContent = fmt(st.pieces);
@@ -1081,54 +1728,91 @@ $("#btnMouser").onclick = async () => {
   b.disabled = false;
 };
 
-// Catégories : ajout, renommage (en place) et suppression
-let editingCat = null;
-function renderCategories(list) {
-  $("#catCount").textContent = `${list.length} catégorie(s)`;
-  $("#catRows").innerHTML = list.length ? list.map(c => c.id === editingCat ? `
-    <div class="cat-row" data-id="${c.id}">
-      <input class="cat-edit" value="${esc(c.name)}" autocomplete="off">
-      <button class="btn primary icon" data-act="save" title="Enregistrer">${ic("check", "sm")}</button>
-      <button class="btn ghost icon" data-act="cancel" title="Annuler">${ic("x", "sm")}</button>
-    </div>` : `
-    <div class="cat-row" data-id="${c.id}">
-      <span class="nm">${esc(c.name)}</span>
-      <span class="pill ${c.count ? "green" : "gray"}">${c.count} composant${c.count > 1 ? "s" : ""}</span>
-      <button class="btn ghost icon" data-act="edit" title="Renommer">${ic("pencil", "sm")}</button>
-      <button class="btn ghost icon" data-act="delete" title="Supprimer">${ic("trash", "sm")}</button>
-    </div>`).join("") : `<div class="empty">Aucune catégorie.</div>`;
-  const input = $("#catRows .cat-edit");
-  if (input) { input.focus(); input.select(); }
-}
-async function catAction(fn, msg) {
-  try { const list = await fn(); editingCat = null; CATEGORIES = list; await loadCategories(); renderCategories(CATEGORIES); if (msg) toast(msg); }
-  catch (err) { toast(err.message); }
-}
-$("#btnAddCat").onclick = () => {
-  const name = $("#newCat").value.trim(); if (!name) return $("#newCat").focus();
-  catAction(() => api("/api/categories", json("POST", { name })), `Catégorie « ${name} » ajoutée.`).then(() => { $("#newCat").value = ""; });
-};
-$("#newCat").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#btnAddCat").click(); } };
-$("#catRows").onclick = e => {
-  const b = e.target.closest("button[data-act]"); if (!b) return;
-  const id = +b.closest(".cat-row").dataset.id, cat = CATEGORIES.find(c => c.id === id);
-  if (b.dataset.act === "edit") { editingCat = id; renderCategories(CATEGORIES); }
-  else if (b.dataset.act === "cancel") { editingCat = null; renderCategories(CATEGORIES); }
-  else if (b.dataset.act === "save") {
-    const name = $("#catRows .cat-edit").value.trim();
-    if (!name || name === cat.name) { editingCat = null; return renderCategories(CATEGORIES); }
-    catAction(() => api("/api/categories/" + id, json("PUT", { name })),
-              `Catégorie renommée en « ${name} »${cat.count ? ` (${cat.count} composant(s) mis à jour)` : ""}.`);
-  } else if (b.dataset.act === "delete") {
-    const warn = cat.count ? `\n\n${cat.count} composant(s) passeront en « Sans catégorie ».` : "";
-    if (!confirm(`Supprimer la catégorie « ${cat.name} » ?${warn}`)) return;
-    catAction(() => api("/api/categories/" + id, { method: "DELETE" }), `Catégorie « ${cat.name} » supprimée.`);
+// Listes gérées dans les paramètres (catégories, emplacements) : ajout, renommage en place, suppression
+function listManager(o) {
+  let editing = null;
+  const items = () => o.items();
+  function render() {
+    const list = items();
+    $(o.count).textContent = `${list.length} ${o.noun}(s)`;
+    $(o.rows).innerHTML = list.length ? list.map(c => c.id === editing ? `
+      <div class="cat-row" data-id="${c.id}">
+        <input class="cat-edit" value="${esc(c.name)}" autocomplete="off">
+        <button class="btn primary icon" data-act="save" title="Enregistrer">${ic("check", "sm")}</button>
+        <button class="btn ghost icon" data-act="cancel" title="Annuler">${ic("x", "sm")}</button>
+      </div>` : `
+      <div class="cat-row" data-id="${c.id}">
+        <span class="nm">${esc(c.name)}</span>
+        <span class="pill ${c.count ? "green" : "gray"}">${c.count} composant${c.count > 1 ? "s" : ""}</span>
+        <button class="btn ghost icon" data-act="edit" title="Renommer">${ic("pencil", "sm")}</button>
+        <button class="btn ghost icon" data-act="delete" title="Supprimer">${ic("trash", "sm")}</button>
+      </div>`).join("") : `<div class="empty">Aucun(e) ${o.noun}.</div>`;
+    const input = $(o.rows + " .cat-edit");
+    if (input) { input.focus(); input.select(); }
   }
+  async function act(fn, msg) {
+    try { await fn(); editing = null; await o.reload(); render(); if (msg) toast(msg); }
+    catch (err) { toast(err.message); }
+  }
+  $(o.add).onclick = () => {
+    const name = $(o.input).value.trim(); if (!name) return $(o.input).focus();
+    act(() => api(o.api, json("POST", { name })), `« ${name} » ajouté(e).`).then(() => { $(o.input).value = ""; });
+  };
+  $(o.input).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $(o.add).click(); } };
+  $(o.rows).onclick = e => {
+    const b = e.target.closest("button[data-act]"); if (!b) return;
+    const id = +b.closest(".cat-row").dataset.id, it = items().find(c => c.id === id);
+    if (b.dataset.act === "edit") { editing = id; render(); }
+    else if (b.dataset.act === "cancel") { editing = null; render(); }
+    else if (b.dataset.act === "save") {
+      const name = $(o.rows + " .cat-edit").value.trim();
+      if (!name || name === it.name) { editing = null; return render(); }
+      act(() => api(`${o.api}/${id}`, json("PUT", { name, description: it.description })),
+          `Renommé en « ${name} »${it.count ? ` (${it.count} composant(s) mis à jour)` : ""}.`);
+    } else if (b.dataset.act === "delete") {
+      const warn = it.count ? `\n\n${it.count} composant(s) passeront en « ${o.emptyLabel} ».` : "";
+      if (!confirm(`Supprimer « ${it.name} » ?${warn}`)) return;
+      act(() => api(`${o.api}/${id}`, { method: "DELETE" }), `« ${it.name} » supprimé(e).`);
+    }
+  };
+  $(o.rows).onkeydown = e => {
+    if (!e.target.classList.contains("cat-edit")) return;
+    if (e.key === "Enter") { e.preventDefault(); $(o.rows + ' [data-act="save"]').click(); }
+    if (e.key === "Escape") { editing = null; render(); }
+  };
+  return { render };
+}
+const catManager = listManager({ items: () => CATEGORIES, reload: loadCategories, api: "/api/categories", noun: "catégorie",
+  emptyLabel: "Sans catégorie", rows: "#catRows", count: "#catCount", input: "#newCat", add: "#btnAddCat" });
+const locManager = listManager({ items: () => LOCATIONS, reload: loadLocations, api: "/api/locations", noun: "emplacement",
+  emptyLabel: "Sans emplacement", rows: "#locRows", count: "#locSetCount", input: "#newLoc", add: "#btnAddLoc" });
+
+// Export, sauvegarde, restauration, datasheets hors ligne
+$("#btnRestore").onclick = () => $("#restoreInput").click();
+$("#restoreInput").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  if (!confirm(`Restaurer « ${file.name} » ?\n\nL'inventaire actuel sera remplacé (l'ancienne base est conservée à côté par sécurité).`)) return;
+  const fd = new FormData(); fd.append("file", file);
+  try {
+    const r = await api("/api/restore", { method: "POST", body: fd });
+    toast(`Sauvegarde restaurée : ${r.components} composant(s).`);
+    await Promise.all([loadCategories(), loadLocations()]); loadSettings();
+  } catch (err) { toast(err.message); }
 };
-$("#catRows").onkeydown = e => {
-  if (!e.target.classList.contains("cat-edit")) return;
-  if (e.key === "Enter") { e.preventDefault(); $('#catRows [data-act="save"]').click(); }
-  if (e.key === "Escape") { editingCat = null; renderCategories(CATEGORIES); }
+async function refreshDsStatus() {
+  const all = await api("/api/components");
+  const withUrl = all.filter(c => c.datasheet_url), local = withUrl.filter(c => c.datasheet_file);
+  $("#dsStatus").textContent = `${local.length} datasheet(s) copiée(s) sur ${withUrl.length} lien(s) de datasheet.`;
+  $("#btnDsAll").disabled = local.length === withUrl.length;
+}
+$("#btnDsAll").onclick = async () => {
+  const b = $("#btnDsAll"); b.disabled = true; $("#dsStatus").textContent = "Téléchargement en cours…";
+  try {
+    const r = await api("/api/datasheets/download-all", { method: "POST" });
+    toast(`${r.downloaded} datasheet(s) copiée(s)${r.failed.length ? `, ${r.failed.length} échec(s)` : ""}.`);
+  } catch (err) { toast(err.message); }
+  refreshDsStatus();
 };
 
 // Connecteurs IA
@@ -1181,7 +1865,9 @@ $("#connRows").onclick = async e => {
   refreshKeyBanner();
 };
 
-Promise.allSettled([refreshKeyBanner(), loadCategories()]).then(route);
+Promise.allSettled([refreshKeyBanner(), loadCategories(), loadLocations()]).then(route);
+// App installable (écran d'accueil du téléphone) : nécessite https, sauf sur localhost
+if ("serviceWorker" in navigator && isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
 </html>
