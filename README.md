@@ -11,7 +11,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Bambuddy | `youbs-bambuddy` | 1.2.5.5 |
 | Rclone Seedbox | `youbs-rclone` | 1.75.1.3 |
 | wger | `youbs-wger` | 2.7 |
-| Inventaire composants | `youbs-inventaire` | 0.1.0 |
+| Lab Inventory | `youbs-lab-inventory` | 0.1.0 |
 
 ## Ajouter ce store dans Umbrel
 
@@ -31,7 +31,7 @@ https://github.com/youbs-dev/youbs-umbrel-app-store
 
 ## Applications développées ici
 
-Le code source de l'app Inventaire composants se trouve dans `src/inventaire/`. À chaque modification
-sur `main`, le workflow `Image inventaire` construit l'image `ghcr.io/youbs-dev/inventaire-composants`
-avec le tag de la version indiquée dans `youbs-inventaire/umbrel-app.yml`. Pour publier une nouvelle
+Le code source de l'app Lab Inventory se trouve dans `src/lab-inventory/`. À chaque modification
+sur `main`, le workflow `Image lab-inventory` construit l'image `ghcr.io/youbs-dev/lab-inventory`
+avec le tag de la version indiquée dans `youbs-lab-inventory/umbrel-app.yml`. Pour publier une nouvelle
 version : modifier le code, augmenter `version` dans `umbrel-app.yml` et le tag de l'image dans `docker-compose.yml`.

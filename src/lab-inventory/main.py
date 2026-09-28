@@ -79,7 +79,7 @@ class Settings(BaseModel):
     anthropic_api_key: str
 
 
-app = FastAPI(title="Inventaire composants")
+app = FastAPI(title="Lab Inventory")
 
 
 @app.get("/api/settings")

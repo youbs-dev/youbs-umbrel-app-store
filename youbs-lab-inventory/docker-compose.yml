@@ -4,12 +4,12 @@ services:
   app_proxy:
     environment:
       # Format : <id-app>_<nom-du-service>_1
-      APP_HOST: youbs-inventaire_web_1
+      APP_HOST: youbs-lab-inventory_web_1
       APP_PORT: 8000
 
   web:
-    # Image construite depuis src/inventaire par .github/workflows/inventaire-image.yml
-    image: ghcr.io/youbs-dev/inventaire-composants:0.1.0
+    # Image construite depuis src/lab-inventory par .github/workflows/lab-inventory-image.yml
+    image: ghcr.io/youbs-dev/lab-inventory:0.1.0
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data

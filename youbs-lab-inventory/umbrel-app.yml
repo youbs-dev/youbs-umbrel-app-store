@@ -1,8 +1,8 @@
 manifestVersion: 1
-id: youbs-inventaire
-name: Inventaire composants
+id: youbs-lab-inventory
+name: Lab Inventory
 tagline: Inventoriez vos composants électroniques en les prenant en photo
-icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/inventaire/icon.svg
+icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/lab-inventory/icon.svg
 category: files
 version: "0.1.0"
 port: 8765
@@ -17,7 +17,7 @@ developer: youbs
 website: https://github.com/youbs-dev/youbs-umbrel-app-store
 submitter: youbs
 submission: https://github.com/youbs-dev/youbs-umbrel-app-store
-repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/inventaire
+repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/lab-inventory
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
