@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DATA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+data_dir="${APP_DIR}/data"
+headscale_config="${data_dir}/headscale/config/config.yaml"
+headplane_config="${data_dir}/headplane/config.yaml"
+
+# Adresse publique servie par le reverse proxy nginx (TLS). C'est l'URL que les
+# clients Tailscale utilisent comme "login server".
+SERVER_URL="https://headscale.youbs.fr"
+
+mkdir -p "${data_dir}/headscale/config" "${data_dir}/headscale/lib" "${data_dir}/headplane/lib"
+
+# Les configurations ne sont ecrites qu'au premier demarrage : les modifications
+# faites ensuite a la main (ou via Headplane) sont conservees.
+if [[ ! -f "${headscale_config}" ]]; then
+  cat > "${headscale_config}" <<YAML
+# Configuration Headscale generee par youbs-headscale.
+# Reference complete : https://github.com/juanfont/headscale/blob/v0.29.4/config-example.yaml
+# Redemarrer l'app apres modification.
+
+server_url: ${SERVER_URL}
+listen_addr: 0.0.0.0:8080
+metrics_listen_addr: 127.0.0.1:9090
+grpc_listen_addr: 127.0.0.1:50443
+grpc_allow_insecure: false
+
+noise:
+  private_key_path: /var/lib/headscale/noise_private.key
+
+prefixes:
+  v4: 100.64.0.0/10
+  v6: fd7a:115c:a1e0::/48
+  allocation: sequential
+
+# Relais DERP publics de Tailscale (trafic chiffre de bout en bout, aucun controle).
+# Le serveur DERP integre demande d'ouvrir 3478/UDP vers Umbrel.
+derp:
+  server:
+    enabled: false
+  urls:
+    - https://controlplane.tailscale.com/derpmap/default
+  paths: []
+  auto_update_enabled: true
+  update_frequency: 3h
+
+disable_check_updates: true
+
+node:
+  expiry: 0
+  ephemeral:
+    inactivity_timeout: 30m
+
+database:
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
+    write_ahead_log: true
+
+log:
+  level: info
+  format: text
+
+# Politique d'acces (ACL) stockee en base : modifiable depuis Headplane.
+# Sans politique, tous les appareils peuvent se joindre.
+policy:
+  mode: database
+
+dns:
+  magic_dns: true
+  base_domain: tailnet.youbs.fr
+  # false : les appareils gardent leur DNS habituel, seuls les noms *.tailnet.youbs.fr
+  # passent par MagicDNS
+  override_local_dns: false
+  nameservers:
+    global:
+      - 1.1.1.1
+      - 1.0.0.1
+    split: {}
+  search_domains: []
+  extra_records: []
+
+unix_socket: /var/run/headscale/headscale.sock
+unix_socket_permission: "0770"
+
+logtail:
+  enabled: false
+
+taildrop:
+  enabled: true
+YAML
+fi
+
+if [[ ! -f "${headplane_config}" ]]; then
+  # Headplane exige un secret de 32 caracteres : derive de APP_SEED pour rester stable.
+  seed="${APP_SEED:-$(openssl rand -hex 32)}"
+  cookie_secret="${seed:0:32}"
+
+  cat > "${headplane_config}" <<YAML
+# Configuration Headplane generee par youbs-headscale.
+# Reference : https://github.com/tale/headplane/blob/v0.7.1/config.example.yaml
+
+server:
+  host: "0.0.0.0"
+  port: 3000
+  base_url: "http://umbrel.local:8481"
+  cookie_secret: "${cookie_secret}"
+  # Headplane est servi en HTTP par le proxy d'Umbrel
+  cookie_secure: false
+  cookie_max_age: 86400
+  data_path: "/var/lib/headplane"
+
+headscale:
+  url: "http://youbs-headscale_headscale_1:8080"
+  public_url: "${SERVER_URL}"
+  config_path: "/etc/headscale/config.yaml"
+
+# Pas d'integration (Docker, Kubernetes...) : Headplane ne redemarre pas Headscale lui-meme
+integration:
+  agent:
+    enabled: false
+YAML
+fi

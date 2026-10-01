@@ -1,0 +1,37 @@
+manifestVersion: 1
+id: youbs-headscale
+name: Headscale
+tagline: Votre propre serveur de coordination Tailscale, avec l'interface Headplane
+icon: https://raw.githubusercontent.com/juanfont/headscale/main/docs/assets/logo/headscale3-dots.png
+category: networking
+version: "0.29.4"
+port: 8481
+description: >-
+  Headscale est une implémentation open-source et auto-hébergée du serveur de coordination de Tailscale.
+  Vos appareils utilisent les clients Tailscale habituels, mais c'est votre serveur qui gère le réseau :
+  utilisateurs, appareils, clés et règles d'accès, sans dépendre du service Tailscale.
+  L'interface web Headplane est incluse.
+
+
+  Headscale écoute en HTTP sur le port 8480 d'Umbrel. Il doit être publié en HTTPS sur https://headscale.youbs.fr
+  par un reverse proxy (nginx) qui transmet les en-têtes Upgrade et Connection.
+
+
+  Première connexion à Headplane : la clé API est créée au premier démarrage dans le fichier
+  CLE-API-HEADPLANE.txt (app Fichiers > Applications > youbs-headscale > data).
+
+
+  Connecter un appareil : tailscale up --login-server https://headscale.youbs.fr
+developer: juanfont / tale
+website: https://headscale.net
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/juanfont/headscale
+support: https://github.com/juanfont/headscale/issues
+gallery: []
+releaseNotes: >-
+  Première version : Headscale 0.29.4 et Headplane 0.7.1.
+dependencies: []
+path: "/admin/"
+defaultUsername: ""
+defaultPassword: ""

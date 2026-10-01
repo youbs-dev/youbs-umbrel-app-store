@@ -11,7 +11,8 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Bambuddy | `youbs-bambuddy` | 1.2.5.5 |
 | Rclone Seedbox | `youbs-rclone` | 1.75.1.3 |
 | wger | `youbs-wger` | 2.7 |
-| Lab Inventory | `youbs-lab-inventory` | 0.1.0 |
+| Lab Inventory | `youbs-lab-inventory` | 0.9.0 |
+| Headscale (+ Headplane) | `youbs-headscale` | 0.29.4 |
 
 ## Ajouter ce store dans Umbrel
 

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DATA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+key_file="${APP_DIR}/data/CLE-API-HEADPLANE.txt"
+container="youbs-headscale_headscale_1"
+
+# Headplane se connecte avec une cle API Headscale. On en cree une seule fois,
+# au premier demarrage, et on la depose dans les fichiers de l'app pour que
+# l'utilisateur puisse la lire depuis l'app Fichiers d'Umbrel.
+if [[ -s "${key_file}" ]]; then
+  exit 0
+fi
+
+for attempt in $(seq 1 30); do
+  if key="$(docker exec "${container}" headscale apikeys create --expiration 365d 2>/dev/null | tail -n 1)" \
+    && [[ -n "${key}" ]]; then
+    (
+      umask 077
+      cat > "${key_file}" <<TXT
+Cle API pour se connecter a Headplane (valable 365 jours) :
+
+${key}
+
+Creee le $(date '+%Y-%m-%d %H:%M'). Pour en creer une nouvelle, supprimer ce fichier
+puis redemarrer l'app youbs-headscale.
+TXT
+    )
+    echo "Cle API Headplane creee dans ${key_file}"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo "Impossible de creer la cle API Headplane : Headscale ne repond pas" >&2

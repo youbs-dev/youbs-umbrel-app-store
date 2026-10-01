@@ -1,0 +1,33 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      # L'interface Umbrel ouvre Headplane ; Headscale est publie a part (port 8480)
+      APP_HOST: youbs-headscale_headplane_1
+      APP_PORT: 3000
+
+  headscale:
+    image: headscale/headscale:0.29.4@sha256:8833f828b414c0907b7e5c71da76473216fe17cce0818a166b536ec552c0903f
+    restart: unless-stopped
+    command: serve
+    # Le reverse proxy nginx (TLS) redirige https://headscale.youbs.fr vers ce port
+    ports:
+      - "8480:8080"
+    volumes:
+      # config.yaml est genere par hooks/pre-start au premier demarrage
+      - ${APP_DATA_DIR}/data/headscale/config:/etc/headscale
+      - ${APP_DATA_DIR}/data/headscale/lib:/var/lib/headscale
+
+  headplane:
+    image: ghcr.io/tale/headplane:0.7.1@sha256:394483fd2336ce6b15df360c3e118ddfd45eb8140fe21df9f2611077f5d79d22
+    restart: unless-stopped
+    depends_on:
+      - headscale
+    volumes:
+      - ${APP_DATA_DIR}/data/headplane/config.yaml:/etc/headplane/config.yaml
+      - ${APP_DATA_DIR}/data/headplane/lib:/var/lib/headplane
+      # Lecture seule : Headplane affiche la config Headscale sans pouvoir la modifier
+      # (pas d'acces au socket Docker pour redemarrer Headscale)
+      - ${APP_DATA_DIR}/data/headscale/config/config.yaml:/etc/headscale/config.yaml:ro
