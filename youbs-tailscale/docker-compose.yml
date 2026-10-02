@@ -1,0 +1,59 @@
+version: "3.7"
+
+services:
+  web:
+    # Repris de l'app Tailscale officielle d'Umbrel : reseau de l'hote et mode TUN
+    # du noyau, pour que l'interface tailscale0 et ses routes existent sur Umbrel.
+    network_mode: "host"
+    image: tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      - TS_DEBUG_FIREWALL_MODE=nftables
+      # Serveur de coordination auto-heberge (app youbs-headscale)
+      - LOGIN_SERVER=https://headscale.youbs.fr
+      # Reseau local publie dans le tailnet (a approuver dans Headplane)
+      - ADVERTISE_ROUTES=192.168.31.0/24
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    # accept-routes reste desactive : en reseau hote, accepter une route qui
+    # recouvre le reseau local rendrait Umbrel injoignable sur son IP locale.
+    #
+    # Au premier demarrage (ou apres une deconnexion), "tailscale up" pointe le
+    # client vers Headscale ; le lien d'inscription s'affiche dans les logs de l'app
+    # et dans l'interface web (port 8240).
+    command:
+      - sh
+      - -c
+      - |
+        tailscale web --listen 0.0.0.0:8240 &
+
+        (
+          state=""
+          for attempt in $(seq 1 30); do
+            state="$(tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -n 1)"
+            case "$${state}" in
+              Running|NeedsLogin|NeedsMachineAuth|Stopped) break ;;
+            esac
+            sleep 1
+          done
+
+          if [ "$${state}" = "NeedsLogin" ]; then
+            echo "Connexion a $${LOGIN_SERVER} : ouvrez le lien ci-dessous puis enregistrez l'appareil dans Headplane"
+            tailscale up \
+              --login-server="$${LOGIN_SERVER}" \
+              --advertise-routes="$${ADVERTISE_ROUTES}" \
+              --accept-routes=false \
+              --hostname=umbrel
+          else
+            tailscale set --accept-routes=false --advertise-routes="$${ADVERTISE_ROUTES}" \
+              || echo "Attention : impossible d'appliquer les reglages Tailscale"
+          fi
+        ) &
+
+        exec tailscaled
+    volumes:
+      - ${APP_DATA_DIR}/data:/var/lib

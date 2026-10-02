@@ -1,0 +1,34 @@
+manifestVersion: 1
+id: youbs-tailscale
+name: Tailscale (Headscale)
+tagline: Client Tailscale relié à votre serveur Headscale auto-hébergé
+icon: https://getumbrel.github.io/umbrel-apps-gallery/tailscale/icon.svg
+category: networking
+version: "1.102.5"
+port: 8240
+description: >-
+  Client Tailscale pour Umbrel, connecté à votre propre serveur Headscale (https://headscale.youbs.fr)
+  au lieu du service Tailscale. Umbrel reçoit une adresse 100.64.x.x dans votre tailnet et publie
+  le réseau local 192.168.31.0/24 : depuis l'extérieur, vos appareils joignent Umbrel et les autres
+  machines du réseau à leurs adresses habituelles.
+
+
+  Premier démarrage : ouvrez le lien d'inscription affiché dans l'interface (ou dans les logs de l'app),
+  puis enregistrez l'appareil dans Headplane (Machines > Add device > Register machine key).
+  Approuvez ensuite la route 192.168.31.0/24 dans Headplane.
+
+
+  Ne pas installer en même temps que l'app Tailscale officielle.
+developer: Tailscale Inc.
+website: https://tailscale.com
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/tailscale/tailscale
+support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
+gallery: []
+releaseNotes: >-
+  Première version : client Tailscale 1.102.5 configuré pour Headscale, avec routeur de sous-réseau.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
