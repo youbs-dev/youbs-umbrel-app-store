@@ -4,7 +4,7 @@ name: Pi-hole (eno1)
 tagline: Bloqueur de publicités DNS, à l'écoute sur la carte eno1 uniquement
 icon: https://getumbrel.github.io/umbrel-apps-gallery/pi-hole/icon.svg
 category: networking
-version: "2026.09.0"
+version: "2026.09.0.1"
 port: 8482
 description: >-
   Pi-hole bloque les publicités et les traqueurs pour tout le réseau, au niveau du DNS.
@@ -29,7 +29,7 @@ repo: https://github.com/pi-hole/docker-pi-hole
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Première version : Pi-hole 2026.09.0 en réseau hôte, DNS lié à la carte eno1.
+  Ajout de la capacité NET_ADMIN : le serveur DHCP de Pi-hole peut être activé sans bloquer le DNS.
 dependencies: []
 path: "/admin/"
 defaultUsername: ""

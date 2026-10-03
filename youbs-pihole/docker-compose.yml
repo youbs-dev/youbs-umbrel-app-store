@@ -23,6 +23,9 @@ services:
       - FTLCONF_ntp_sync_active=false
     cap_add:
       - SYS_NICE
+      # Requis par dnsmasq des que le serveur DHCP de Pi-hole est active ; sans lui
+      # dnsmasq ne demarre pas et le DNS tombe aussi
+      - NET_ADMIN
     volumes:
       - ${APP_DATA_DIR}/data/pihole:/etc/pihole
       - ${APP_DATA_DIR}/data/dnsmasq:/etc/dnsmasq.d
