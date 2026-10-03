@@ -14,6 +14,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Lab Inventory | `youbs-lab-inventory` | 0.9.0 |
 | Headscale (+ Headplane) | `youbs-headscale` | 0.29.4 |
 | Tailscale (Headscale) | `youbs-tailscale` | 1.102.5 |
+| Pi-hole (eno1) | `youbs-pihole` | 2026.09.0 |
 
 ## Ajouter ce store dans Umbrel
 

@@ -1,0 +1,36 @@
+manifestVersion: 1
+id: youbs-pihole
+name: Pi-hole (eno1)
+tagline: Bloqueur de publicités DNS, à l'écoute sur la carte eno1 uniquement
+icon: https://getumbrel.github.io/umbrel-apps-gallery/pi-hole/icon.svg
+category: networking
+version: "2026.09.0"
+port: 8482
+description: >-
+  Pi-hole bloque les publicités et les traqueurs pour tout le réseau, au niveau du DNS.
+  Cette version tourne sur le réseau de l'hôte et ne répond aux requêtes DNS (port 53) que sur la carte
+  eno1 d'Umbrel, contrairement à l'app officielle qui répond sur toutes les cartes.
+
+
+  Le DNS à indiquer aux appareils (ou au DHCP du routeur) est l'adresse IP de la carte eno1.
+  Après un changement d'adresse sur eno1, redémarrez l'app pour qu'elle écoute sur la nouvelle adresse.
+
+
+  L'interface web est sur le port 8482 (toutes les cartes). Le DNS d'Umbrel lui-même doit rester
+  un serveur externe (1.1.1.1 par exemple), sinon les mises à jour de l'app ne peuvent plus être téléchargées.
+
+
+  Ne pas installer en même temps que l'app Pi-hole officielle : les deux utilisent le port 53.
+developer: Pi-hole
+website: https://pi-hole.net
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/pi-hole/docker-pi-hole
+support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
+gallery: []
+releaseNotes: >-
+  Première version : Pi-hole 2026.09.0 en réseau hôte, DNS lié à la carte eno1.
+dependencies: []
+path: "/admin/"
+defaultUsername: ""
+deterministicPassword: true

@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  server:
+    # Reseau de l'hote : Pi-hole voit les vraies cartes d'Umbrel et peut se lier a
+    # eno1 seulement. Avec un port publie par Docker (53:53), le DNS repondrait sur
+    # toutes les cartes.
+    network_mode: "host"
+    image: pihole/pihole:2026.09.0@sha256:5b9c8cf51de7d6d3f2240dbe72baf5f06e1fd39cb4d77a99fab4fa13e23bd1be
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Paris
+      # DNS lie a la carte eno1 uniquement (bind-interfaces de dnsmasq). Les adresses
+      # sont lues au demarrage : redemarrer l'app apres un changement d'IP sur eno1.
+      - FTLCONF_dns_interface=eno1
+      - FTLCONF_dns_listeningMode=BIND
+      # Interface web en HTTP sur le port 8482 (80 et 443 sont pris par umbrelOS)
+      - FTLCONF_webserver_port=8482
+      - FTLCONF_webserver_api_password=${APP_PASSWORD}
+      # En reseau hote, le serveur NTP de Pi-hole occuperait le port 123 d'Umbrel
+      - FTLCONF_ntp_ipv4_active=false
+      - FTLCONF_ntp_ipv6_active=false
+      - FTLCONF_ntp_sync_active=false
+    cap_add:
+      - SYS_NICE
+    volumes:
+      - ${APP_DATA_DIR}/data/pihole:/etc/pihole
+      - ${APP_DATA_DIR}/data/dnsmasq:/etc/dnsmasq.d
