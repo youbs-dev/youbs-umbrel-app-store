@@ -8,13 +8,17 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | --- | --- | --- |
 | Watcharr | `youbs-watcharr` | 4.2.2 |
 | Dawarich | `youbs-dawarich` | 1.15.0.2 |
-| Bambuddy | `youbs-bambuddy` | 1.2.5.5 |
+| Bambuddy | `youbs-bambuddy` | 1.2.5.7 |
 | Rclone Seedbox | `youbs-rclone` | 1.75.1.3 |
 | wger | `youbs-wger` | 2.7 |
 | Lab Inventory | `youbs-lab-inventory` | 0.9.0 |
 | Headscale (+ Headplane) | `youbs-headscale` | 0.29.4 |
 | Tailscale (Headscale) | `youbs-tailscale` | 1.102.5 |
 | Pi-hole (eno1) | `youbs-pihole` | 2026.09.0.1 |
+| Radarr (sans Transmission) | `youbs-radarr` | 6.4.4.10685 |
+| Sonarr (sans Transmission) | `youbs-sonarr` | 4.0.20.3014 |
+| Lidarr (sans Transmission) | `youbs-lidarr` | 3.1.0.4875 |
+| Prowlarr (sans Transmission) | `youbs-prowlarr` | 2.6.5.5623 |
 
 ## Ajouter ce store dans Umbrel
 

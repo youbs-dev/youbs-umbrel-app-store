@@ -1,0 +1,32 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-prowlarr_server_1
+      APP_PORT: 9696
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  # Paquet officiel Umbrel sans la dependance a Transmission ni le conteneur
+  # "mac" (media-app-configurator) : rien n'est configure automatiquement.
+  server:
+    image: linuxserver/prowlarr:version-2.6.5.5623@sha256:c96b56d94d116a9f4de94bc23d3381689492e6c3cfb7435320e8d982e406f99a
+    restart: on-failure
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+      # La connexion Umbrel (app_proxy) protege l'interface web ; l'API demande
+      # toujours une cle API.
+      - PROWLARR__AUTH__METHOD=External
+      - PROWLARR__AUTH__REQUIRED=Enabled
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+
+  # FlareSolverr : a declarer a la main dans Prowlarr (Settings > Indexers > Indexer
+  # Proxies) avec l'adresse http://youbs-prowlarr_indexer_proxy_1:8191
+  indexer_proxy:
+    image: flaresolverr/flaresolverr:v3.4.6@sha256:7962759d99d7e125e108e0f5e7f3cdbcd36161776d058d1d9b7153b92ef1af9e
+    restart: on-failure

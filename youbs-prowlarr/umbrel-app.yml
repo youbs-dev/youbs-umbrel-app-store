@@ -1,0 +1,35 @@
+manifestVersion: 1
+id: youbs-prowlarr
+name: Prowlarr (sans Transmission)
+tagline: Gestionnaire d'indexeurs pour les apps *arr, sans Transmission
+icon: https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/icon.svg
+category: media
+version: "2.6.5.5623"
+port: 8487
+description: >-
+  Prowlarr est un gestionnaire d'indexeurs : vous y ajoutez vos indexeurs une seule fois et il les synchronise vers Radarr, Sonarr et Lidarr.
+
+
+  Cette version reprend le paquet officiel Umbrel, sans la dépendance à Transmission ni le conteneur de configuration automatique. Rien n'est configuré automatiquement : reliez vous-même Prowlarr à vos apps (Settings > Apps) avec leur adresse interne, par exemple http://youbs-radarr_server_1:7878, http://youbs-sonarr_server_1:8989 et http://youbs-lidarr_server_1:8686, et leur clé API. FlareSolverr est fourni : ajoutez-le dans Settings > Indexers > Indexer Proxies avec l'adresse http://youbs-prowlarr_indexer_proxy_1:8191.
+
+
+  Le dossier /downloads correspond à l'emplacement « Downloads » choisi dans les réglages de l'app. L'accès à l'interface est protégé par la connexion Umbrel.
+developer: Prowlarr
+website: https://prowlarr.com/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/Prowlarr/Prowlarr
+support: https://github.com/Prowlarr/Prowlarr/issues
+gallery:
+  - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/1.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/2.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/3.jpg
+releaseNotes: >-
+  Première version dans le store communautaire youbs : Prowlarr 2.6.5.5623 sans Transmission ni configuration automatique.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+permissions:
+  - STORAGE_DOWNLOADS

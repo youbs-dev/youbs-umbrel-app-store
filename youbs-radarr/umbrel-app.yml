@@ -1,0 +1,35 @@
+manifestVersion: 1
+id: youbs-radarr
+name: Radarr (sans Transmission)
+tagline: Gestionnaire de collection de films, sans Transmission
+icon: https://getumbrel.github.io/umbrel-apps-gallery/radarr/icon.svg
+category: media
+version: "6.4.4.10685"
+port: 8484
+description: >-
+  Radarr est un gestionnaire de collection de films. Il surveille les sorties, envoie les téléchargements au client de votre choix, puis range et renomme les fichiers dans votre bibliothèque.
+
+
+  Cette version reprend le paquet officiel Umbrel, sans la dépendance à Transmission ni le conteneur de configuration automatique. Rien n'est configuré automatiquement : ajoutez vous-même votre client de téléchargement (Settings > Download Clients) et vos dossiers racine sous /downloads. Depuis les autres apps, Radarr est joignable à l'adresse interne http://youbs-radarr_server_1:7878.
+
+
+  Le dossier /downloads correspond à l'emplacement « Downloads » choisi dans les réglages de l'app. L'accès à l'interface est protégé par la connexion Umbrel.
+developer: Radarr
+website: https://radarr.video/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/Radarr/Radarr
+support: https://github.com/Radarr/Radarr/issues
+gallery:
+  - https://getumbrel.github.io/umbrel-apps-gallery/radarr/1.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/radarr/2.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/radarr/3.jpg
+releaseNotes: >-
+  Première version dans le store communautaire youbs : Radarr 6.4.4.10685 sans Transmission ni configuration automatique.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+permissions:
+  - STORAGE_DOWNLOADS

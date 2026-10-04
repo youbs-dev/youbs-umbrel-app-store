@@ -1,0 +1,35 @@
+manifestVersion: 1
+id: youbs-lidarr
+name: Lidarr (sans Transmission)
+tagline: Gestionnaire de collection musicale, sans Transmission
+icon: https://getumbrel.github.io/umbrel-apps-gallery/lidarr/icon.svg
+category: media
+version: "3.1.0.4875"
+port: 8486
+description: >-
+  Lidarr est un gestionnaire de collection musicale. Il surveille les nouveaux albums de vos artistes, envoie les téléchargements au client de votre choix, puis range et renomme les fichiers dans votre bibliothèque.
+
+
+  Cette version reprend le paquet officiel Umbrel, sans la dépendance à Transmission ni le conteneur de configuration automatique. Rien n'est configuré automatiquement : ajoutez vous-même votre client de téléchargement (Settings > Download Clients) et vos dossiers racine sous /downloads. Depuis les autres apps, Lidarr est joignable à l'adresse interne http://youbs-lidarr_server_1:8686.
+
+
+  Le dossier /downloads correspond à l'emplacement « Downloads » choisi dans les réglages de l'app. L'accès à l'interface est protégé par la connexion Umbrel.
+developer: Lidarr
+website: https://lidarr.audio/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/Lidarr/Lidarr
+support: https://github.com/Lidarr/Lidarr/issues
+gallery:
+  - https://getumbrel.github.io/umbrel-apps-gallery/lidarr/1.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/lidarr/2.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/lidarr/3.jpg
+releaseNotes: >-
+  Première version dans le store communautaire youbs : Lidarr 3.1.0.4875 sans Transmission ni configuration automatique.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+permissions:
+  - STORAGE_DOWNLOADS

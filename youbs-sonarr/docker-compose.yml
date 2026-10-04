@@ -1,0 +1,26 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-sonarr_server_1
+      APP_PORT: 8989
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  # Paquet officiel Umbrel sans la dependance a Transmission ni le conteneur
+  # "mac" (media-app-configurator) : rien n'est configure automatiquement.
+  server:
+    image: linuxserver/sonarr:4.0.20@sha256:a5c1a5fecbef946927ab90ad68df319ac5fe644057e5fc18cd993f01ac07b2b2
+    restart: on-failure
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+      # La connexion Umbrel (app_proxy) protege l'interface web ; l'API demande
+      # toujours une cle API.
+      - SONARR__AUTH__METHOD=External
+      - SONARR__AUTH__REQUIRED=Enabled
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads

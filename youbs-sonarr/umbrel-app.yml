@@ -1,0 +1,35 @@
+manifestVersion: 1
+id: youbs-sonarr
+name: Sonarr (sans Transmission)
+tagline: Gestionnaire de collection de séries, sans Transmission
+icon: https://getumbrel.github.io/umbrel-apps-gallery/sonarr/icon.svg
+category: media
+version: "4.0.20.3014"
+port: 8485
+description: >-
+  Sonarr est un gestionnaire de collection de séries. Il surveille les nouveaux épisodes, envoie les téléchargements au client de votre choix, puis range et renomme les fichiers dans votre bibliothèque.
+
+
+  Cette version reprend le paquet officiel Umbrel, sans la dépendance à Transmission ni le conteneur de configuration automatique. Rien n'est configuré automatiquement : ajoutez vous-même votre client de téléchargement (Settings > Download Clients) et vos dossiers racine sous /downloads. Depuis les autres apps, Sonarr est joignable à l'adresse interne http://youbs-sonarr_server_1:8989.
+
+
+  Le dossier /downloads correspond à l'emplacement « Downloads » choisi dans les réglages de l'app. L'accès à l'interface est protégé par la connexion Umbrel.
+developer: Sonarr
+website: https://sonarr.tv/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/Sonarr/Sonarr
+support: https://github.com/Sonarr/Sonarr/issues
+gallery:
+  - https://getumbrel.github.io/umbrel-apps-gallery/sonarr/1.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/sonarr/2.jpg
+  - https://getumbrel.github.io/umbrel-apps-gallery/sonarr/3.jpg
+releaseNotes: >-
+  Première version dans le store communautaire youbs : Sonarr 4.0.20.3014 sans Transmission ni configuration automatique.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+permissions:
+  - STORAGE_DOWNLOADS
