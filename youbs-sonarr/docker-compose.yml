@@ -24,3 +24,11 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data/config:/config
       - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+      # Seedbox montee par youbs-rclone (FUSE). La propagation rslave fait apparaitre
+      # le montage ici des que rclone est pret, meme si cette app a demarre avant lui.
+      - type: bind
+        source: ${UMBREL_ROOT}/home/Downloads/ftp_share
+        target: /seedbox
+        bind:
+          propagation: rslave
+          create_host_path: true

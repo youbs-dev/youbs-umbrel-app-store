@@ -1,10 +1,10 @@
 manifestVersion: 1
 id: youbs-radarr
-name: Radarr (sans Transmission)
+name: Radarr
 tagline: Gestionnaire de collection de films, sans Transmission
 icon: https://getumbrel.github.io/umbrel-apps-gallery/radarr/icon.svg
 category: media
-version: "6.4.4.10685"
+version: "6.4.4.10685-1"
 port: 8484
 description: >-
   Radarr est un gestionnaire de collection de films. Il surveille les sorties, envoie les téléchargements au client de votre choix, puis range et renomme les fichiers dans votre bibliothèque.
@@ -25,7 +25,7 @@ gallery:
   - https://getumbrel.github.io/umbrel-apps-gallery/radarr/2.jpg
   - https://getumbrel.github.io/umbrel-apps-gallery/radarr/3.jpg
 releaseNotes: >-
-  Première version dans le store communautaire youbs : Radarr 6.4.4.10685 sans Transmission ni configuration automatique.
+  Le dossier /seedbox (montage rclone de /Home/Downloads/ftp_share) est maintenant déclaré dans le paquet avec une propagation de montage : il apparaît dans l'app dès que rclone est prêt, même si l'app a démarré avant lui. L'application s'appelle désormais simplement « Radarr ».
 dependencies: []
 path: ""
 defaultUsername: ""

@@ -15,10 +15,10 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Headscale (+ Headplane) | `youbs-headscale` | 0.29.4 |
 | Tailscale (Headscale) | `youbs-tailscale` | 1.102.5 |
 | Pi-hole (eno1) | `youbs-pihole` | 2026.09.0.1 |
-| Radarr (sans Transmission) | `youbs-radarr` | 6.4.4.10685 |
-| Sonarr (sans Transmission) | `youbs-sonarr` | 4.0.20.3014 |
-| Lidarr (sans Transmission) | `youbs-lidarr` | 3.1.0.4875 |
-| Prowlarr (sans Transmission) | `youbs-prowlarr` | 2.6.5.5623 |
+| Radarr | `youbs-radarr` | 6.4.4.10685-1 |
+| Sonarr | `youbs-sonarr` | 4.0.20.3014-1 |
+| Lidarr | `youbs-lidarr` | 3.1.0.4875-1 |
+| Prowlarr | `youbs-prowlarr` | 2.6.5.5623-1 |
 
 ## Ajouter ce store dans Umbrel
 

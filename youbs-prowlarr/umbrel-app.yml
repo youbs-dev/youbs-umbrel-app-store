@@ -1,10 +1,10 @@
 manifestVersion: 1
 id: youbs-prowlarr
-name: Prowlarr (sans Transmission)
+name: Prowlarr
 tagline: Gestionnaire d'indexeurs pour les apps *arr, sans Transmission
 icon: https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/icon.svg
 category: media
-version: "2.6.5.5623"
+version: "2.6.5.5623-1"
 port: 8487
 description: >-
   Prowlarr est un gestionnaire d'indexeurs : vous y ajoutez vos indexeurs une seule fois et il les synchronise vers Radarr, Sonarr et Lidarr.
@@ -25,7 +25,7 @@ gallery:
   - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/2.jpg
   - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/3.jpg
 releaseNotes: >-
-  Première version dans le store communautaire youbs : Prowlarr 2.6.5.5623 sans Transmission ni configuration automatique.
+  L'application s'appelle désormais simplement « Prowlarr ».
 dependencies: []
 path: ""
 defaultUsername: ""
