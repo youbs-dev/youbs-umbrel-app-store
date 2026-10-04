@@ -8,7 +8,7 @@ services:
       APP_PORT: 8000
 
   server:
-    image: ghcr.io/maziggy/bambuddy:1.2.5
+    image: ghcr.io/maziggy/bambuddy:1.2.5.7@sha256:807f67511fa8c2b644b09de50a5d41794372214d00bd04fda59f576d9958d280
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
