@@ -1,0 +1,138 @@
+# Configuration PSMQTT generee par youbs-psmqtt.
+# Reference complete : https://github.com/eschava/psmqtt/blob/2.6.1/doc/usage.md
+# Redemarrer l'app apres modification.
+
+logging:
+  level: WARNING
+  report_status_period_sec: 60
+
+mqtt:
+  broker:
+    host: 192.168.31.70
+    port: 1883
+    # A RENSEIGNER : utilisateur et mot de passe du broker Mosquitto
+    username: A_RENSEIGNER
+    password: A_RENSEIGNER
+  clientid: psmqtt-umbrel
+  # Les dernieres valeurs restent disponibles apres un redemarrage de Home Assistant
+  retain: true
+  publish_topic_prefix: psmqtt/umbrel/
+  ha_discovery:
+    enabled: true
+    topic: homeassistant
+    device_name: Umbrel
+
+schedule:
+  - cron: "every 30 seconds"
+    tasks:
+      - task: cpu_percent
+        params: [ total ]
+        ha_discovery:
+          name: "Processeur"
+          platform: sensor
+          unit_of_measurement: "%"
+          icon: mdi:cpu-64-bit
+      - task: virtual_memory
+        params: [ percent ]
+        ha_discovery:
+          name: "Mémoire utilisée"
+          platform: sensor
+          unit_of_measurement: "%"
+          icon: mdi:memory
+      # Capteur "coretemp" des processeurs Intel, temperature du boitier processeur
+      - task: sensors_temperatures
+        params: [ coretemp, "Package id 0", current ]
+        ha_discovery:
+          name: "Température processeur"
+          platform: sensor
+          device_class: temperature
+          unit_of_measurement: "°C"
+          icon: mdi:thermometer
+      # Carte enp2s0 : interface web, apps et MCP d'Umbrel
+      - task: net_io_counters_rate
+        params: [ bytes_recv, enp2s0 ]
+        formatter: "{{x|MB_fractional(2)}}"
+        ha_discovery:
+          name: "Réseau entrant"
+          platform: sensor
+          device_class: data_rate
+          unit_of_measurement: "MB/s"
+          icon: mdi:download-network
+      - task: net_io_counters_rate
+        params: [ bytes_sent, enp2s0 ]
+        formatter: "{{x|MB_fractional(2)}}"
+        ha_discovery:
+          name: "Réseau sortant"
+          platform: sensor
+          device_class: data_rate
+          unit_of_measurement: "MB/s"
+          icon: mdi:upload-network
+
+  - cron: "every 1 minutes"
+    tasks:
+      - task: getloadavg
+        params: [ last5min, percent ]
+        formatter: "{{'%0.1f'|format(x)}}"
+        ha_discovery:
+          name: "Charge moyenne 5 min"
+          platform: sensor
+          unit_of_measurement: "%"
+          icon: mdi:speedometer
+      - task: virtual_memory
+        params: [ available ]
+        formatter: "{{x|GiB_fractional(2)}}"
+        ha_discovery:
+          name: "Mémoire disponible"
+          platform: sensor
+          device_class: data_size
+          unit_of_measurement: "GiB"
+          icon: mdi:memory
+
+  - cron: "every 10 minutes"
+    tasks:
+      # /opt/psmqtt/conf est sur la partition de donnees d'Umbrel
+      - task: disk_usage
+        params: [ percent, "/opt/psmqtt/conf" ]
+        ha_discovery:
+          name: "Disque utilisé"
+          platform: sensor
+          unit_of_measurement: "%"
+          icon: mdi:harddisk
+      - task: disk_usage
+        params: [ free, "/opt/psmqtt/conf" ]
+        formatter: "{{x|GB_fractional(1)}}"
+        ha_discovery:
+          name: "Disque libre"
+          platform: sensor
+          device_class: data_size
+          unit_of_measurement: "GB"
+          icon: mdi:harddisk
+
+  - cron: "every 60 minutes"
+    tasks:
+      - task: virtual_memory
+        params: [ total ]
+        formatter: "{{x|GiB_fractional(1)}}"
+        ha_discovery:
+          name: "Mémoire totale"
+          platform: sensor
+          device_class: data_size
+          unit_of_measurement: "GiB"
+          icon: mdi:memory
+      - task: disk_usage
+        params: [ total, "/opt/psmqtt/conf" ]
+        formatter: "{{x|GB_fractional(0)}}"
+        ha_discovery:
+          name: "Disque total"
+          platform: sensor
+          device_class: data_size
+          unit_of_measurement: "GB"
+          icon: mdi:harddisk
+      - task: boot_time
+        formatter: "{{x|iso8601_str}}"
+        ha_discovery:
+          name: "Dernier démarrage"
+          platform: sensor
+          device_class: timestamp
+          icon: mdi:calendar-clock
+          value_template: "{{ as_datetime(value) }}"

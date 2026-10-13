@@ -1,0 +1,18 @@
+version: "3.7"
+
+services:
+  server:
+    # Reseau de l'hote : PSMQTT mesure les debits des vraies cartes d'Umbrel
+    # (enp2s0) au lieu de la carte virtuelle du conteneur. Aucun port n'est
+    # ouvert : PSMQTT se connecte au broker MQTT, personne ne se connecte a lui.
+    network_mode: "host"
+    image: ghcr.io/eschava/psmqtt:2.6.1@sha256:afdb9974cee62b81b317af35124c7523f57975bcd727a7ffa737bd8d5878da26
+    restart: unless-stopped
+    stop_grace_period: 10s
+    environment:
+      - TZ=Europe/Paris
+    volumes:
+      # Configuration creee par hooks/pre-start au premier demarrage. Ce dossier
+      # sert aussi a mesurer le disque : il est sur la partition de donnees
+      # d'Umbrel, donc aucun autre dossier de l'hote n'a besoin d'etre monte.
+      - ${APP_DATA_DIR}/data/conf:/opt/psmqtt/conf:ro

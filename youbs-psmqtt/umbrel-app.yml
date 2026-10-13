@@ -1,0 +1,35 @@
+manifestVersion: 1
+id: youbs-psmqtt
+name: PSMQTT
+tagline: Envoie les mesures d'Umbrel (processeur, mémoire, disque, température) à Home Assistant par MQTT
+icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/mqtt.png
+category: networking
+version: "2.6.1"
+port: 8488
+description: >-
+  PSMQTT mesure l'activité de la machine (processeur, mémoire, disque, réseau, température) et la publie
+  sur un broker MQTT. Avec la découverte MQTT, Home Assistant crée seul un appareil « Umbrel » et ses capteurs.
+
+
+  L'app n'a pas d'interface web et n'ouvre aucun port : c'est elle qui se connecte au broker.
+
+
+  Au premier démarrage, le fichier data/conf/psmqtt.yaml est créé dans les fichiers de l'app.
+  Il faut y renseigner l'utilisateur et le mot de passe MQTT (lignes username et password), puis redémarrer l'app.
+  Tant que ce n'est pas fait, l'app tourne mais le broker refuse la connexion.
+
+
+  Les mesures publiées et leur fréquence se règlent dans ce même fichier. Il n'est jamais écrasé par une mise à jour.
+developer: eschava
+website: https://github.com/eschava/psmqtt
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/eschava/psmqtt
+support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
+gallery: []
+releaseNotes: >-
+  Première version : PSMQTT 2.6.1, mesures de l'hôte publiées par MQTT avec découverte Home Assistant.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

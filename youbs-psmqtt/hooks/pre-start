@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DATA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+conf_dir="${APP_DIR}/data/conf"
+conf_file="${conf_dir}/psmqtt.yaml"
+
+mkdir -p "${conf_dir}"
+
+# La configuration n'est ecrite qu'au premier demarrage : l'identifiant MQTT et
+# les reglages faits ensuite a la main sont conserves lors des mises a jour.
+if [[ ! -f "${conf_file}" ]]; then
+  cp "${APP_DIR}/psmqtt.modele.yaml" "${conf_file}"
+  echo "Configuration creee dans ${conf_file} : renseigner username et password puis redemarrer l'app"
+fi
+
+# Lisible par le conteneur (utilisateur non root) et modifiable depuis l'app
+# Fichiers d'Umbrel.
+chown -R 1000:1000 "${conf_dir}" 2>/dev/null || true
+chmod 755 "${conf_dir}"
+chmod 644 "${conf_file}"
