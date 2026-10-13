@@ -16,3 +16,13 @@ services:
       # sert aussi a mesurer le disque : il est sur la partition de donnees
       # d'Umbrel, donc aucun autre dossier de l'hote n'a besoin d'etre monte.
       - ${APP_DATA_DIR}/data/conf:/opt/psmqtt/conf:ro
+      # Disques externes d'Umbrel (/External), en lecture seule, pour mesurer le
+      # disque Media. On monte le dossier parent avec la propagation rslave : un
+      # disque branche ou monte apres le demarrage de l'app reste visible, et
+      # Docker ne cree jamais de faux dossier Media si le disque est absent.
+      - type: bind
+        source: ${UMBREL_ROOT}/external
+        target: /host/external
+        read_only: true
+        bind:
+          propagation: rslave

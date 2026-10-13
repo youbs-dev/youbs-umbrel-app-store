@@ -4,7 +4,7 @@ name: PSMQTT
 tagline: Envoie les mesures d'Umbrel (processeur, mémoire, disque, température) à Home Assistant par MQTT
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/mqtt.png
 category: networking
-version: "2.6.1"
+version: "2.6.1.1"
 port: 8488
 description: >-
   PSMQTT mesure l'activité de la machine (processeur, mémoire, disque, réseau, température) et la publie
@@ -28,7 +28,7 @@ repo: https://github.com/eschava/psmqtt
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Première version : PSMQTT 2.6.1, mesures de l'hôte publiées par MQTT avec découverte Home Assistant.
+  Ajout de la mesure du disque externe Media (/External/Media). Pour une installation existante, les nouvelles mesures sont à ajouter à la main dans data/conf/psmqtt.yaml (voir psmqtt.modele.yaml).
 dependencies: []
 path: ""
 defaultUsername: ""

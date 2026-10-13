@@ -107,6 +107,24 @@ schedule:
           device_class: data_size
           unit_of_measurement: "GB"
           icon: mdi:harddisk
+      # Disque externe Media (/External/Media). Si le disque est absent, ces
+      # capteurs passent a "indisponible" dans Home Assistant.
+      - task: disk_usage
+        params: [ percent, "/host/external/Media" ]
+        ha_discovery:
+          name: "Disque Media utilisé"
+          platform: sensor
+          unit_of_measurement: "%"
+          icon: mdi:harddisk
+      - task: disk_usage
+        params: [ free, "/host/external/Media" ]
+        formatter: "{{x|GB_fractional(1)}}"
+        ha_discovery:
+          name: "Disque Media libre"
+          platform: sensor
+          device_class: data_size
+          unit_of_measurement: "GB"
+          icon: mdi:harddisk
 
   - cron: "every 60 minutes"
     tasks:
@@ -124,6 +142,15 @@ schedule:
         formatter: "{{x|GB_fractional(0)}}"
         ha_discovery:
           name: "Disque total"
+          platform: sensor
+          device_class: data_size
+          unit_of_measurement: "GB"
+          icon: mdi:harddisk
+      - task: disk_usage
+        params: [ total, "/host/external/Media" ]
+        formatter: "{{x|GB_fractional(0)}}"
+        ha_discovery:
+          name: "Disque Media total"
           platform: sensor
           device_class: data_size
           unit_of_measurement: "GB"
