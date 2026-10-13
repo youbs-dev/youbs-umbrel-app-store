@@ -4,13 +4,16 @@ name: Bambuddy
 tagline: Gérez vos imprimantes Bambu Lab, sans cloud
 icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/bambuddy_logo_dark.png
 category: automation
-version: "1.2.5.7"
+version: "1.2.5.7.1"
 port: 8956
 description: >-
   Bambuddy est un centre de contrôle open-source et auto-hébergé pour les imprimantes 3D Bambu Lab. Il permet de suivre vos impressions, d'archiver vos fichiers, de gérer une file d'attente et de surveiller vos imprimantes en local, sans passer par le cloud de Bambu.
 
 
-  Chaque imprimante doit être sur le même réseau local que votre Umbrel, avec le mode développeur activé. La découverte automatique (SSDP) ne fonctionne pas depuis un conteneur Umbrel : ajoutez vos imprimantes manuellement à partir de leur adresse IP. L'accès à l'application est protégé par la connexion Umbrel.
+  Chaque imprimante doit être sur le même réseau local que votre Umbrel, avec le mode développeur activé. La découverte automatique (SSDP) ne fonctionne pas depuis un conteneur Umbrel : ajoutez vos imprimantes manuellement à partir de leur adresse IP. L'interface est protégée par la connexion Umbrel.
+
+
+  L'API (/api/*) ne passe pas par la connexion Umbrel, pour que l'intégration BamBuddy de Home Assistant puisse s'y connecter avec une clé API. Activez l'authentification dans les réglages de Bambuddy : sans elle, l'API est accessible à tout le réseau local.
 developer: maziggy
 website: https://github.com/maziggy/bambuddy
 submitter: youbs
@@ -19,10 +22,7 @@ repo: https://github.com/maziggy/bambuddy
 support: https://github.com/maziggy/bambuddy/issues
 gallery: []
 releaseNotes: >-
-  Mise à jour vers Bambuddy 1.2.5.7 : confirmation du résultat après impression, gestionnaire de fichiers enrichi (vue en colonnes, aperçus, notes, « Combine to 3MF »), et les correctifs de stabilité de la 1.2.5.6.
-
-
-  Notes complètes : https://github.com/maziggy/bambuddy/releases
+  L'API (/api/*) est joignable sans la connexion Umbrel, pour l'intégration BamBuddy de Home Assistant. Activez l'authentification de Bambuddy avant de mettre à jour. Bambuddy reste en version 1.2.5.7.
 dependencies: []
 path: ""
 defaultUsername: ""

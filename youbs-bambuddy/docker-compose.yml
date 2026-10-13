@@ -6,6 +6,11 @@ services:
       # Format : <id-app>_<nom-du-service>_1
       APP_HOST: youbs-bambuddy_server_1
       APP_PORT: 8000
+      # L'API (/api/*) ne passe pas par la connexion Umbrel, pour que
+      # l'integration BamBuddy de Home Assistant puisse l'interroger avec une cle
+      # API. Elle n'est alors protegee que par l'authentification de Bambuddy,
+      # qui doit etre activee. Le reste de l'interface garde la connexion Umbrel.
+      PROXY_AUTH_WHITELIST: "/api/*"
 
   server:
     image: ghcr.io/maziggy/bambuddy:1.2.5.7@sha256:807f67511fa8c2b644b09de50a5d41794372214d00bd04fda59f576d9958d280
