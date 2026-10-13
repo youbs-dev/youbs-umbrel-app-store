@@ -1,0 +1,50 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-carbure_server_1
+      APP_PORT: 80
+      # L'API (/api/*) et les metadonnees OAuth du serveur MCP (/.well-known/*)
+      # ne passent pas par la connexion Umbrel, pour que l'application iPhone et
+      # les agents IA puissent les interroger. Elles ne sont alors protegees que
+      # par l'authentification de Carbure. Le portail garde la connexion Umbrel.
+      PROXY_AUTH_WHITELIST: "/api/*,/.well-known/*"
+
+  server:
+    image: ltoinel/carbure:1.2.0@sha256:9812398543601e0dba46f8ba3a68c5345791b37a0f8ac3856a6f593da202b394
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Paris
+      # Valeurs proposees par l'assistant d'installation. Nom complet du
+      # conteneur : sur Umbrel, "db" peut designer la base d'une autre app.
+      DB_HOST: youbs-carbure_db_1
+      DB_NAME: carbure
+      DB_USER: carbure
+      DB_PASSWORD: ${APP_SEED}
+      LANGUAGE: fr
+      # Synchronisation bancaire quotidienne (en secondes)
+      SYNC_INTERVAL: 86400
+    volumes:
+      - ${APP_DATA_DIR}/data/carbure:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:13@sha256:f1bba652ba57bea3099ca2fe1af692af537c27d96e0bcde39dce29e2ba1ec4f3
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: carbure
+      MARIADB_USER: carbure
+      MARIADB_PASSWORD: ${APP_SEED}
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30

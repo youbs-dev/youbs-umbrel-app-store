@@ -1,0 +1,34 @@
+manifestVersion: 1
+id: youbs-carbure
+name: Carbure
+tagline: Le budget du foyer, enfin sous contrôle
+icon: https://raw.githubusercontent.com/ltoinel/Carbure/main/portal/icon.png
+category: finance
+version: "1.2.0"
+port: 8489
+description: >-
+  Carbure est une application de budget familial open-source et auto-hébergée. Elle synchronise vos comptes
+  bancaires avec woob (connexion directe, sans agrégateur tiers), classe les opérations avec des règles,
+  suit les budgets mensuels et les tendances, et envoie des alertes sur iPhone. Un serveur MCP en lecture
+  seule permet d'interroger vos finances depuis un agent IA.
+
+
+  À la première ouverture, un assistant crée la base de données et le compte administrateur : les
+  paramètres de la base sont déjà remplis, il suffit de les valider.
+
+
+  L'API (/api) et les métadonnées OAuth du serveur MCP sont joignables sans la connexion Umbrel, pour
+  l'application iPhone et les agents IA. Elles sont protégées par l'authentification de Carbure.
+developer: Ludovic Toinel
+website: https://carbure.org
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/ltoinel/Carbure
+support: https://github.com/ltoinel/Carbure/issues
+gallery: []
+releaseNotes: >-
+  Première version dans le store : Carbure 1.2.0 avec MariaDB 13.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
