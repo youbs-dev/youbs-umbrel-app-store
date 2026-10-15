@@ -95,6 +95,9 @@
   .result .r-title:hover { text-decoration:underline; }
   .result .r-price { font-weight:700; white-space:nowrap; }
   .result .best { color:var(--down); }
+  .result .btn.ignore { padding:6px 8px; color:var(--text-muted); background:transparent; }
+  .result .btn.ignore:hover { color:var(--up); }
+  .ignored-list .result { gap:8px; }
   .section-title { font-size:1.05rem; margin:8px 0 12px; }
   @media (max-width:520px) { .filters { grid-template-columns:1fr 1fr; } .result .btn { padding:6px 10px; } }
   /* Produit regroupant plusieurs sites */
@@ -155,6 +158,7 @@
     <div id="results" class="hidden">
       <div class="results-head">
         <h2 id="resultsTitle"></h2>
+        <a href="#" id="linkIgnored" class="hidden"></a>
         <button type="button" class="btn primary" id="btnWatch">Créer une veille</button>
         <button type="button" class="btn icon" id="btnCloseResults" title="Fermer les résultats">✕</button>
       </div>
@@ -260,6 +264,16 @@
     <button class="btn" data-close autofocus>Fermer</button>
     <button class="btn primary" id="itemSave">Enregistrer</button>
   </div>
+</dialog>
+
+<!-- Résultats écartés -->
+<dialog id="dlgIgnored">
+  <div class="head"><h2 id="ignoredTitle">Résultats écartés</h2></div>
+  <div class="body">
+    <p class="hint">Ces offres n'apparaissent plus dans cette recherche ni dans la veille du même nom.</p>
+    <div class="ignored-list" id="ignoredList"></div>
+  </div>
+  <div class="foot"><button class="btn" data-close autofocus>Fermer</button></div>
 </dialog>
 
 <!-- Produit -->
@@ -528,22 +542,26 @@ async function runSearch() {
   $("#resultsBody").innerHTML = `<p class="hint">Interrogation de ${p.sites.map((s) => SITE_LABELS[s]).join(", ")}. Amazon peut prendre une vingtaine de secondes.</p>`;
   try {
     const out = await api("search", { method: "POST", body: p });
-    state.lastSearch = p;
+    state.lastSearch = p; state.lastResults = out;
+    const ignoredCount = Object.values(out).reduce((n, r) => n + (r.ignored || 0), 0);
+    $("#linkIgnored").textContent = `${ignoredCount} écarté${ignoredCount > 1 ? "s" : ""}`;
+    $("#linkIgnored").classList.toggle("hidden", !ignoredCount);
     const all = Object.values(out).flatMap((r) => r.results || []);
     const best = all.length ? Math.min(...all.map((r) => r.price)) : null;
     $("#resultsTitle").textContent = `« ${p.query} » : ${all.length} offre${all.length > 1 ? "s" : ""}` + (best != null ? `, dès ${eur(best)}` : "");
     $("#resultsBody").innerHTML = p.sites.map((site) => {
       const r = out[site] || {};
       if (r.error) return `<div class="site-block"><h3>${SITE_LABELS[site]}</h3><div class="error">⚠ ${esc(r.error)}</div></div>`;
-      const rows = (r.results || []).slice(0, 15).map((x) => `<div class="result">
+      const rows = (r.results || []).slice(0, 15).map((x, k) => `<div class="result">
           ${x.image ? `<img class="thumb" src="${esc(x.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
           <div class="r-main"><a class="r-title" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>
             ${x.info ? `<div class="meta">${esc(x.info)}</div>` : ""}</div>
           <span class="r-price ${x.price === best ? "best" : ""}">${eur(x.price)}</span>
           <button type="button" class="btn" data-follow="${esc(x.url)}">Suivre</button>
+          <button type="button" class="btn ignore" data-ignore="${site}:${k}" title="Écarter ce résultat (fausse correspondance)">✕</button>
         </div>`).join("");
       const more = (r.results || []).length > 15 ? ` · 15 affichées` : "";
-      const hidden = r.hidden ? ` · ${r.hidden} écartée${r.hidden > 1 ? "s" : ""} par les filtres` : "";
+      const hidden = r.hidden ? ` · ${r.hidden} masquée${r.hidden > 1 ? "s" : ""} par les filtres` : "";
       return `<div class="site-block"><h3>${SITE_LABELS[site]} <small>${(r.results || []).length} offre${(r.results || []).length > 1 ? "s" : ""}${more}${hidden}</small></h3>${rows || `<div class="hint">Aucune offre correspondante.</div>`}</div>`;
     }).join("");
   } catch (err) {
@@ -552,6 +570,44 @@ async function runSearch() {
   } finally { btn.disabled = false; }
 }
 $("#formSearch").addEventListener("submit", (e) => { e.preventDefault(); runSearch(); });
+
+// « ✕ » sur un résultat : il est écarté de cette recherche et de la veille du même nom.
+async function ignoreOffer(query, offer) {
+  await api("ignored", { method: "POST", body: { query, url: offer.url, site: offer.site, title: offer.title, price: offer.price } });
+}
+$("#resultsBody").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-ignore]"); if (!b) return;
+  const [site, k] = b.dataset.ignore.split(":");
+  const offer = state.lastResults[site].results[Number(k)];
+  b.disabled = true;
+  try {
+    await ignoreOffer(state.lastSearch.query, offer);
+    b.closest(".result").remove();
+    const n = (parseInt($("#linkIgnored").textContent) || 0) + 1;
+    $("#linkIgnored").textContent = `${n} écarté${n > 1 ? "s" : ""}`; $("#linkIgnored").classList.remove("hidden");
+    toast("Résultat écarté : il n'apparaîtra plus pour cette recherche");
+  } catch (err) { b.disabled = false; toast(err.message); }
+});
+
+async function openIgnored(query) {
+  state.ignoredQuery = query;
+  $("#ignoredTitle").textContent = `Écartés de « ${query} »`;
+  const list = await api(`ignored?query=${encodeURIComponent(query)}`);
+  $("#ignoredList").innerHTML = list.length ? list.map((x) => `<div class="result">
+      <div class="r-main"><a class="r-title" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title || x.url)}</a>
+        <div class="meta">${esc(SITE_LABELS[x.site] || "")}</div></div>
+      <span class="r-price">${eur(x.price)}</span>
+      <button type="button" class="btn" data-restore="${x.id}">Rétablir</button></div>`).join("")
+    : `<div class="hint">Aucun résultat écarté.</div>`;
+  if (!$("#dlgIgnored").open) $("#dlgIgnored").showModal();
+}
+$("#linkIgnored").onclick = (e) => { e.preventDefault(); openIgnored(state.lastSearch.query); };
+$("#ignoredList").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-restore]"); if (!b) return;
+  await api(`ignored/${b.dataset.restore}`, { method: "DELETE" });
+  toast("Rétabli : il réapparaîtra à la prochaine recherche");
+  openIgnored(state.ignoredQuery);
+});
 
 // « Suivre » sur un résultat : formulaire d'ajout pré-rempli.
 $("#resultsBody").addEventListener("click", (e) => {
@@ -594,10 +650,20 @@ $("#formWatch").addEventListener("submit", async (e) => {
 });
 
 // « Voir tous les résultats » d'une veille : relance la recherche dans la barre.
-$("#itemMeta").addEventListener("click", (e) => {
+$("#itemMeta").addEventListener("click", async (e) => {
+  const w = state.current;
+  if (e.target.matches("[data-show-ignored]")) { e.preventDefault(); return openIgnored(w.query); }
+  if (e.target.matches("[data-ignore-best]")) {
+    e.preventDefault();
+    if (!confirm("Écarter cette offre ? La veille la sautera désormais et retiendra la suivante.")) return;
+    try {
+      await ignoreOffer(w.query, { url: w.best_url, site: w.best_site, title: null, price: w.last_price });
+      $("#itemCheck").click();
+    } catch (err) { toast(err.message); }
+    return;
+  }
   if (!e.target.matches("[data-rerun]")) return;
   e.preventDefault();
-  const w = state.current;
   $("#q").value = w.query; $("#qMin").value = w.min_price ?? ""; $("#qMax").value = w.max_price ?? ""; $("#qExclude").value = w.exclude ?? "";
   document.querySelectorAll('#formSearch input[name="site"]').forEach((c) => { c.checked = (w.sites || []).includes(c.value); });
   $("#dlgItem").close(); window.scrollTo(0, 0); runSearch();
@@ -649,7 +715,7 @@ async function openItem(id) {
   $("#itemTitle").textContent = watch ? `Veille « ${item.query} »` : item.title || item.url;
   $("#itemImg").src = item.image || ""; $("#itemImg").classList.toggle("hidden", !item.image);
   $("#itemMeta").innerHTML = watch
-    ? `<span class="pill">Veille</span>${item.best_url ? `<a href="${esc(item.best_url)}" target="_blank" rel="noopener noreferrer">Meilleure offre sur ${esc(item.best_site_label)}</a>` : ""}<a href="#" data-rerun>Voir tous les résultats</a><span>· relevé ${ago(item.last_checked)}</span>`
+    ? `<span class="pill">Veille</span>${item.best_url ? `<a href="${esc(item.best_url)}" target="_blank" rel="noopener noreferrer">Meilleure offre sur ${esc(item.best_site_label)}</a><a href="#" data-ignore-best title="Fausse correspondance : la veille retient l'offre suivante">Écarter cette offre</a>` : ""}<a href="#" data-rerun>Voir tous les résultats</a><a href="#" data-show-ignored>Écartés</a><span>· relevé ${ago(item.last_checked)}</span>`
     : `<span class="pill">${esc(item.site_label)}</span><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Voir sur ${esc(item.site_label)}</a><span>· relevé ${ago(item.last_checked)}</span>`;
   $("#watchFields").classList.toggle("hidden", !watch);
   if (watch) {

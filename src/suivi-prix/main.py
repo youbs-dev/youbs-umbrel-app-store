@@ -44,11 +44,29 @@ def split_words(text):
     return [w.strip() for w in (text or "").replace(";", ",").split(",") if w.strip()]
 
 
+def query_key(query):
+    # « Sony WH-1000XM5 » et « sony  wh 1000xm5 » partagent la même liste de résultats écartés.
+    return scraper.normalize(query)
+
+
+def ignored_urls(query):
+    with db() as conn:
+        return {r["url"] for r in conn.execute("SELECT url FROM ignored WHERE query_key=?", (query_key(query),))}
+
+
 def run_search(query, sites, min_price=None, max_price=None, exclude="", strict=True):
     s = get_settings()
-    return scraper.search(query, sites=sites, flaresolverr=s["flaresolverr_url"] or None,
-                          ebay_keys=(s["ebay_client_id"], s["ebay_client_secret"]),
-                          min_price=min_price, max_price=max_price, exclude=split_words(exclude), strict=strict)
+    out = scraper.search(query, sites=sites, flaresolverr=s["flaresolverr_url"] or None,
+                         ebay_keys=(s["ebay_client_id"], s["ebay_client_secret"]),
+                         min_price=min_price, max_price=max_price, exclude=split_words(exclude), strict=strict)
+    ignored = ignored_urls(query)
+    if ignored:
+        for site in out.values():
+            if "results" in site:
+                kept = [r for r in site["results"] if scraper.clean_url(r["url"]) not in ignored]
+                site["ignored"] = len(site["results"]) - len(kept)
+                site["results"] = kept
+    return out
 
 
 def scrape_watch(row):
@@ -69,8 +87,9 @@ def scrape_watch(row):
 def record(item_id, result=None, error=None):
     with db() as conn:
         if result:
-            conn.execute("INSERT INTO prices(item_id, price, checked_at) VALUES(?, ?, ?)",
-                         (item_id, result["price"], now()))
+            best_url = result.get("best_url")
+            conn.execute("INSERT INTO prices(item_id, price, checked_at, url) VALUES(?, ?, ?, ?)",
+                         (item_id, result["price"], now(), scraper.clean_url(best_url) if best_url else None))
             conn.execute("UPDATE items SET last_price=?, last_checked=?, last_error=?, "
                          "title=COALESCE(?, title), image=COALESCE(?, image), "
                          "best_url=COALESCE(?, best_url), best_site=COALESCE(?, best_site) WHERE id=?",
@@ -343,6 +362,46 @@ def item_alerts(item_id: int):
         return [dict(r) for r in conn.execute(
             "SELECT kind, price, reference, ok, error, sent_at FROM alerts WHERE item_id=? "
             "ORDER BY sent_at DESC, id DESC LIMIT 20", (item_id,))]
+
+
+# --- Résultats écartés -----------------------------------------------------
+
+class IgnoreIn(BaseModel):
+    query: str
+    url: str
+    site: str | None = None
+    title: str | None = None
+    price: float | None = None
+
+
+@app.get("/api/ignored")
+def list_ignored(query: str):
+    with db() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT id, url, site, title, price, created_at FROM ignored WHERE query_key=? ORDER BY created_at DESC, id DESC",
+            (query_key(query),))]
+
+
+@app.post("/api/ignored", status_code=201)
+def add_ignored(body: IgnoreIn):
+    key = query_key(body.query)
+    if not key:
+        raise HTTPException(400, "Recherche vide")
+    url = scraper.clean_url(body.url)
+    with db() as conn:
+        conn.execute("INSERT OR IGNORE INTO ignored(query_key, url, site, title, price) VALUES(?, ?, ?, ?, ?)",
+                     (key, url, body.site, body.title, body.price))
+        # Les relevés que cette offre a donnés aux veilles de la même recherche étaient faux : on les efface.
+        for w in conn.execute("SELECT id, query FROM items WHERE kind='search'").fetchall():
+            if query_key(w["query"]) == key:
+                conn.execute("DELETE FROM prices WHERE item_id=? AND url=?", (w["id"], url))
+    return {"ok": True}
+
+
+@app.delete("/api/ignored/{ignored_id}", status_code=204)
+def restore_ignored(ignored_id: int):
+    with db() as conn:
+        conn.execute("DELETE FROM ignored WHERE id=?", (ignored_id,))
 
 
 # --- Produits --------------------------------------------------------------
