@@ -1,15 +1,17 @@
 manifestVersion: 1
 id: youbs-suivi-prix
 name: Suivi de prix
-tagline: Suivez le prix de vos articles Amazon, eBay et Leboncoin
+tagline: Cherchez un produit sur Amazon, eBay et Leboncoin et suivez son prix
 icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/suivi-prix/icon.svg
 category: finance
-version: "0.1.0"
+version: "0.2.0"
 port: 8770
 description: >-
-  Collez le lien d'un article Amazon, eBay ou Leboncoin : l'app relève son prix à intervalle
-  régulier et en garde l'historique en graphique. Rangez vos articles par catégorie et fixez
-  un seuil par article.
+  Tapez une référence ou une désignation : l'app interroge Amazon, Leboncoin et eBay et liste
+  les offres par prix croissant, en écartant celles dont le titre ne contient pas tous les mots
+  recherchés (filtres de prix et mots à exclure en plus). Suivez ensuite un résultat précis, ou
+  créez une veille sur la recherche entière : elle est relancée régulièrement et garde
+  l'historique de la meilleure offre. Rangez vos suivis par catégorie et fixez un seuil.
 
 
   Vous recevez une notification (ntfy, Telegram, e-mail, Discord… via Apprise) quand le prix passe
@@ -17,9 +19,9 @@ description: >-
   (par défaut 20 % sous la médiane des 30 derniers jours).
 
 
-  Les prix eBay passent par l'API officielle d'eBay : créez un compte gratuit sur
+  Amazon passe par FlareSolverr : installez Prowlarr (youbs), dont le FlareSolverr est utilisé
+  automatiquement. Les prix eBay passent par l'API officielle d'eBay : créez un compte gratuit sur
   developer.ebay.com et saisissez vos clés de production dans les Réglages de l'app.
-  Si Prowlarr (youbs) est installé, son FlareSolverr sert de secours pour Amazon et Leboncoin.
 developer: youbs
 website: https://github.com/youbs-dev/youbs-umbrel-app-store
 submitter: youbs
@@ -28,8 +30,9 @@ repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/suivi-pr
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Première version : suivi des prix Amazon, eBay (API officielle) et Leboncoin, catégories,
-  historique en graphique, alertes sous seuil et prix anormalement bas.
+  Barre de recherche sur Amazon, Leboncoin et eBay, avec filtres (prix, mots à exclure) ;
+  veilles sur une recherche, avec alertes sur la meilleure offre ; les articles Amazon suivis
+  sont relus via FlareSolverr quand Amazon bloque la fiche produit.
 dependencies: []
 path: ""
 defaultUsername: ""

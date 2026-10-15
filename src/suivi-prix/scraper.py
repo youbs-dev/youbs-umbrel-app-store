@@ -11,11 +11,13 @@ import html
 import json
 import re
 import threading
+import unicodedata
 import time
 import urllib.error
 import urllib.request
 import zlib
-from urllib.parse import quote, urlencode, urlparse
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote, quote_plus, urlencode, urlparse
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -326,7 +328,8 @@ def extract(site, page):
 
 def is_blocked(status, page):
     low = page[:20000].lower()
-    return status in (403, 429, 503) or any(mark in low for mark in BLOCK_MARKERS)
+    # Amazon répond 202 avec une page vide quand il refuse une requête.
+    return status in (202, 403, 429, 503) or any(mark in low for mark in BLOCK_MARKERS)
 
 
 def check(url, flaresolverr=None, ebay_keys=None):
@@ -357,4 +360,189 @@ def check(url, flaresolverr=None, ebay_keys=None):
             return {**found, "via": via}
         reasons.append(f"{via} : page bloquée par l'anti-robot" if is_blocked(status, page)
                        else f"{via} : prix introuvable dans la page (HTTP {status})")
+    if site == "amazon" and flaresolverr:
+        # La fiche produit est souvent bloquée, mais la page de résultats passe via
+        # FlareSolverr : on cherche la référence (ASIN) et on lit le prix du résultat.
+        asin = re.search(r"/dp/([A-Z0-9]{10})", url)
+        if asin:
+            try:
+                for r in search_amazon(asin.group(1), flaresolverr):
+                    if r["url"].endswith(asin.group(1)) and r["price"] is not None:
+                        return {"title": r["title"], "price": r["price"], "method": "amazon:recherche-asin",
+                                "image": r["image"], "via": "flaresolverr"}
+                reasons.append("recherche de la référence : article absent des résultats ou sans prix")
+            except ScrapeError as e:
+                reasons.append(f"recherche de la référence : {e}")
     raise ScrapeError(" ; ".join(reasons))
+
+
+# --- Recherche sur les sites -----------------------------------------------
+
+def normalize(text):
+    """Minuscules sans accents ni ponctuation : « iPhone 13 – 128 Go » -> « iphone 13 128 go »."""
+    text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+    return " ".join(re.findall(r"[a-z0-9]+", text))
+
+
+def matches(title, query, exclude=(), strict=True):
+    """Résultat pertinent : contient tous les mots de la recherche et aucun mot exclu."""
+    words = normalize(title).split()
+    joined = " ".join(words)
+    if strict:
+        for w in normalize(query).split():
+            # « wh1000xm5 » doit aussi trouver « WH-1000XM5 » (mots collés ou séparés).
+            if w not in words and w not in joined.replace(" ", ""):
+                return False
+    return not any(normalize(x) and normalize(x) in joined for x in exclude)
+
+
+def parse_amazon_search(page):
+    results = []
+    for b in re.split(r'(?=<div[^>]+data-component-type="s-search-result")', page)[1:]:
+        asin = re.search(r'data-asin="([A-Z0-9]{10})"', b)
+        if not asin:
+            continue
+        title = (re.search(r'<h2[^>]*>.*?<span[^>]*>([^<]+)</span>', b, re.S)
+                 or re.search(r'<h2[^>]*aria-label="([^"]+)"', b))
+        price = re.search(r'class="a-price"[^>]*>\s*<span class="a-offscreen">([^<]+)<', b)
+        img = re.search(r'class="s-image"[^>]*src="([^"]+)"', b)
+        results.append({
+            "site": "amazon",
+            "title": html.unescape(title.group(1)).strip() if title else None,
+            "price": parse_price(html.unescape(price.group(1))) if price else None,
+            "url": f"https://www.amazon.fr/dp/{asin.group(1)}",
+            "image": img.group(1) if img else None,
+            "info": "Sponsorisé" if ("puis-sponsored" in b or "AdHolder" in b) else None,
+        })
+    return results
+
+
+def search_amazon(query, flaresolverr=None):
+    """Recherche Amazon. Le direct renvoie souvent une page vide : FlareSolverr d'abord s'il existe."""
+    url = "https://www.amazon.fr/s?k=" + quote_plus(query)
+    reasons = []
+    for via in (["flaresolverr", "direct"] if flaresolverr else ["direct"]):
+        try:
+            status, page = fetch_flaresolverr(url, flaresolverr) if via == "flaresolverr" else fetch_direct(url)
+        except Exception as e:
+            reasons.append(f"{via} : {type(e).__name__} {e}")
+            continue
+        results = parse_amazon_search(page)
+        if results:
+            return results
+        if not is_blocked(status, page) and "s-search-results" in page:
+            return []  # vraie page de résultats, sans résultat
+        reasons.append(f"{via} : page bloquée par l'anti-robot" if is_blocked(status, page)
+                       else f"{via} : aucun résultat lisible (HTTP {status})")
+    if not flaresolverr:
+        reasons.append("configurez FlareSolverr dans les réglages")
+    raise ScrapeError(" ; ".join(reasons))
+
+
+def parse_leboncoin_search(page):
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', page, re.S)
+    if not m:
+        return None
+    try:
+        props = json.loads(m.group(1)).get("props", {}).get("pageProps", {}) or {}
+    except json.JSONDecodeError:
+        return None
+    ads = (props.get("searchData") or {}).get("ads")
+    if ads is None:
+        stack = [props]
+        while stack and ads is None:
+            node = stack.pop()
+            if isinstance(node, list) and node and isinstance(node[0], dict) and "list_id" in node[0]:
+                ads = node
+            elif isinstance(node, dict):
+                stack.extend(node.values())
+            elif isinstance(node, list):
+                stack.extend(node)
+    if ads is None:
+        return None
+    results = []
+    for ad in ads:
+        price = ad.get("price")
+        price = price[0] if isinstance(price, list) and price else price
+        images = ad.get("images") or {}
+        results.append({
+            "site": "leboncoin",
+            "title": ad.get("subject"),
+            "price": parse_price(price),
+            "url": ad.get("url") or f"https://www.leboncoin.fr/ad/x/{ad.get('list_id')}",
+            "image": images.get("thumb_url") or (images.get("urls") or [None])[0],
+            "info": (ad.get("location") or {}).get("city"),
+        })
+    return results
+
+
+def search_leboncoin(query, flaresolverr=None):
+    url = "https://www.leboncoin.fr/recherche?text=" + quote_plus(query)
+    reasons = []
+    for via in ["direct", "flaresolverr"]:
+        if via == "flaresolverr" and not flaresolverr:
+            continue
+        try:
+            status, page = fetch_direct(url) if via == "direct" else fetch_flaresolverr(url, flaresolverr)
+        except Exception as e:
+            reasons.append(f"{via} : {type(e).__name__} {e}")
+            continue
+        results = parse_leboncoin_search(page)
+        if results is not None:
+            return results
+        reasons.append(f"{via} : page bloquée par l'anti-robot" if is_blocked(status, page)
+                       else f"{via} : structure de page inattendue (HTTP {status})")
+    raise ScrapeError(" ; ".join(reasons))
+
+
+def search_ebay(query, client_id, client_secret):
+    if not (client_id and client_secret):
+        raise ScrapeError("Clés de l'API eBay à renseigner dans les réglages")
+    token = ebay_token(client_id, client_secret)
+    params = urlencode({"q": query, "limit": 50, "filter": "buyingOptions:{FIXED_PRICE}"})
+    data = ebay_get(f"/buy/browse/v1/item_summary/search?{params}", token, "EBAY_FR")
+    if data.get("_status"):
+        msg = "; ".join(err.get("message", "") for err in data["_errors"]) or f"HTTP {data['_status']}"
+        raise ScrapeError(f"API eBay : {msg}")
+    return [{
+        "site": "ebay",
+        "title": it.get("title"),
+        "price": parse_price((it.get("price") or {}).get("value")),
+        "url": it.get("itemWebUrl", "").split("?")[0],
+        "image": (it.get("image") or {}).get("imageUrl"),
+        "info": it.get("condition"),
+    } for it in data.get("itemSummaries") or []]
+
+
+def search(query, sites=("amazon", "leboncoin", "ebay"), flaresolverr=None, ebay_keys=None,
+           min_price=None, max_price=None, exclude=(), strict=True):
+    """Lance la recherche sur chaque site en parallèle.
+
+    Renvoie {site: {"results": [...], "hidden": n} ou {"error": "..."}} ; les résultats
+    sont filtrés (mots, prix) et triés par prix croissant.
+    """
+    def run(site):
+        if site == "amazon":
+            return search_amazon(query, flaresolverr)
+        if site == "leboncoin":
+            return search_leboncoin(query, flaresolverr)
+        return search_ebay(query, *(ebay_keys or (None, None)))
+
+    out = {}
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = {site: pool.submit(run, site) for site in sites if site in SITES}
+        for site, fut in futures.items():
+            try:
+                raw = fut.result()
+            except ScrapeError as e:
+                out[site] = {"error": str(e)}
+                continue
+            except Exception as e:
+                out[site] = {"error": f"Erreur inattendue : {type(e).__name__} {e}"}
+                continue
+            kept = [r for r in raw if r["price"] is not None and matches(r["title"], query, exclude, strict)
+                    and (min_price is None or r["price"] >= min_price)
+                    and (max_price is None or r["price"] <= max_price)]
+            kept.sort(key=lambda r: r["price"])
+            out[site] = {"results": kept, "hidden": len(raw) - len(kept)}
+    return out

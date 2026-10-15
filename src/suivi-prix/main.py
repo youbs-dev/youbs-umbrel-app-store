@@ -1,7 +1,9 @@
 """Suivi de prix : API, relevé périodique et interface web."""
 import asyncio
 import logging
+import json
 import statistics
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
@@ -38,25 +40,56 @@ def scrape(url):
                          ebay_keys=(s["ebay_client_id"], s["ebay_client_secret"]))
 
 
+def split_words(text):
+    return [w.strip() for w in (text or "").replace(";", ",").split(",") if w.strip()]
+
+
+def run_search(query, sites, min_price=None, max_price=None, exclude="", strict=True):
+    s = get_settings()
+    return scraper.search(query, sites=sites, flaresolverr=s["flaresolverr_url"] or None,
+                          ebay_keys=(s["ebay_client_id"], s["ebay_client_secret"]),
+                          min_price=min_price, max_price=max_price, exclude=split_words(exclude), strict=strict)
+
+
+def scrape_watch(row):
+    """Relevé d'une veille : relance la recherche et retient la meilleure offre."""
+    sites = json.loads(row["sites"] or "[]") or list(scraper.SITES)
+    out = run_search(row["query"], sites, row["min_price"], row["max_price"], row["exclude"])
+    offers = [r for site in out.values() for r in site.get("results", [])]
+    errors = [f"{scraper.SITES[k]} : {v['error']}" for k, v in out.items() if "error" in v]
+    if not offers:
+        raise scraper.ScrapeError(" ; ".join(errors) or "Aucune offre ne correspond à la recherche et aux filtres")
+    best = min(offers, key=lambda r: r["price"])
+    # Erreurs partielles (un site bloqué) : signalées sans empêcher le relevé.
+    return {"title": None, "price": best["price"], "image": best["image"], "method": f"veille:{best['site']}",
+            "best_url": best["url"], "best_site": best["site"], "best_title": best["title"],
+            "warning": " ; ".join(errors) or None}
+
+
 def record(item_id, result=None, error=None):
     with db() as conn:
         if result:
             conn.execute("INSERT INTO prices(item_id, price, checked_at) VALUES(?, ?, ?)",
                          (item_id, result["price"], now()))
-            conn.execute("UPDATE items SET last_price=?, last_checked=?, last_error=NULL, "
-                         "title=COALESCE(?, title), image=COALESCE(?, image) WHERE id=?",
-                         (result["price"], now(), result.get("title"), result.get("image"), item_id))
+            conn.execute("UPDATE items SET last_price=?, last_checked=?, last_error=?, "
+                         "title=COALESCE(?, title), image=COALESCE(?, image), "
+                         "best_url=COALESCE(?, best_url), best_site=COALESCE(?, best_site) WHERE id=?",
+                         (result["price"], now(), result.get("warning"), result.get("title"), result.get("image"),
+                          result.get("best_url"), result.get("best_site"), item_id))
         else:
             conn.execute("UPDATE items SET last_checked=?, last_error=? WHERE id=?", (now(), error, item_id))
 
 
 async def check_item(item_id):
     with db() as conn:
-        row = conn.execute("SELECT url FROM items WHERE id=?", (item_id,)).fetchone()
+        row = conn.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
     if not row:
         return
     try:
-        result = await run_in_threadpool(scrape, row["url"])
+        if row["kind"] == "search":
+            result = await run_in_threadpool(scrape_watch, row)
+        else:
+            result = await run_in_threadpool(scrape, row["url"])
         record(item_id, result=result)
         log.info("Article %s : %.2f € (%s)", item_id, result["price"], result["method"])
         await run_in_threadpool(alerts.evaluate, item_id, result["price"])
@@ -107,7 +140,9 @@ def item_to_dict(row, prices):
     d["active"] = bool(d["active"])
     d["below_threshold"] = d.pop("threshold_alerted") is not None
     d["abnormally_low"] = d.pop("anomaly_alerted") is not None
-    d["site_label"] = scraper.SITES.get(d["site"], d["site"])
+    d["site_label"] = "Veille" if d["kind"] == "search" else scraper.SITES.get(d["site"], d["site"])
+    d["sites"] = json.loads(d["sites"]) if d["sites"] else None
+    d["best_site_label"] = scraper.SITES.get(d["best_site"]) if d["best_site"] else None
     values = [p["price"] for p in prices]
     since = (datetime.now(timezone.utc) - timedelta(days=HISTORY_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
     recent = [p["price"] for p in prices if p["checked_at"] >= since]
@@ -153,6 +188,59 @@ class ItemPatch(BaseModel):
     threshold: float | None = None
     active: bool | None = None
     title: str | None = None
+    # Veilles uniquement
+    min_price: float | None = None
+    max_price: float | None = None
+    exclude: str | None = None
+    sites: list[str] | None = None
+
+
+class SearchIn(BaseModel):
+    query: str
+    sites: list[str] = list(scraper.SITES)
+    min_price: float | None = None
+    max_price: float | None = None
+    exclude: str = ""
+    strict: bool = True
+
+
+class WatchIn(SearchIn):
+    category_id: int | None = None
+    threshold: float | None = None
+
+
+def clean_sites(sites):
+    sites = [s for s in sites if s in scraper.SITES]
+    if not sites:
+        raise HTTPException(400, "Choisissez au moins un site")
+    return sites
+
+
+@app.post("/api/search")
+async def search(body: SearchIn):
+    """Recherche ponctuelle sur les sites choisis (résultats filtrés et triés par prix)."""
+    query = body.query.strip()
+    if len(query) < 2:
+        raise HTTPException(400, "Recherche trop courte")
+    return await run_in_threadpool(run_search, query, clean_sites(body.sites), body.min_price,
+                                   body.max_price, body.exclude, body.strict)
+
+
+@app.post("/api/watches", status_code=201)
+async def add_watch(body: WatchIn):
+    """Enregistre une recherche comme veille : elle est relancée à chaque relevé."""
+    query = body.query.strip()
+    if len(query) < 2:
+        raise HTTPException(400, "Recherche trop courte")
+    with db() as conn:
+        item_id = conn.execute(
+            "INSERT INTO items(url, site, kind, title, query, sites, min_price, max_price, exclude, category_id, threshold) "
+            "VALUES(?, 'multi', 'search', ?, ?, ?, ?, ?, ?, ?, ?)",
+            (f"search:{uuid.uuid4()}", query, query, json.dumps(clean_sites(body.sites)), body.min_price,
+             body.max_price, body.exclude.strip() or None, body.category_id, body.threshold)).lastrowid
+    async with check_lock:
+        await check_item(item_id)
+    return get_item(item_id)
 
 
 @app.get("/api/items")
@@ -191,6 +279,8 @@ def update_item(item_id: int, body: ItemPatch):
         if "threshold" in changes:
             # Nouveau seuil : la règle se réarme et sera réévaluée au prochain relevé.
             changes["threshold_alerted"] = None
+        if "sites" in changes:
+            changes["sites"] = json.dumps(clean_sites(changes["sites"] or []))
         cols = ", ".join(f"{k}=?" for k in changes)
         with db() as conn:
             conn.execute(f"UPDATE items SET {cols} WHERE id=?", (*changes.values(), item_id))

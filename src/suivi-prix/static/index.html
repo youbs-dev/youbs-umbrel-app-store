@@ -75,6 +75,28 @@
   .delta.down { color:var(--down); } .delta.up { color:var(--up); }
   .spark { width:100%; height:40px; }
   .error { font-size:.8rem; color:var(--warning); }
+  /* Recherche */
+  .search { background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:14px; margin-bottom:18px; }
+  .search-bar { display:flex; gap:8px; }
+  .search-bar input { font-size:1rem; }
+  .search-opts { display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; margin-top:10px; font-size:.9rem; color:var(--text-secondary); }
+  .search-opts label { display:inline-flex; align-items:center; gap:6px; margin:0; font-weight:400; }
+  .search-opts input[type=checkbox] { width:auto; }
+  .filters { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px; }
+  .results-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:16px 0 8px; }
+  .results-head h2 { font-size:1.05rem; margin:0; flex:1; }
+  .site-block { margin-top:12px; }
+  .site-block h3 { border:0; padding:0; margin:0 0 6px; display:flex; gap:8px; align-items:baseline; }
+  .site-block h3 small { font-weight:400; color:var(--text-muted); font-size:.8rem; }
+  .result { display:flex; gap:12px; align-items:center; padding:8px 0; border-top:1px solid var(--border); }
+  .result .thumb { width:48px; height:48px; }
+  .result .r-main { flex:1; min-width:0; }
+  .result .r-title { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--text-primary); text-decoration:none; }
+  .result .r-title:hover { text-decoration:underline; }
+  .result .r-price { font-weight:700; white-space:nowrap; }
+  .result .best { color:var(--down); }
+  .section-title { font-size:1.05rem; margin:8px 0 12px; }
+  @media (max-width:520px) { .filters { grid-template-columns:1fr 1fr; } .result .btn { padding:6px 10px; } }
   .empty-state { text-align:center; padding:60px 16px; color:var(--text-muted); }
 
   dialog { border:1px solid var(--border); border-radius:14px; background:var(--bg-secondary); color:var(--text-primary); padding:0; width:min(560px, calc(100vw - 32px)); box-shadow:var(--shadow); }
@@ -98,15 +120,43 @@
 <header>
   <h1><span class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Suivi de prix</h1>
   <button class="btn icon" id="btnSettings" title="Réglages"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-  <button class="btn primary" id="btnAdd"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter<span class="long"> un article</span></span></button>
+  <button class="btn" id="btnAdd" title="Ajouter un article par son lien"><svg class="i" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span class="long">Ajouter par lien</span></button>
 </header>
 
 <main>
+  <form class="search" id="formSearch">
+    <div class="search-bar">
+      <input id="q" type="search" placeholder="Rechercher un produit : référence, désignation…" autocomplete="off" required minlength="2">
+      <button class="btn primary" id="btnSearch"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span class="long">Rechercher</span></button>
+    </div>
+    <div class="search-opts">
+      <label><input type="checkbox" name="site" value="amazon" checked> Amazon</label>
+      <label><input type="checkbox" name="site" value="leboncoin" checked> Leboncoin</label>
+      <label><input type="checkbox" name="site" value="ebay" checked> eBay</label>
+      <label><input type="checkbox" id="qStrict" checked> Tous les mots dans le titre</label>
+      <a href="#" id="toggleFilters">Filtres</a>
+    </div>
+    <div class="filters hidden" id="filters">
+      <div><label for="qMin">Prix min (€)</label><input id="qMin" type="number" min="0" step="0.01"></div>
+      <div><label for="qMax">Prix max (€)</label><input id="qMax" type="number" min="0" step="0.01"></div>
+      <div><label for="qExclude">Mots à exclure</label><input id="qExclude" placeholder="coque, housse"></div>
+    </div>
+    <div id="results" class="hidden">
+      <div class="results-head">
+        <h2 id="resultsTitle"></h2>
+        <button type="button" class="btn primary" id="btnWatch">Créer une veille</button>
+        <button type="button" class="btn icon" id="btnCloseResults" title="Fermer les résultats">✕</button>
+      </div>
+      <div id="resultsBody"></div>
+    </div>
+  </form>
+
+  <h2 class="section-title hidden" id="followTitle">Mes suivis</h2>
   <div class="chips" id="chips"></div>
   <div class="grid" id="grid"></div>
   <div class="empty-state hidden" id="empty">
-    <p>Aucun article suivi pour l'instant.</p>
-    <p>Collez le lien d'un article Amazon, eBay ou Leboncoin avec le bouton « Ajouter ».</p>
+    <p>Rien n'est suivi pour l'instant.</p>
+    <p>Recherchez un produit ci-dessus, puis suivez un résultat ou créez une veille sur la recherche.</p>
   </div>
 </main>
 
@@ -131,6 +181,26 @@
   </form>
 </dialog>
 
+<!-- Veille -->
+<dialog id="dlgWatch">
+  <form method="dialog" id="formWatch">
+    <div class="head"><h2>Créer une veille</h2></div>
+    <div class="body">
+      <p class="hint" id="watchSummary"></p>
+      <label for="watchCat">Catégorie</label>
+      <select id="watchCat" class="cat-select"></select>
+      <input id="watchCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
+      <label for="watchThreshold">Seuil d'alerte (€, facultatif)</label>
+      <input id="watchThreshold" type="number" min="0" step="0.01">
+      <div class="hint">La recherche est relancée à chaque relevé. Vous êtes prévenu quand la meilleure offre passe sous le seuil ou devient anormalement basse.</div>
+    </div>
+    <div class="foot">
+      <button type="button" class="btn" data-close>Annuler</button>
+      <button type="submit" class="btn primary" id="watchSubmit">Créer la veille</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Détail -->
 <dialog id="dlgItem">
   <div class="head">
@@ -148,6 +218,18 @@
       <div><label for="itemThreshold">Seuil d'alerte (€)</label><input id="itemThreshold" type="number" min="0" step="0.01" placeholder="aucun"></div>
     </div>
     <input id="itemCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
+    <div id="watchFields" class="hidden">
+      <div class="filters">
+        <div><label for="wMin">Prix min (€)</label><input id="wMin" type="number" min="0" step="0.01"></div>
+        <div><label for="wMax">Prix max (€)</label><input id="wMax" type="number" min="0" step="0.01"></div>
+        <div><label for="wExclude">Mots à exclure</label><input id="wExclude" placeholder="coque, housse"></div>
+      </div>
+      <div class="search-opts" id="wSites">
+        <label><input type="checkbox" value="amazon"> Amazon</label>
+        <label><input type="checkbox" value="leboncoin"> Leboncoin</label>
+        <label><input type="checkbox" value="ebay"> eBay</label>
+      </div>
+    </div>
     <label style="display:flex;gap:8px;align-items:center;margin-top:14px"><input type="checkbox" id="itemActive" style="width:auto"> Relever le prix automatiquement</label>
     <div id="itemAlertsBox" class="hidden"><h3>Dernières alertes</h3><ul class="alerts" id="itemAlerts"></ul></div>
   </div>
@@ -260,14 +342,15 @@ function render() {
 
   const items = state.items.filter((i) => state.filter === "all" || (state.filter === "none" ? !i.category_id : i.category_id == state.filter));
   $("#empty").classList.toggle("hidden", state.items.length > 0);
+  $("#followTitle").classList.toggle("hidden", !state.items.length);
   $("#grid").innerHTML = items.map((i) => {
     const below = i.threshold != null && i.last_price != null && i.last_price <= i.threshold;
     return `<div class="card" data-id="${i.id}">
       <div class="top">
         ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
         <div style="min-width:0">
-          <div class="title">${esc(i.title || i.url)}</div>
-          <div class="meta"><span class="pill">${esc(i.site_label)}</span>${i.category ? `<span class="pill">${esc(i.category)}</span>` : ""}${!i.active ? `<span class="pill">en pause</span>` : ""}</div>
+          <div class="title">${i.kind === "search" ? `« ${esc(i.query)} »` : esc(i.title || i.url)}</div>
+          <div class="meta"><span class="pill">${esc(i.site_label)}</span>${i.best_site_label ? `<span class="pill">meilleure offre : ${esc(i.best_site_label)}</span>` : ""}${i.category ? `<span class="pill">${esc(i.category)}</span>` : ""}${!i.active ? `<span class="pill">en pause</span>` : ""}</div>
         </div>
       </div>
       <div class="price">${eur(i.last_price)} ${deltaHtml(i)}</div>
@@ -326,6 +409,94 @@ $("#formAdd").addEventListener("submit", async (e) => {
   finally { btn.disabled = false; btn.textContent = "Ajouter et relever le prix"; }
 });
 
+// --- Recherche ---
+const searchParams = () => ({
+  query: $("#q").value.trim(),
+  sites: [...document.querySelectorAll('#formSearch input[name="site"]:checked')].map((c) => c.value),
+  min_price: numOrNull($("#qMin").value), max_price: numOrNull($("#qMax").value),
+  exclude: $("#qExclude").value.trim(), strict: $("#qStrict").checked,
+});
+const SITE_LABELS = { amazon: "Amazon", leboncoin: "Leboncoin", ebay: "eBay" };
+$("#toggleFilters").onclick = (e) => { e.preventDefault(); $("#filters").classList.toggle("hidden"); };
+$("#btnCloseResults").onclick = () => $("#results").classList.add("hidden");
+
+async function runSearch() {
+  const p = searchParams();
+  const btn = $("#btnSearch"); btn.disabled = true;
+  $("#results").classList.remove("hidden");
+  $("#resultsTitle").textContent = `Recherche de « ${p.query} »…`;
+  $("#resultsBody").innerHTML = `<p class="hint">Interrogation de ${p.sites.map((s) => SITE_LABELS[s]).join(", ")}. Amazon peut prendre une vingtaine de secondes.</p>`;
+  try {
+    const out = await api("search", { method: "POST", body: p });
+    state.lastSearch = p;
+    const all = Object.values(out).flatMap((r) => r.results || []);
+    const best = all.length ? Math.min(...all.map((r) => r.price)) : null;
+    $("#resultsTitle").textContent = `« ${p.query} » : ${all.length} offre${all.length > 1 ? "s" : ""}` + (best != null ? `, dès ${eur(best)}` : "");
+    $("#resultsBody").innerHTML = p.sites.map((site) => {
+      const r = out[site] || {};
+      if (r.error) return `<div class="site-block"><h3>${SITE_LABELS[site]}</h3><div class="error">⚠ ${esc(r.error)}</div></div>`;
+      const rows = (r.results || []).slice(0, 15).map((x) => `<div class="result">
+          ${x.image ? `<img class="thumb" src="${esc(x.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
+          <div class="r-main"><a class="r-title" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a>
+            ${x.info ? `<div class="meta">${esc(x.info)}</div>` : ""}</div>
+          <span class="r-price ${x.price === best ? "best" : ""}">${eur(x.price)}</span>
+          <button type="button" class="btn" data-follow="${esc(x.url)}">Suivre</button>
+        </div>`).join("");
+      const more = (r.results || []).length > 15 ? ` · 15 affichées` : "";
+      const hidden = r.hidden ? ` · ${r.hidden} écartée${r.hidden > 1 ? "s" : ""} par les filtres` : "";
+      return `<div class="site-block"><h3>${SITE_LABELS[site]} <small>${(r.results || []).length} offre${(r.results || []).length > 1 ? "s" : ""}${more}${hidden}</small></h3>${rows || `<div class="hint">Aucune offre correspondante.</div>`}</div>`;
+    }).join("");
+  } catch (err) {
+    $("#resultsTitle").textContent = "La recherche a échoué";
+    $("#resultsBody").innerHTML = `<div class="error">⚠ ${esc(err.message)}</div>`;
+  } finally { btn.disabled = false; }
+}
+$("#formSearch").addEventListener("submit", (e) => { e.preventDefault(); runSearch(); });
+
+// « Suivre » sur un résultat : formulaire d'ajout pré-rempli.
+$("#resultsBody").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-follow]"); if (!b) return;
+  $("#formAdd").reset(); $("#addCatNew").classList.add("hidden");
+  fillCategorySelect($("#addCat"), "");
+  $("#addUrl").value = b.dataset.follow;
+  $("#dlgAdd").showModal();
+});
+
+bindNewCategory($("#watchCat"), $("#watchCatNew"));
+$("#btnWatch").onclick = () => {
+  const p = state.lastSearch || searchParams();
+  $("#formWatch").reset(); $("#watchCatNew").classList.add("hidden");
+  fillCategorySelect($("#watchCat"), "");
+  const f = [p.sites.map((s) => SITE_LABELS[s]).join(", ")];
+  if (p.min_price != null) f.push(`dès ${eur(p.min_price)}`);
+  if (p.max_price != null) f.push(`jusqu'à ${eur(p.max_price)}`);
+  if (p.exclude) f.push(`sans « ${p.exclude} »`);
+  $("#watchSummary").textContent = `« ${p.query} » sur ${f.join(" · ")}`;
+  $("#dlgWatch").showModal();
+};
+$("#formWatch").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("#watchSubmit"); btn.disabled = true; btn.textContent = "Création…";
+  try {
+    const category_id = await resolveCategory($("#watchCat"), $("#watchCatNew"));
+    const item = await api("watches", { method: "POST", body: { ...(state.lastSearch || searchParams()), category_id, threshold: numOrNull($("#watchThreshold").value) } });
+    $("#dlgWatch").close();
+    toast(item.last_price != null ? `Veille créée : meilleure offre ${eur(item.last_price)}` : "Veille créée, mais aucune offre trouvée pour l'instant.");
+    await load();
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; btn.textContent = "Créer la veille"; }
+});
+
+// « Voir tous les résultats » d'une veille : relance la recherche dans la barre.
+$("#itemMeta").addEventListener("click", (e) => {
+  if (!e.target.matches("[data-rerun]")) return;
+  e.preventDefault();
+  const w = state.current;
+  $("#q").value = w.query; $("#qMin").value = w.min_price ?? ""; $("#qMax").value = w.max_price ?? ""; $("#qExclude").value = w.exclude ?? "";
+  document.querySelectorAll('#formSearch input[name="site"]').forEach((c) => { c.checked = (w.sites || []).includes(c.value); });
+  $("#dlgItem").close(); window.scrollTo(0, 0); runSearch();
+});
+
 // --- Détail ---
 bindNewCategory($("#itemCat"), $("#itemCatNew"));
 function drawChart(prices, threshold) {
@@ -362,9 +533,17 @@ async function openItem(id) {
   const item = state.items.find((i) => i.id === id);
   if (!item) return;
   state.current = item;
-  $("#itemTitle").textContent = item.title || item.url;
+  const watch = item.kind === "search";
+  $("#itemTitle").textContent = watch ? `Veille « ${item.query} »` : item.title || item.url;
   $("#itemImg").src = item.image || ""; $("#itemImg").classList.toggle("hidden", !item.image);
-  $("#itemMeta").innerHTML = `<span class="pill">${esc(item.site_label)}</span><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Voir sur ${esc(item.site_label)}</a><span>· relevé ${ago(item.last_checked)}</span>`;
+  $("#itemMeta").innerHTML = watch
+    ? `<span class="pill">Veille</span>${item.best_url ? `<a href="${esc(item.best_url)}" target="_blank" rel="noopener noreferrer">Meilleure offre sur ${esc(item.best_site_label)}</a>` : ""}<a href="#" data-rerun>Voir tous les résultats</a><span>· relevé ${ago(item.last_checked)}</span>`
+    : `<span class="pill">${esc(item.site_label)}</span><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Voir sur ${esc(item.site_label)}</a><span>· relevé ${ago(item.last_checked)}</span>`;
+  $("#watchFields").classList.toggle("hidden", !watch);
+  if (watch) {
+    $("#wMin").value = item.min_price ?? ""; $("#wMax").value = item.max_price ?? ""; $("#wExclude").value = item.exclude ?? "";
+    document.querySelectorAll("#wSites input").forEach((c) => { c.checked = (item.sites || []).includes(c.value); });
+  }
   $("#itemPrice").innerHTML = `${eur(item.last_price)} ${deltaHtml(item)}`;
   $("#itemError").textContent = item.last_error ? "⚠ " + item.last_error : "";
   const s = item.stats;
@@ -390,7 +569,10 @@ $("#chips").addEventListener("click", (e) => { const c = e.target.closest(".chip
 $("#itemSave").onclick = async () => {
   try {
     const category_id = await resolveCategory($("#itemCat"), $("#itemCatNew"));
-    await api(`items/${state.current.id}`, { method: "PATCH", body: { category_id, threshold: numOrNull($("#itemThreshold").value), active: $("#itemActive").checked } });
+    const body = { category_id, threshold: numOrNull($("#itemThreshold").value), active: $("#itemActive").checked };
+    if (state.current.kind === "search") Object.assign(body, { min_price: numOrNull($("#wMin").value), max_price: numOrNull($("#wMax").value),
+      exclude: $("#wExclude").value.trim(), sites: [...document.querySelectorAll("#wSites input:checked")].map((c) => c.value) });
+    await api(`items/${state.current.id}`, { method: "PATCH", body });
     $("#dlgItem").close(); toast("Enregistré"); await load();
   } catch (err) { toast(err.message); }
 };
@@ -460,6 +642,12 @@ $("#catList").addEventListener("click", async (e) => {
 
 document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
 load().catch((err) => toast(err.message));
+// Sans clés eBay, eBay est décoché par défaut dans la recherche (sinon il n'afficherait qu'une erreur).
+api("settings").then((st) => {
+  if (st.ebay_client_id && st.ebay_client_secret) return;
+  const cb = document.querySelector('#formSearch input[value="ebay"]');
+  cb.checked = false; cb.parentElement.title = "Renseignez vos clés eBay dans les réglages";
+}).catch(() => {});
 setInterval(() => { if (!document.querySelector("dialog[open]")) load().catch(() => {}); }, 60000);
 </script>
 </body>
