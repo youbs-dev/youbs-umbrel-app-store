@@ -1,0 +1,20 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-suivi-prix_web_1
+      APP_PORT: 8000
+
+  web:
+    # Image construite depuis src/suivi-prix par .github/workflows/suivi-prix-image.yml
+    image: ghcr.io/youbs-dev/suivi-prix:0.1.0
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Paris
+      # FlareSolverr fourni avec Prowlarr (youbs-prowlarr), utilisé en secours
+      # quand Amazon ou Leboncoin bloque la lecture directe. Modifiable dans les réglages.
+      FLARESOLVERR_URL: http://youbs-prowlarr_indexer_proxy_1:8191
+    volumes:
+      - ${APP_DATA_DIR}/data:/data

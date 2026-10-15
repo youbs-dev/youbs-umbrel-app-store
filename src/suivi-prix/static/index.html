@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suivi de prix</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900; font-display:swap; src:url('fonts/inter-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family:'Inter'; font-style:normal; font-weight:100 900; font-display:swap; src:url('fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+A720-A7FF; }
+
+  :root {
+    --accent:#00ae42; --accent-light:#00c64d; --down:#16a34a; --up:#dc2626; --warning:#d97706;
+    --bg-primary:#f5f5f5; --bg-secondary:#ffffff; --bg-tertiary:#e5e5e5;
+    --text-primary:#1a1a1a; --text-secondary:#4a4a4a; --text-muted:#6b6b6b;
+    --border:#d4d4d4; --shadow:0 2px 8px rgba(0,0,0,.08);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary:#1a1a1a; --bg-secondary:#2d2d2d; --bg-tertiary:#3d3d3d;
+      --text-primary:#ffffff; --text-secondary:#b0b0b0; --text-muted:#8a8a8a;
+      --border:#3d3d3d; --shadow:0 4px 16px rgba(0,0,0,.4); --down:#22c55e; --up:#f87171; --warning:#f59e0b;
+      color-scheme:dark;
+    }
+  }
+  html { font-size:14.4px; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Inter', system-ui, sans-serif; line-height:1.5; background:var(--bg-primary); color:var(--text-primary); -webkit-font-smoothing:antialiased; }
+  a { color:var(--accent); }
+  .hidden { display:none !important; }
+  svg.i { width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  header { position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+  header h1 { font-size:1.15rem; margin:0; flex:1; display:flex; align-items:center; gap:10px; }
+  header .logo { width:32px; height:32px; border-radius:9px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; }
+  main { max-width:1200px; margin:0 auto; padding:16px; }
+
+  .btn { display:inline-flex; align-items:center; gap:6px; border:0; border-radius:8px; padding:8px 14px; font:inherit; font-weight:500; cursor:pointer; background:var(--bg-tertiary); color:var(--text-primary); }
+  .btn:hover:not(:disabled) { filter:brightness(1.08); }
+  .btn:disabled { opacity:.55; cursor:default; }
+  .btn.primary { background:var(--accent); color:#fff; }
+  .btn.danger { background:transparent; color:var(--up); }
+  .btn.icon { padding:8px; }
+  label { display:block; font-size:.85rem; font-weight:500; color:var(--text-secondary); margin:12px 0 4px; }
+  input, select, textarea { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); color:var(--text-primary); font:inherit; }
+  textarea { resize:vertical; min-height:70px; font-family:ui-monospace, monospace; font-size:.85rem; }
+  h3 { font-size:.95rem; margin:20px 0 0; padding-top:14px; border-top:1px solid var(--border); }
+  .alerts { list-style:none; padding:0; margin:6px 0 0; font-size:.85rem; }
+  .alerts li { padding:6px 0; border-bottom:1px solid var(--border); color:var(--text-secondary); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+  .hint { font-size:.8rem; color:var(--text-muted); margin-top:4px; }
+  .row { display:flex; gap:10px; align-items:end; } .row > * { flex:1; }
+
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .chip { border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); border-radius:999px; padding:4px 12px; font:inherit; font-size:.9rem; cursor:pointer; }
+  .chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .chip small { opacity:.75; margin-left:4px; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:14px; display:flex; flex-direction:column; gap:8px; cursor:pointer; min-width:0; }
+  .card:hover { border-color:var(--accent); }
+  .card .top { display:flex; gap:12px; align-items:flex-start; }
+  .thumb { width:64px; height:64px; border-radius:8px; object-fit:contain; background:#fff; flex:none; }
+  .thumb.empty { background:var(--bg-tertiary); }
+  .card .title { font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .meta { display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:.8rem; color:var(--text-muted); }
+  .pill { border-radius:999px; padding:1px 9px; background:var(--bg-tertiary); color:var(--text-secondary); font-size:.78rem; font-weight:500; white-space:nowrap; }
+  .pill.warn { background:color-mix(in srgb, var(--warning) 20%, transparent); color:var(--warning); }
+  .pill.ok { background:color-mix(in srgb, var(--down) 18%, transparent); color:var(--down); }
+  .price { font-size:1.5rem; font-weight:700; display:flex; align-items:baseline; gap:8px; }
+  .delta { font-size:.85rem; font-weight:600; }
+  .delta.down { color:var(--down); } .delta.up { color:var(--up); }
+  .spark { width:100%; height:40px; }
+  .error { font-size:.8rem; color:var(--warning); }
+  .empty-state { text-align:center; padding:60px 16px; color:var(--text-muted); }
+
+  dialog { border:1px solid var(--border); border-radius:14px; background:var(--bg-secondary); color:var(--text-primary); padding:0; width:min(560px, calc(100vw - 32px)); box-shadow:var(--shadow); }
+  dialog::backdrop { background:rgba(0,0,0,.5); }
+  dialog .head { display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
+  dialog .head h2 { font-size:1.05rem; margin:0; flex:1; }
+  dialog .body { padding:4px 16px 16px; max-height:70vh; overflow:auto; }
+  dialog .foot { display:flex; gap:8px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border); flex-wrap:wrap; }
+  dialog .foot .spacer { flex:1; }
+  .stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin:12px 0; }
+  .stat { background:var(--bg-primary); border-radius:8px; padding:8px; text-align:center; }
+  .stat b { display:block; font-size:1rem; } .stat span { font-size:.75rem; color:var(--text-muted); }
+  .chart { width:100%; height:180px; display:block; }
+  .chart text { font-size:10px; fill:var(--text-muted); font-family:inherit; }
+  .cat-row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--text-primary); color:var(--bg-primary); padding:10px 16px; border-radius:8px; z-index:100; max-width:calc(100vw - 32px); }
+  @media (max-width:520px) { .stats { grid-template-columns:repeat(2, 1fr); } header .long { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="logo"><svg class="i" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Suivi de prix</h1>
+  <button class="btn icon" id="btnSettings" title="Réglages"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <button class="btn primary" id="btnAdd"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter<span class="long"> un article</span></span></button>
+</header>
+
+<main>
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty-state hidden" id="empty">
+    <p>Aucun article suivi pour l'instant.</p>
+    <p>Collez le lien d'un article Amazon, eBay ou Leboncoin avec le bouton « Ajouter ».</p>
+  </div>
+</main>
+
+<!-- Ajout -->
+<dialog id="dlgAdd">
+  <form method="dialog" id="formAdd">
+    <div class="head"><h2>Ajouter un article</h2></div>
+    <div class="body">
+      <label for="addUrl">Lien de l'article</label>
+      <input id="addUrl" type="url" required placeholder="https://www.amazon.fr/dp/…">
+      <div class="hint">Amazon, eBay ou Leboncoin.</div>
+      <label for="addCat">Catégorie</label>
+      <select id="addCat" class="cat-select"></select>
+      <input id="addCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
+      <label for="addThreshold">Seuil d'alerte (€, facultatif)</label>
+      <input id="addThreshold" type="number" min="0" step="0.01" placeholder="ex. 35">
+    </div>
+    <div class="foot">
+      <button type="button" class="btn" data-close>Annuler</button>
+      <button type="submit" class="btn primary" id="addSubmit">Ajouter et relever le prix</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Détail -->
+<dialog id="dlgItem">
+  <div class="head">
+    <img id="itemImg" class="thumb" alt="">
+    <h2 id="itemTitle"></h2>
+  </div>
+  <div class="body">
+    <div class="meta" id="itemMeta"></div>
+    <div class="price" id="itemPrice" style="margin-top:8px"></div>
+    <div class="error" id="itemError"></div>
+    <div class="stats" id="itemStats"></div>
+    <svg class="chart" id="itemChart" viewBox="0 0 520 180" preserveAspectRatio="none"></svg>
+    <div class="row">
+      <div><label for="itemCat">Catégorie</label><select id="itemCat" class="cat-select"></select></div>
+      <div><label for="itemThreshold">Seuil d'alerte (€)</label><input id="itemThreshold" type="number" min="0" step="0.01" placeholder="aucun"></div>
+    </div>
+    <input id="itemCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
+    <label style="display:flex;gap:8px;align-items:center;margin-top:14px"><input type="checkbox" id="itemActive" style="width:auto"> Relever le prix automatiquement</label>
+    <div id="itemAlertsBox" class="hidden"><h3>Dernières alertes</h3><ul class="alerts" id="itemAlerts"></ul></div>
+  </div>
+  <div class="foot">
+    <button class="btn danger" id="itemDelete">Supprimer</button>
+    <span class="spacer"></span>
+    <button class="btn" id="itemCheck">Relever maintenant</button>
+    <button class="btn" data-close autofocus>Fermer</button>
+    <button class="btn primary" id="itemSave">Enregistrer</button>
+  </div>
+</dialog>
+
+<!-- Réglages -->
+<dialog id="dlgSettings">
+  <form method="dialog" id="formSettings">
+    <div class="head"><h2>Réglages</h2></div>
+    <div class="body">
+      <label for="setInterval">Relever les prix toutes les (heures)</label>
+      <input id="setInterval" type="number" min="0.25" max="168" step="0.25">
+      <label for="setFlare">Adresse de FlareSolverr (facultatif)</label>
+      <input id="setFlare" placeholder="http://youbs-prowlarr_indexer_proxy_1:8191">
+      <div class="hint">Utilisé en secours quand Amazon ou Leboncoin bloque la lecture directe.</div>
+      <label for="setEbayId">eBay : App ID (Client ID)</label>
+      <input id="setEbayId" autocomplete="off">
+      <label for="setEbaySecret">eBay : Cert ID (Client Secret)</label>
+      <input id="setEbaySecret" type="password" autocomplete="new-password">
+      <div class="hint">Clés de production de votre compte sur developer.ebay.com. Laissez vide pour garder la clé enregistrée.</div>
+      <h3>Notifications</h3>
+      <label for="setApprise">Adresses de notification (une par ligne)</label>
+      <textarea id="setApprise" placeholder="ntfy://ntfy.sh/mon-sujet&#10;tgram://JETON_DU_BOT/ID_DU_CHAT&#10;mailto://user:motdepasse@gmail.com"></textarea>
+      <div class="hint">Format Apprise : ntfy, Telegram, e-mail, Discord, Gotify… (<a href="https://github.com/caronc/apprise/wiki" target="_blank" rel="noopener">liste des services</a>). Laissez vide pour garder les adresses enregistrées.</div>
+      <div style="margin-top:8px"><button type="button" class="btn" id="btnNotifyTest">Envoyer une notification d'essai</button></div>
+      <label>Alerte « prix anormalement bas »</label>
+      <div class="row" style="align-items:start">
+        <div><input id="setPct" type="number" min="0" max="90" step="1"><div class="hint">% sous le prix habituel (0 = désactivée)</div></div>
+        <div><input id="setDays" type="number" min="1" max="365" step="1"><div class="hint">jours pris en compte</div></div>
+        <div><input id="setMinHist" type="number" min="1" max="1000" step="1"><div class="hint">relevés minimum</div></div>
+      </div>
+      <h3>Catégories</h3>
+      <div id="catList"></div>
+      <div class="cat-row"><input id="catNew" placeholder="Nouvelle catégorie"><button type="button" class="btn" id="catAdd">Ajouter</button></div>
+    </div>
+    <div class="foot">
+      <button type="button" class="btn" data-close>Fermer</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const state = { items: [], categories: [], filter: "all", current: null };
+const NEW_CAT = "__new__";
+
+const eur = (v) => v == null ? "—" : v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const parseDate = (s) => new Date(s.replace(" ", "T") + "Z");
+function ago(s) {
+  if (!s) return "jamais relevé";
+  const min = Math.round((Date.now() - parseDate(s)) / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  if (min < 1440) return `il y a ${Math.round(min / 60)} h`;
+  return `il y a ${Math.round(min / 1440)} j`;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch("api/" + path, { headers: { "Content-Type": "application/json" }, ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { msg = (await res.json()).detail || msg; } catch (e) {}
+    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.append(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+async function load() {
+  [state.items, state.categories] = await Promise.all([api("items"), api("categories")]);
+  render();
+}
+
+function deltaHtml(item) {
+  const prev = item.stats.previous, cur = item.last_price;
+  if (prev == null || cur == null) return "";
+  const pct = ((cur - prev) / prev) * 100;
+  return `<span class="delta ${pct < 0 ? "down" : "up"}">${pct < 0 ? "▼" : "▲"} ${Math.abs(pct).toFixed(1)} %</span>`;
+}
+
+function sparkline(prices) {
+  if (prices.length < 2) return "";
+  const vals = prices.map((p) => p.price), min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * 100},${36 - ((v - min) / span) * 32}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+function render() {
+  const counts = { all: state.items.length, none: state.items.filter((i) => !i.category_id).length };
+  const chips = [`<button class="chip ${state.filter === "all" ? "active" : ""}" data-f="all">Tous<small>${counts.all}</small></button>`]
+    .concat(state.categories.map((c) => `<button class="chip ${state.filter == c.id ? "active" : ""}" data-f="${c.id}">${esc(c.name)}<small>${c.count}</small></button>`));
+  if (counts.none && state.categories.length) chips.push(`<button class="chip ${state.filter === "none" ? "active" : ""}" data-f="none">Sans catégorie<small>${counts.none}</small></button>`);
+  $("#chips").innerHTML = state.items.length ? chips.join("") : "";
+
+  const items = state.items.filter((i) => state.filter === "all" || (state.filter === "none" ? !i.category_id : i.category_id == state.filter));
+  $("#empty").classList.toggle("hidden", state.items.length > 0);
+  $("#grid").innerHTML = items.map((i) => {
+    const below = i.threshold != null && i.last_price != null && i.last_price <= i.threshold;
+    return `<div class="card" data-id="${i.id}">
+      <div class="top">
+        ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
+        <div style="min-width:0">
+          <div class="title">${esc(i.title || i.url)}</div>
+          <div class="meta"><span class="pill">${esc(i.site_label)}</span>${i.category ? `<span class="pill">${esc(i.category)}</span>` : ""}${!i.active ? `<span class="pill">en pause</span>` : ""}</div>
+        </div>
+      </div>
+      <div class="price">${eur(i.last_price)} ${deltaHtml(i)}</div>
+      <div class="meta">
+        ${i.abnormally_low ? `<span class="pill ok">prix anormalement bas</span>` : ""}
+        ${i.threshold != null ? `<span class="pill ${below ? "ok" : ""}">seuil ${eur(i.threshold)}</span>` : ""}
+        <span>${ago(i.last_checked)}</span>
+      </div>
+      ${i.last_error ? `<div class="error">⚠ ${esc(i.last_error)}</div>` : ""}
+      <div data-spark="${i.id}"></div>
+    </div>`;
+  }).join("");
+  items.forEach(async (i) => {
+    if (i.stats.count < 2) return;
+    const el = document.querySelector(`[data-spark="${i.id}"]`);
+    if (el) el.innerHTML = sparkline(await api(`items/${i.id}/prices`));
+  });
+}
+
+function fillCategorySelect(sel, value) {
+  sel.innerHTML = `<option value="">Sans catégorie</option>` +
+    state.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("") +
+    `<option value="${NEW_CAT}">+ Nouvelle catégorie…</option>`;
+  sel.value = value ?? "";
+}
+
+// Choix « Nouvelle catégorie » : affiche le champ de saisie associé.
+function bindNewCategory(sel, input) {
+  sel.addEventListener("change", () => { input.classList.toggle("hidden", sel.value !== NEW_CAT); if (sel.value === NEW_CAT) input.focus(); });
+}
+async function resolveCategory(sel, input) {
+  if (sel.value !== NEW_CAT) return sel.value ? Number(sel.value) : null;
+  if (!input.value.trim()) return null;
+  const cat = await api("categories", { method: "POST", body: { name: input.value.trim() } });
+  return cat.id;
+}
+const numOrNull = (v) => v === "" ? null : Number(v);
+
+// --- Ajout ---
+bindNewCategory($("#addCat"), $("#addCatNew"));
+$("#btnAdd").onclick = () => {
+  $("#formAdd").reset(); $("#addCatNew").classList.add("hidden");
+  fillCategorySelect($("#addCat"), state.filter !== "all" && state.filter !== "none" ? state.filter : "");
+  $("#dlgAdd").showModal();
+};
+$("#formAdd").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("#addSubmit"); btn.disabled = true; btn.textContent = "Relevé du prix…";
+  try {
+    const category_id = await resolveCategory($("#addCat"), $("#addCatNew"));
+    const item = await api("items", { method: "POST", body: { url: $("#addUrl").value, category_id, threshold: numOrNull($("#addThreshold").value) } });
+    $("#dlgAdd").close();
+    toast(item.last_error ? "Article ajouté, mais le prix n'a pas pu être lu." : `Article ajouté : ${eur(item.last_price)}`);
+    await load();
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; btn.textContent = "Ajouter et relever le prix"; }
+});
+
+// --- Détail ---
+bindNewCategory($("#itemCat"), $("#itemCatNew"));
+function drawChart(prices, threshold) {
+  const svg = $("#itemChart"), W = 520, H = 180, L = 52, R = 8, T = 10, B = 22;
+  if (!prices.length) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">Pas encore d'historique</text>`; return; }
+  const vals = prices.map((p) => p.price).concat(threshold != null ? [threshold] : []);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (min === max) { min -= 1; max += 1; }
+  const pad = (max - min) * 0.1; min -= pad; max += pad;
+  const t0 = parseDate(prices[0].checked_at).getTime(), t1 = parseDate(prices[prices.length - 1].checked_at).getTime();
+  const x = (t) => L + (t1 === t0 ? (W - L - R) / 2 : ((t - t0) / (t1 - t0)) * (W - L - R));
+  const y = (v) => T + (1 - (v - min) / (max - min)) * (H - T - B);
+  let out = "";
+  for (let k = 0; k <= 3; k++) {
+    const v = min + ((max - min) * k) / 3;
+    out += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${Math.round(v).toLocaleString("fr-FR")} €</text>`;
+  }
+  if (threshold != null) out += `<line x1="${L}" x2="${W - R}" y1="${y(threshold)}" y2="${y(threshold)}" stroke="var(--warning)" stroke-dasharray="4 4"/><text x="${W - R}" y="${y(threshold) - 4}" text-anchor="end">seuil</text>`;
+  // Courbe en escalier : le prix reste valable jusqu'au relevé suivant.
+  let d = "";
+  prices.forEach((p, i) => {
+    const px = x(parseDate(p.checked_at).getTime()), py = y(p.price);
+    d += i === 0 ? `M${px},${py}` : `H${px}V${py}`;
+  });
+  out += `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  const last = prices[prices.length - 1];
+  out += `<circle cx="${x(parseDate(last.checked_at).getTime())}" cy="${y(last.price)}" r="3.5" fill="var(--accent)"/>`;
+  const fmt = (t) => new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  out += `<text x="${L}" y="${H - 6}">${fmt(t0)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${fmt(t1)}</text>`;
+  svg.innerHTML = out;
+}
+
+async function openItem(id) {
+  const item = state.items.find((i) => i.id === id);
+  if (!item) return;
+  state.current = item;
+  $("#itemTitle").textContent = item.title || item.url;
+  $("#itemImg").src = item.image || ""; $("#itemImg").classList.toggle("hidden", !item.image);
+  $("#itemMeta").innerHTML = `<span class="pill">${esc(item.site_label)}</span><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Voir sur ${esc(item.site_label)}</a><span>· relevé ${ago(item.last_checked)}</span>`;
+  $("#itemPrice").innerHTML = `${eur(item.last_price)} ${deltaHtml(item)}`;
+  $("#itemError").textContent = item.last_error ? "⚠ " + item.last_error : "";
+  const s = item.stats;
+  $("#itemStats").innerHTML = [["Plus bas", s.min], ["Plus haut", s.max], ["Habituel (30 j)", s.median_30d], ["Relevés", null, s.count]]
+    .map(([l, v, n]) => `<div class="stat"><b>${n != null ? n : eur(v)}</b><span>${l}</span></div>`).join("");
+  fillCategorySelect($("#itemCat"), item.category_id ?? "");
+  $("#itemCatNew").value = ""; $("#itemCatNew").classList.add("hidden");
+  $("#itemThreshold").value = item.threshold ?? "";
+  $("#itemActive").checked = item.active;
+  drawChart([], null);
+  if (!$("#dlgItem").open) $("#dlgItem").showModal();
+  const [prices, sent] = await Promise.all([api(`items/${id}/prices`), api(`items/${id}/alerts`)]);
+  drawChart(prices, item.threshold);
+  $("#itemAlertsBox").classList.toggle("hidden", !sent.length);
+  $("#itemAlerts").innerHTML = sent.map((a) => `<li>${parseDate(a.sent_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} ·
+    ${a.kind === "seuil" ? `sous le seuil (${eur(a.reference)})` : `anormalement bas (habituel ${eur(a.reference)})`} à <b>${eur(a.price)}</b>
+    ${a.ok ? "" : `<span class="error">· non envoyée : ${esc(a.error)}</span>`}</li>`).join("");
+}
+
+$("#grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openItem(Number(c.dataset.id)); });
+$("#chips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) { state.filter = c.dataset.f; render(); } });
+
+$("#itemSave").onclick = async () => {
+  try {
+    const category_id = await resolveCategory($("#itemCat"), $("#itemCatNew"));
+    await api(`items/${state.current.id}`, { method: "PATCH", body: { category_id, threshold: numOrNull($("#itemThreshold").value), active: $("#itemActive").checked } });
+    $("#dlgItem").close(); toast("Enregistré"); await load();
+  } catch (err) { toast(err.message); }
+};
+$("#itemCheck").onclick = async () => {
+  const btn = $("#itemCheck"); btn.disabled = true; btn.textContent = "Relevé…";
+  try {
+    const item = await api(`items/${state.current.id}/check`, { method: "POST" });
+    await load(); await openItem(item.id);
+    toast(item.last_error ? "Le prix n'a pas pu être lu" : `Prix relevé : ${eur(item.last_price)}`);
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; btn.textContent = "Relever maintenant"; }
+};
+$("#itemDelete").onclick = async () => {
+  if (!confirm("Supprimer cet article et tout son historique de prix ?")) return;
+  await api(`items/${state.current.id}`, { method: "DELETE" });
+  $("#dlgItem").close(); await load();
+};
+
+// --- Réglages ---
+function renderCategories() {
+  $("#catList").innerHTML = state.categories.length ? state.categories.map((c) => `<div class="cat-row" data-cat="${c.id}">
+      <input value="${esc(c.name)}"><button type="button" class="btn" data-rename>Renommer</button><button type="button" class="btn danger" data-del>Supprimer</button></div>`).join("")
+    : `<div class="hint">Aucune catégorie.</div>`;
+}
+$("#btnSettings").onclick = async () => {
+  const s = await api("settings");
+  $("#setInterval").value = s.interval_hours; $("#setFlare").value = s.flaresolverr_url;
+  $("#setEbayId").value = s.ebay_client_id; $("#setEbaySecret").value = "";
+  $("#setEbaySecret").placeholder = s.ebay_client_secret ? "•••••••• (enregistré)" : "";
+  $("#setApprise").value = ""; $("#setApprise").placeholder = s.apprise_urls ? "•••••••• (adresses enregistrées : saisissez-en de nouvelles pour les remplacer)" : "ntfy://ntfy.sh/mon-sujet\ntgram://JETON_DU_BOT/ID_DU_CHAT";
+  $("#setPct").value = s.anomaly_pct; $("#setDays").value = s.anomaly_days; $("#setMinHist").value = s.anomaly_min_history;
+  renderCategories(); $("#dlgSettings").showModal();
+};
+$("#formSettings").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await api("settings", { method: "PUT", body: { interval_hours: $("#setInterval").value, flaresolverr_url: $("#setFlare").value.trim(),
+      ebay_client_id: $("#setEbayId").value.trim(), ebay_client_secret: $("#setEbaySecret").value.trim(),
+      apprise_urls: $("#setApprise").value.trim(), anomaly_pct: $("#setPct").value, anomaly_days: $("#setDays").value,
+      anomaly_min_history: $("#setMinHist").value } });
+    $("#dlgSettings").close(); toast("Réglages enregistrés");
+  } catch (err) { toast(err.message); }
+});
+$("#btnNotifyTest").onclick = async () => {
+  const btn = $("#btnNotifyTest"); btn.disabled = true;
+  try { await api("notify/test", { method: "POST", body: { apprise_urls: $("#setApprise").value } }); toast("Notification d'essai envoyée"); }
+  catch (err) { toast(err.message); }
+  finally { btn.disabled = false; }
+};
+$("#catAdd").onclick = async () => {
+  const name = $("#catNew").value.trim(); if (!name) return;
+  await api("categories", { method: "POST", body: { name } });
+  $("#catNew").value = ""; await load(); renderCategories();
+};
+$("#catList").addEventListener("click", async (e) => {
+  const row = e.target.closest("[data-cat]"); if (!row) return;
+  try {
+    if (e.target.matches("[data-rename]")) await api(`categories/${row.dataset.cat}`, { method: "PATCH", body: { name: row.querySelector("input").value } });
+    else if (e.target.matches("[data-del]")) {
+      if (!confirm("Supprimer cette catégorie ? Ses articles passeront « Sans catégorie ».")) return;
+      await api(`categories/${row.dataset.cat}`, { method: "DELETE" });
+      if (state.filter == row.dataset.cat) state.filter = "all";
+    } else return;
+    await load(); renderCategories();
+  } catch (err) { toast(err.message); }
+});
+
+document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
+load().catch((err) => toast(err.message));
+setInterval(() => { if (!document.querySelector("dialog[open]")) load().catch(() => {}); }, 60000);
+</script>
+</body>
+</html>
