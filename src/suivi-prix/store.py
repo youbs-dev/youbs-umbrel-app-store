@@ -13,8 +13,16 @@ DEFAULT_SETTINGS = {
     "flaresolverr_url": os.environ.get("FLARESOLVERR_URL", ""),
     "ebay_client_id": "",
     "ebay_client_secret": "",
+    # Adresses Apprise, une par ligne (ntfy://, tgram://, mailto://, discord://...).
+    "apprise_urls": os.environ.get("APPRISE_URLS", ""),
+    # Prix « anormalement bas » : X % sous la médiane des N derniers jours,
+    # dès qu'il y a assez de relevés pour que la médiane ait un sens.
+    "anomaly_pct": "20",
+    "anomaly_days": "30",
+    "anomaly_min_history": "5",
 }
-SECRET_SETTINGS = {"ebay_client_secret"}
+# Jamais renvoyés au navigateur (les adresses Apprise contiennent des jetons).
+SECRET_SETTINGS = {"ebay_client_secret", "apprise_urls"}
 
 
 def db():
@@ -43,6 +51,8 @@ def migrate():
             last_price REAL,
             last_checked TEXT,
             last_error TEXT,
+            threshold_alerted REAL,
+            anomaly_alerted REAL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS prices (
@@ -52,6 +62,17 @@ def migrate():
             checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS prices_item ON prices(item_id, checked_at);
+        CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL,
+            price REAL NOT NULL,
+            reference REAL,
+            ok INTEGER NOT NULL,
+            error TEXT,
+            sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS alerts_item ON alerts(item_id, sent_at);
         CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
         """)
 

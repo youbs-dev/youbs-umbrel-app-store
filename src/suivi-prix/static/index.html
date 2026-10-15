@@ -45,8 +45,12 @@
   .btn.danger { background:transparent; color:var(--up); }
   .btn.icon { padding:8px; }
   label { display:block; font-size:.85rem; font-weight:500; color:var(--text-secondary); margin:12px 0 4px; }
-  input, select { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); color:var(--text-primary); font:inherit; }
-  input:focus, select:focus { outline:none; border-color:var(--accent); }
+  input, select, textarea { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-primary); color:var(--text-primary); font:inherit; }
+  textarea { resize:vertical; min-height:70px; font-family:ui-monospace, monospace; font-size:.85rem; }
+  h3 { font-size:.95rem; margin:20px 0 0; padding-top:14px; border-top:1px solid var(--border); }
+  .alerts { list-style:none; padding:0; margin:6px 0 0; font-size:.85rem; }
+  .alerts li { padding:6px 0; border-bottom:1px solid var(--border); color:var(--text-secondary); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
   .hint { font-size:.8rem; color:var(--text-muted); margin-top:4px; }
   .row { display:flex; gap:10px; align-items:end; } .row > * { flex:1; }
 
@@ -145,6 +149,7 @@
     </div>
     <input id="itemCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
     <label style="display:flex;gap:8px;align-items:center;margin-top:14px"><input type="checkbox" id="itemActive" style="width:auto"> Relever le prix automatiquement</label>
+    <div id="itemAlertsBox" class="hidden"><h3>Dernières alertes</h3><ul class="alerts" id="itemAlerts"></ul></div>
   </div>
   <div class="foot">
     <button class="btn danger" id="itemDelete">Supprimer</button>
@@ -170,7 +175,18 @@
       <label for="setEbaySecret">eBay : Cert ID (Client Secret)</label>
       <input id="setEbaySecret" type="password" autocomplete="new-password">
       <div class="hint">Clés de production de votre compte sur developer.ebay.com. Laissez vide pour garder la clé enregistrée.</div>
-      <label>Catégories</label>
+      <h3>Notifications</h3>
+      <label for="setApprise">Adresses de notification (une par ligne)</label>
+      <textarea id="setApprise" placeholder="ntfy://ntfy.sh/mon-sujet&#10;tgram://JETON_DU_BOT/ID_DU_CHAT&#10;mailto://user:motdepasse@gmail.com"></textarea>
+      <div class="hint">Format Apprise : ntfy, Telegram, e-mail, Discord, Gotify… (<a href="https://github.com/caronc/apprise/wiki" target="_blank" rel="noopener">liste des services</a>). Laissez vide pour garder les adresses enregistrées.</div>
+      <div style="margin-top:8px"><button type="button" class="btn" id="btnNotifyTest">Envoyer une notification d'essai</button></div>
+      <label>Alerte « prix anormalement bas »</label>
+      <div class="row" style="align-items:start">
+        <div><input id="setPct" type="number" min="0" max="90" step="1"><div class="hint">% sous le prix habituel (0 = désactivée)</div></div>
+        <div><input id="setDays" type="number" min="1" max="365" step="1"><div class="hint">jours pris en compte</div></div>
+        <div><input id="setMinHist" type="number" min="1" max="1000" step="1"><div class="hint">relevés minimum</div></div>
+      </div>
+      <h3>Catégories</h3>
       <div id="catList"></div>
       <div class="cat-row"><input id="catNew" placeholder="Nouvelle catégorie"><button type="button" class="btn" id="catAdd">Ajouter</button></div>
     </div>
@@ -256,6 +272,7 @@ function render() {
       </div>
       <div class="price">${eur(i.last_price)} ${deltaHtml(i)}</div>
       <div class="meta">
+        ${i.abnormally_low ? `<span class="pill ok">prix anormalement bas</span>` : ""}
         ${i.threshold != null ? `<span class="pill ${below ? "ok" : ""}">seuil ${eur(i.threshold)}</span>` : ""}
         <span>${ago(i.last_checked)}</span>
       </div>
@@ -359,7 +376,12 @@ async function openItem(id) {
   $("#itemActive").checked = item.active;
   drawChart([], null);
   if (!$("#dlgItem").open) $("#dlgItem").showModal();
-  drawChart(await api(`items/${id}/prices`), item.threshold);
+  const [prices, sent] = await Promise.all([api(`items/${id}/prices`), api(`items/${id}/alerts`)]);
+  drawChart(prices, item.threshold);
+  $("#itemAlertsBox").classList.toggle("hidden", !sent.length);
+  $("#itemAlerts").innerHTML = sent.map((a) => `<li>${parseDate(a.sent_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} ·
+    ${a.kind === "seuil" ? `sous le seuil (${eur(a.reference)})` : `anormalement bas (habituel ${eur(a.reference)})`} à <b>${eur(a.price)}</b>
+    ${a.ok ? "" : `<span class="error">· non envoyée : ${esc(a.error)}</span>`}</li>`).join("");
 }
 
 $("#grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openItem(Number(c.dataset.id)); });
@@ -398,16 +420,26 @@ $("#btnSettings").onclick = async () => {
   $("#setInterval").value = s.interval_hours; $("#setFlare").value = s.flaresolverr_url;
   $("#setEbayId").value = s.ebay_client_id; $("#setEbaySecret").value = "";
   $("#setEbaySecret").placeholder = s.ebay_client_secret ? "•••••••• (enregistré)" : "";
+  $("#setApprise").value = ""; $("#setApprise").placeholder = s.apprise_urls ? "•••••••• (adresses enregistrées : saisissez-en de nouvelles pour les remplacer)" : "ntfy://ntfy.sh/mon-sujet\ntgram://JETON_DU_BOT/ID_DU_CHAT";
+  $("#setPct").value = s.anomaly_pct; $("#setDays").value = s.anomaly_days; $("#setMinHist").value = s.anomaly_min_history;
   renderCategories(); $("#dlgSettings").showModal();
 };
 $("#formSettings").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
     await api("settings", { method: "PUT", body: { interval_hours: $("#setInterval").value, flaresolverr_url: $("#setFlare").value.trim(),
-      ebay_client_id: $("#setEbayId").value.trim(), ebay_client_secret: $("#setEbaySecret").value.trim() } });
+      ebay_client_id: $("#setEbayId").value.trim(), ebay_client_secret: $("#setEbaySecret").value.trim(),
+      apprise_urls: $("#setApprise").value.trim(), anomaly_pct: $("#setPct").value, anomaly_days: $("#setDays").value,
+      anomaly_min_history: $("#setMinHist").value } });
     $("#dlgSettings").close(); toast("Réglages enregistrés");
   } catch (err) { toast(err.message); }
 });
+$("#btnNotifyTest").onclick = async () => {
+  const btn = $("#btnNotifyTest"); btn.disabled = true;
+  try { await api("notify/test", { method: "POST", body: { apprise_urls: $("#setApprise").value } }); toast("Notification d'essai envoyée"); }
+  catch (err) { toast(err.message); }
+  finally { btn.disabled = false; }
+};
 $("#catAdd").onclick = async () => {
   const name = $("#catNew").value.trim(); if (!name) return;
   await api("categories", { method: "POST", body: { name } });

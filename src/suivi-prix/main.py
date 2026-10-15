@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import alerts
 import scraper
 from store import SECRET_SETTINGS, STATIC_DIR, db, get_settings, migrate, set_settings
 
@@ -58,6 +59,7 @@ async def check_item(item_id):
         result = await run_in_threadpool(scrape, row["url"])
         record(item_id, result=result)
         log.info("Article %s : %.2f € (%s)", item_id, result["price"], result["method"])
+        await run_in_threadpool(alerts.evaluate, item_id, result["price"])
     except scraper.ScrapeError as e:
         record(item_id, error=str(e))
         log.warning("Article %s : %s", item_id, e)
@@ -103,6 +105,8 @@ app = FastAPI(title="Suivi de prix", lifespan=lifespan)
 def item_to_dict(row, prices):
     d = dict(row)
     d["active"] = bool(d["active"])
+    d["below_threshold"] = d.pop("threshold_alerted") is not None
+    d["abnormally_low"] = d.pop("anomaly_alerted") is not None
     d["site_label"] = scraper.SITES.get(d["site"], d["site"])
     values = [p["price"] for p in prices]
     since = (datetime.now(timezone.utc) - timedelta(days=HISTORY_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
@@ -184,6 +188,9 @@ def update_item(item_id: int, body: ItemPatch):
     if changes:
         if "active" in changes:
             changes["active"] = int(changes["active"])
+        if "threshold" in changes:
+            # Nouveau seuil : la règle se réarme et sera réévaluée au prochain relevé.
+            changes["threshold_alerted"] = None
         cols = ", ".join(f"{k}=?" for k in changes)
         with db() as conn:
             conn.execute(f"UPDATE items SET {cols} WHERE id=?", (*changes.values(), item_id))
@@ -210,6 +217,15 @@ def item_prices(item_id: int):
     with db() as conn:
         return [dict(r) for r in conn.execute(
             "SELECT price, checked_at FROM prices WHERE item_id=? ORDER BY checked_at", (item_id,))]
+
+
+@app.get("/api/items/{item_id}/alerts")
+def item_alerts(item_id: int):
+    get_item(item_id)
+    with db() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT kind, price, reference, ok, error, sent_at FROM alerts WHERE item_id=? "
+            "ORDER BY sent_at DESC, id DESC LIMIT 20", (item_id,))]
 
 
 # --- Catégories ------------------------------------------------------------
@@ -269,6 +285,15 @@ def read_settings():
 
 @app.put("/api/settings")
 def write_settings(values: dict):
+    for key, low, high, label in [("anomaly_pct", 0, 90, "Écart en %"), ("anomaly_days", 1, 365, "Période en jours"),
+                                  ("anomaly_min_history", 1, 1000, "Nombre minimal de relevés")]:
+        if key in values:
+            try:
+                ok = low <= float(values[key]) <= high
+            except (TypeError, ValueError):
+                ok = False
+            if not ok:
+                raise HTTPException(400, f"{label} : valeur entre {low} et {high} attendue")
     if "interval_hours" in values:
         try:
             hours = float(values["interval_hours"])
@@ -280,6 +305,21 @@ def write_settings(values: dict):
     values = {k: v for k, v in values.items() if not (k in SECRET_SETTINGS and v in ("", None, True))}
     set_settings(values)
     return read_settings()
+
+
+class NotifyTest(BaseModel):
+    apprise_urls: str | None = None
+
+
+@app.post("/api/notify/test")
+async def notify_test(body: NotifyTest):
+    """Envoie une notification d'essai, aux adresses saisies ou à celles enregistrées."""
+    urls = body.apprise_urls if body.apprise_urls and body.apprise_urls.strip() else None
+    ok, error = await run_in_threadpool(alerts.send, "Suivi de prix",
+                                        "Notification d'essai : les alertes de prix arriveront ici.", urls)
+    if not ok:
+        raise HTTPException(400, error)
+    return {"ok": True}
 
 
 # --- Interface -------------------------------------------------------------

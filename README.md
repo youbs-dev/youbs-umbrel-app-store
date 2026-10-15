@@ -20,6 +20,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Lidarr | `youbs-lidarr` | 3.1.0.4875-1 |
 | Prowlarr | `youbs-prowlarr` | 2.6.5.5623-1 |
 | Carbure | `youbs-carbure` | 1.2.0 |
+| Suivi de prix | `youbs-suivi-prix` | 0.1.0 |
 
 ## Ajouter ce store dans Umbrel
 
@@ -39,7 +40,10 @@ https://github.com/youbs-dev/youbs-umbrel-app-store
 
 ## Applications développées ici
 
-Le code source de l'app Lab Inventory se trouve dans `src/lab-inventory/`. À chaque modification
+Le code source des apps Lab Inventory et Suivi de prix se trouve dans `src/lab-inventory/` et `src/suivi-prix/`. À chaque modification
 sur `main`, le workflow `Image lab-inventory` construit l'image `ghcr.io/youbs-dev/lab-inventory`
 avec le tag de la version indiquée dans `youbs-lab-inventory/umbrel-app.yml`. Pour publier une nouvelle
 version : modifier le code, augmenter `version` dans `umbrel-app.yml` et le tag de l'image dans `docker-compose.yml`.
+
+Suivi de prix suit le même principe : le workflow `Image suivi-prix` construit `ghcr.io/youbs-dev/suivi-prix`
+avec le tag de la version indiquée dans `youbs-suivi-prix/umbrel-app.yml`.
