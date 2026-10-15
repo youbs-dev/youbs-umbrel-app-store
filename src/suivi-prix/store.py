@@ -74,6 +74,11 @@ def migrate():
         );
         CREATE INDEX IF NOT EXISTS alerts_item ON alerts(item_id, sent_at);
         CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
         """)
         # 0.2.0 : un « article » peut aussi être une veille sur une recherche (kind='search').
         # Son prix est alors le meilleur prix trouvé, best_url/best_site disant où.
@@ -81,7 +86,9 @@ def migrate():
         for col, decl in [("threshold_alerted", "REAL"), ("anomaly_alerted", "REAL"),
                           ("kind", "TEXT NOT NULL DEFAULT 'item'"), ("query", "TEXT"), ("sites", "TEXT"),
                           ("min_price", "REAL"), ("max_price", "REAL"), ("exclude", "TEXT"),
-                          ("best_url", "TEXT"), ("best_site", "TEXT")]:
+                          ("best_url", "TEXT"), ("best_site", "TEXT"),
+                          # 0.3.0 : articles de sites différents regroupés sous un même produit.
+                          ("product_id", "INTEGER REFERENCES products(id) ON DELETE SET NULL")]:
             if col not in existing:
                 conn.execute(f"ALTER TABLE items ADD COLUMN {col} {decl}")
 

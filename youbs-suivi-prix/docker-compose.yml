@@ -9,7 +9,7 @@ services:
 
   web:
     # Image construite depuis src/suivi-prix par .github/workflows/suivi-prix-image.yml
-    image: ghcr.io/youbs-dev/suivi-prix:0.2.0
+    image: ghcr.io/youbs-dev/suivi-prix:0.3.0
     restart: unless-stopped
     environment:
       TZ: Europe/Paris

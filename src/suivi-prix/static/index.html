@@ -97,6 +97,17 @@
   .result .best { color:var(--down); }
   .section-title { font-size:1.05rem; margin:8px 0 12px; }
   @media (max-width:520px) { .filters { grid-template-columns:1fr 1fr; } .result .btn { padding:6px 10px; } }
+  /* Produit regroupant plusieurs sites */
+  .offers { display:flex; flex-direction:column; gap:2px; font-size:.88rem; }
+  .offer { display:flex; gap:8px; align-items:center; padding:4px 6px; margin:0 -6px; border-radius:6px; }
+  .offer:hover { background:var(--bg-tertiary); }
+  .offer .o-site { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-secondary); }
+  .offer .o-price { font-weight:600; white-space:nowrap; }
+  .offer.best .o-price { color:var(--down); }
+  .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .offers-table { margin-top:12px; }
+  .offers-table .offer { padding:8px 6px; border-top:1px solid var(--border); border-radius:0; cursor:pointer; }
+  .offers-table .o-site { white-space:normal; }
   .empty-state { text-align:center; padding:60px 16px; color:var(--text-muted); }
 
   dialog { border:1px solid var(--border); border-radius:14px; background:var(--bg-secondary); color:var(--text-primary); padding:0; width:min(560px, calc(100vw - 32px)); box-shadow:var(--shadow); }
@@ -173,6 +184,10 @@
       <input id="addCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
       <label for="addThreshold">Seuil d'alerte (€, facultatif)</label>
       <input id="addThreshold" type="number" min="0" step="0.01" placeholder="ex. 35">
+      <label for="addProduct">Regrouper sous le produit</label>
+      <select id="addProduct" class="product-select"></select>
+      <input id="addProductNew" class="hidden" placeholder="Nom du produit, ex. Sony WH-1000XM5" style="margin-top:8px">
+      <div class="hint">Les articles d'un même produit sont affichés ensemble, avec le prix de chaque site.</div>
     </div>
     <div class="foot">
       <button type="button" class="btn" data-close>Annuler</button>
@@ -218,6 +233,11 @@
       <div><label for="itemThreshold">Seuil d'alerte (€)</label><input id="itemThreshold" type="number" min="0" step="0.01" placeholder="aucun"></div>
     </div>
     <input id="itemCatNew" class="hidden" placeholder="Nom de la nouvelle catégorie" style="margin-top:8px">
+    <div id="itemProductBox">
+      <label for="itemProduct">Regrouper sous le produit</label>
+      <select id="itemProduct" class="product-select"></select>
+      <input id="itemProductNew" class="hidden" placeholder="Nom du produit" style="margin-top:8px">
+    </div>
     <div id="watchFields" class="hidden">
       <div class="filters">
         <div><label for="wMin">Prix min (€)</label><input id="wMin" type="number" min="0" step="0.01"></div>
@@ -239,6 +259,29 @@
     <button class="btn" id="itemCheck">Relever maintenant</button>
     <button class="btn" data-close autofocus>Fermer</button>
     <button class="btn primary" id="itemSave">Enregistrer</button>
+  </div>
+</dialog>
+
+<!-- Produit -->
+<dialog id="dlgProduct">
+  <div class="head">
+    <img id="productImg" class="thumb" alt="">
+    <h2 id="productTitle"></h2>
+  </div>
+  <div class="body">
+    <div class="price" id="productPrice" style="margin-top:8px"></div>
+    <div class="meta" id="productMeta"></div>
+    <svg class="chart" id="productChart" viewBox="0 0 520 180" preserveAspectRatio="none" style="margin-top:12px"></svg>
+    <div class="offers offers-table" id="productOffers"></div>
+    <div class="hint">Cliquez sur une offre pour son historique, son seuil d'alerte ou pour la retirer du produit.</div>
+    <label for="productName">Nom du produit</label>
+    <input id="productName">
+  </div>
+  <div class="foot">
+    <button class="btn danger" id="productUngroup">Dégrouper</button>
+    <span class="spacer"></span>
+    <button class="btn" data-close autofocus>Fermer</button>
+    <button class="btn primary" id="productSave">Enregistrer</button>
   </div>
 </dialog>
 
@@ -281,8 +324,11 @@
 
 <script>
 const $ = (s) => document.querySelector(s);
-const state = { items: [], categories: [], filter: "all", current: null };
+const state = { items: [], categories: [], products: [], filter: "all", current: null, product: null };
 const NEW_CAT = "__new__";
+const NEW_PRODUCT = "__new__";
+// Une couleur par offre sur le graphique d'un produit.
+const COLORS = ["#00ae42", "#2563eb", "#d97706", "#db2777", "#7c3aed", "#0891b2"];
 
 const eur = (v) => v == null ? "—" : v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -315,7 +361,7 @@ function toast(msg) {
 }
 
 async function load() {
-  [state.items, state.categories] = await Promise.all([api("items"), api("categories")]);
+  [state.items, state.categories, state.products] = await Promise.all([api("items"), api("categories"), api("products")]);
   render();
 }
 
@@ -343,31 +389,69 @@ function render() {
   const items = state.items.filter((i) => state.filter === "all" || (state.filter === "none" ? !i.category_id : i.category_id == state.filter));
   $("#empty").classList.toggle("hidden", state.items.length > 0);
   $("#followTitle").classList.toggle("hidden", !state.items.length);
-  $("#grid").innerHTML = items.map((i) => {
-    const below = i.threshold != null && i.last_price != null && i.last_price <= i.threshold;
-    return `<div class="card" data-id="${i.id}">
-      <div class="top">
-        ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
-        <div style="min-width:0">
-          <div class="title">${i.kind === "search" ? `« ${esc(i.query)} »` : esc(i.title || i.url)}</div>
-          <div class="meta"><span class="pill">${esc(i.site_label)}</span>${i.best_site_label ? `<span class="pill">meilleure offre : ${esc(i.best_site_label)}</span>` : ""}${i.category ? `<span class="pill">${esc(i.category)}</span>` : ""}${!i.active ? `<span class="pill">en pause</span>` : ""}</div>
-        </div>
-      </div>
-      <div class="price">${eur(i.last_price)} ${deltaHtml(i)}</div>
-      <div class="meta">
-        ${i.abnormally_low ? `<span class="pill ok">prix anormalement bas</span>` : ""}
-        ${i.threshold != null ? `<span class="pill ${below ? "ok" : ""}">seuil ${eur(i.threshold)}</span>` : ""}
-        <span>${ago(i.last_checked)}</span>
-      </div>
-      ${i.last_error ? `<div class="error">⚠ ${esc(i.last_error)}</div>` : ""}
-      <div data-spark="${i.id}"></div>
-    </div>`;
-  }).join("");
+  // Un produit de plusieurs articles devient une seule carte, à la place de son premier article.
+  const seen = new Set();
+  const cards = [];
+  for (const i of items) {
+    const members = i.product_id ? productItems(i.product_id) : [];
+    if (members.length < 2) { cards.push(itemCard(i)); continue; }
+    if (seen.has(i.product_id)) continue;
+    seen.add(i.product_id); cards.push(productCard(i.product_id, members));
+  }
+  $("#grid").innerHTML = cards.join("");
   items.forEach(async (i) => {
     if (i.stats.count < 2) return;
     const el = document.querySelector(`[data-spark="${i.id}"]`);
     if (el) el.innerHTML = sparkline(await api(`items/${i.id}/prices`));
   });
+}
+
+const productItems = (pid) => state.items.filter((i) => i.product_id === pid);
+const offerLabel = (i) => i.kind === "search" ? `Veille « ${i.query} »` : i.site_label;
+// Les offres d'un produit, la moins chère d'abord (celles sans prix à la fin).
+const sortOffers = (members) => [...members].sort((a, b) => (a.last_price ?? Infinity) - (b.last_price ?? Infinity));
+
+function productCard(pid, members) {
+  const offers = sortOffers(members), best = offers[0];
+  const img = offers.find((i) => i.image)?.image;
+  const cats = [...new Set(members.map((i) => i.category).filter(Boolean))];
+  const errors = members.filter((i) => i.last_error).length;
+  return `<div class="card" data-product="${pid}">
+    <div class="top">
+      ${img ? `<img class="thumb" src="${esc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
+      <div style="min-width:0">
+        <div class="title">${esc(best.product)}</div>
+        <div class="meta"><span class="pill">${members.length} offres</span>${cats.map((c) => `<span class="pill">${esc(c)}</span>`).join("")}</div>
+      </div>
+    </div>
+    <div class="price">${eur(best.last_price)}${best.last_price != null ? `<span class="delta down" style="font-weight:500">sur ${esc(offerLabel(best))}</span>` : ""}</div>
+    <div class="offers">${offers.map((i, k) => `<div class="offer ${k === 0 && i.last_price != null ? "best" : ""}" data-id="${i.id}">
+      <span class="o-site">${esc(offerLabel(i))}${i.last_error ? " ⚠" : ""}</span>
+      ${i.abnormally_low ? `<span class="pill ok">bas</span>` : ""}
+      <span class="o-price">${eur(i.last_price)}</span></div>`).join("")}</div>
+    ${errors ? `<div class="error">⚠ ${errors} offre${errors > 1 ? "s" : ""} non relevée${errors > 1 ? "s" : ""} au dernier passage</div>` : ""}
+  </div>`;
+}
+
+function itemCard(i) {
+  const below = i.threshold != null && i.last_price != null && i.last_price <= i.threshold;
+  return `<div class="card" data-id="${i.id}">
+    <div class="top">
+      ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="thumb empty"></div>`}
+      <div style="min-width:0">
+        <div class="title">${i.kind === "search" ? `« ${esc(i.query)} »` : esc(i.title || i.url)}</div>
+        <div class="meta"><span class="pill">${esc(i.site_label)}</span>${i.best_site_label ? `<span class="pill">meilleure offre : ${esc(i.best_site_label)}</span>` : ""}${i.category ? `<span class="pill">${esc(i.category)}</span>` : ""}${i.product ? `<span class="pill">${esc(i.product)}</span>` : ""}${!i.active ? `<span class="pill">en pause</span>` : ""}</div>
+      </div>
+    </div>
+    <div class="price">${eur(i.last_price)} ${deltaHtml(i)}</div>
+    <div class="meta">
+      ${i.abnormally_low ? `<span class="pill ok">prix anormalement bas</span>` : ""}
+      ${i.threshold != null ? `<span class="pill ${below ? "ok" : ""}">seuil ${eur(i.threshold)}</span>` : ""}
+      <span>${ago(i.last_checked)}</span>
+    </div>
+    ${i.last_error ? `<div class="error">⚠ ${esc(i.last_error)}</div>` : ""}
+    <div data-spark="${i.id}"></div>
+  </div>`;
 }
 
 function fillCategorySelect(sel, value) {
@@ -389,11 +473,26 @@ async function resolveCategory(sel, input) {
 }
 const numOrNull = (v) => v === "" ? null : Number(v);
 
+function fillProductSelect(sel, value) {
+  sel.innerHTML = `<option value="">Aucun</option>` +
+    state.products.map((p) => `<option value="${p.id}">${esc(p.name)} (${p.count})</option>`).join("") +
+    `<option value="${NEW_PRODUCT}">+ Nouveau produit…</option>`;
+  sel.value = value ?? "";
+}
+bindNewCategory($("#addProduct"), $("#addProductNew"));
+bindNewCategory($("#itemProduct"), $("#itemProductNew"));
+// Champs à envoyer à l'API pour le produit choisi (un nouveau produit est créé sous son nom).
+function productFields(sel, input) {
+  if (sel.value !== NEW_PRODUCT) return { product_id: sel.value ? Number(sel.value) : null };
+  return input.value.trim() ? { product_name: input.value.trim() } : { product_id: null };
+}
+
 // --- Ajout ---
 bindNewCategory($("#addCat"), $("#addCatNew"));
 $("#btnAdd").onclick = () => {
   $("#formAdd").reset(); $("#addCatNew").classList.add("hidden");
   fillCategorySelect($("#addCat"), state.filter !== "all" && state.filter !== "none" ? state.filter : "");
+  fillProductSelect($("#addProduct"), ""); $("#addProductNew").classList.add("hidden");
   $("#dlgAdd").showModal();
 };
 $("#formAdd").addEventListener("submit", async (e) => {
@@ -401,7 +500,8 @@ $("#formAdd").addEventListener("submit", async (e) => {
   const btn = $("#addSubmit"); btn.disabled = true; btn.textContent = "Relevé du prix…";
   try {
     const category_id = await resolveCategory($("#addCat"), $("#addCatNew"));
-    const item = await api("items", { method: "POST", body: { url: $("#addUrl").value, category_id, threshold: numOrNull($("#addThreshold").value) } });
+    const item = await api("items", { method: "POST", body: { url: $("#addUrl").value, category_id, threshold: numOrNull($("#addThreshold").value),
+      ...productFields($("#addProduct"), $("#addProductNew")) } });
     $("#dlgAdd").close();
     toast(item.last_error ? "Article ajouté, mais le prix n'a pas pu être lu." : `Article ajouté : ${eur(item.last_price)}`);
     await load();
@@ -458,6 +558,12 @@ $("#resultsBody").addEventListener("click", (e) => {
   const b = e.target.closest("[data-follow]"); if (!b) return;
   $("#formAdd").reset(); $("#addCatNew").classList.add("hidden");
   fillCategorySelect($("#addCat"), "");
+  // Par défaut, les résultats suivis depuis une même recherche sont regroupés sous un produit à son nom.
+  const query = state.lastSearch?.query || "";
+  const existing = state.products.find((p) => p.name.toLowerCase() === query.toLowerCase());
+  fillProductSelect($("#addProduct"), existing ? existing.id : (query ? NEW_PRODUCT : ""));
+  $("#addProductNew").value = existing ? "" : query;
+  $("#addProductNew").classList.toggle("hidden", $("#addProduct").value !== NEW_PRODUCT);
   $("#addUrl").value = b.dataset.follow;
   $("#dlgAdd").showModal();
 });
@@ -499,14 +605,18 @@ $("#itemMeta").addEventListener("click", (e) => {
 
 // --- Détail ---
 bindNewCategory($("#itemCat"), $("#itemCatNew"));
-function drawChart(prices, threshold) {
-  const svg = $("#itemChart"), W = 520, H = 180, L = 52, R = 8, T = 10, B = 22;
-  if (!prices.length) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">Pas encore d'historique</text>`; return; }
-  const vals = prices.map((p) => p.price).concat(threshold != null ? [threshold] : []);
+// series : [{ prices, color }], une courbe par offre.
+function drawChart(series, threshold, svg = $("#itemChart")) {
+  const W = 520, H = 180, L = 52, R = 8, T = 10, B = 22;
+  series = series.filter((s) => s.prices.length);
+  if (!series.length) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">Pas encore d'historique</text>`; return; }
+  const all = series.flatMap((s) => s.prices);
+  const vals = all.map((p) => p.price).concat(threshold != null ? [threshold] : []);
   let min = Math.min(...vals), max = Math.max(...vals);
   if (min === max) { min -= 1; max += 1; }
   const pad = (max - min) * 0.1; min -= pad; max += pad;
-  const t0 = parseDate(prices[0].checked_at).getTime(), t1 = parseDate(prices[prices.length - 1].checked_at).getTime();
+  const times = all.map((p) => parseDate(p.checked_at).getTime());
+  const t0 = Math.min(...times), t1 = Math.max(...times);
   const x = (t) => L + (t1 === t0 ? (W - L - R) / 2 : ((t - t0) / (t1 - t0)) * (W - L - R));
   const y = (v) => T + (1 - (v - min) / (max - min)) * (H - T - B);
   let out = "";
@@ -515,15 +625,17 @@ function drawChart(prices, threshold) {
     out += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${Math.round(v).toLocaleString("fr-FR")} €</text>`;
   }
   if (threshold != null) out += `<line x1="${L}" x2="${W - R}" y1="${y(threshold)}" y2="${y(threshold)}" stroke="var(--warning)" stroke-dasharray="4 4"/><text x="${W - R}" y="${y(threshold) - 4}" text-anchor="end">seuil</text>`;
-  // Courbe en escalier : le prix reste valable jusqu'au relevé suivant.
-  let d = "";
-  prices.forEach((p, i) => {
-    const px = x(parseDate(p.checked_at).getTime()), py = y(p.price);
-    d += i === 0 ? `M${px},${py}` : `H${px}V${py}`;
-  });
-  out += `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
-  const last = prices[prices.length - 1];
-  out += `<circle cx="${x(parseDate(last.checked_at).getTime())}" cy="${y(last.price)}" r="3.5" fill="var(--accent)"/>`;
+  // Courbes en escalier : le prix reste valable jusqu'au relevé suivant.
+  for (const { prices, color = "var(--accent)" } of series) {
+    let d = "";
+    prices.forEach((p, i) => {
+      const px = x(parseDate(p.checked_at).getTime()), py = y(p.price);
+      d += i === 0 ? `M${px},${py}` : `H${px}V${py}`;
+    });
+    out += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    const last = prices[prices.length - 1];
+    out += `<circle cx="${x(parseDate(last.checked_at).getTime())}" cy="${y(last.price)}" r="3.5" fill="${color}"/>`;
+  }
   const fmt = (t) => new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   out += `<text x="${L}" y="${H - 6}">${fmt(t0)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${fmt(t1)}</text>`;
   svg.innerHTML = out;
@@ -553,23 +665,77 @@ async function openItem(id) {
   $("#itemCatNew").value = ""; $("#itemCatNew").classList.add("hidden");
   $("#itemThreshold").value = item.threshold ?? "";
   $("#itemActive").checked = item.active;
+  $("#itemProductBox").classList.toggle("hidden", watch);
+  fillProductSelect($("#itemProduct"), item.product_id ?? "");
+  $("#itemProductNew").value = ""; $("#itemProductNew").classList.add("hidden");
   drawChart([], null);
   if (!$("#dlgItem").open) $("#dlgItem").showModal();
   const [prices, sent] = await Promise.all([api(`items/${id}/prices`), api(`items/${id}/alerts`)]);
-  drawChart(prices, item.threshold);
+  drawChart([{ prices }], item.threshold);
   $("#itemAlertsBox").classList.toggle("hidden", !sent.length);
   $("#itemAlerts").innerHTML = sent.map((a) => `<li>${parseDate(a.sent_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} ·
     ${a.kind === "seuil" ? `sous le seuil (${eur(a.reference)})` : `anormalement bas (habituel ${eur(a.reference)})`} à <b>${eur(a.price)}</b>
     ${a.ok ? "" : `<span class="error">· non envoyée : ${esc(a.error)}</span>`}</li>`).join("");
 }
 
-$("#grid").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openItem(Number(c.dataset.id)); });
+$("#grid").addEventListener("click", (e) => {
+  const offer = e.target.closest(".offer[data-id]");
+  if (offer) return openItem(Number(offer.dataset.id));
+  const c = e.target.closest(".card"); if (!c) return;
+  if (c.dataset.product) openProduct(Number(c.dataset.product)); else openItem(Number(c.dataset.id));
+});
+
+// --- Produit ---
+async function openProduct(pid) {
+  const members = sortOffers(productItems(pid));
+  if (members.length < 2) { $("#dlgProduct").close(); return; }
+  state.product = pid;
+  const best = members[0], img = members.find((i) => i.image)?.image;
+  // Couleur fixe par article (ordre d'ajout), pour qu'elle ne change pas quand les prix bougent.
+  const color = (i) => COLORS[[...members].sort((a, b) => a.id - b.id).indexOf(i) % COLORS.length];
+  $("#productTitle").textContent = best.product;
+  $("#productName").value = best.product;
+  $("#productImg").src = img || ""; $("#productImg").classList.toggle("hidden", !img);
+  $("#productPrice").innerHTML = best.last_price != null
+    ? `${eur(best.last_price)}<span class="delta down" style="font-weight:500">sur ${esc(offerLabel(best))}</span>` : eur(null);
+  const lows = members.map((i) => i.stats.min).filter((v) => v != null);
+  $("#productMeta").innerHTML = `<span>${members.length} offres</span>` + (lows.length ? `<span>· plus bas relevé : ${eur(Math.min(...lows))}</span>` : "");
+  $("#productOffers").innerHTML = members.map((i, k) => `<div class="offer ${k === 0 && i.last_price != null ? "best" : ""}" data-id="${i.id}">
+    <span class="dot" style="background:${color(i)}"></span>
+    <span class="o-site"><b>${esc(offerLabel(i))}</b> · ${esc(i.kind === "search" ? (i.best_site_label ? "meilleure offre sur " + i.best_site_label : "") : (i.title || ""))}
+      ${i.last_error ? `<span class="error">⚠ ${esc(i.last_error)}</span>` : ""}</span>
+    ${i.threshold != null ? `<span class="pill">seuil ${eur(i.threshold)}</span>` : ""}
+    <span class="o-price">${eur(i.last_price)}</span>
+    <a href="${esc(i.kind === "search" ? i.best_url || "#" : i.url)}" target="_blank" rel="noopener noreferrer" title="Ouvrir sur le site" data-ext>↗</a>
+  </div>`).join("");
+  drawChart([], null, $("#productChart"));
+  if (!$("#dlgProduct").open) $("#dlgProduct").showModal();
+  const histories = await Promise.all(members.map((i) => api(`items/${i.id}/prices`)));
+  drawChart(members.map((i, k) => ({ prices: histories[k], color: color(i) })), null, $("#productChart"));
+}
+$("#productOffers").addEventListener("click", (e) => {
+  if (e.target.closest("[data-ext]")) return;
+  const o = e.target.closest(".offer[data-id]"); if (!o) return;
+  $("#dlgProduct").close(); openItem(Number(o.dataset.id));
+});
+$("#productSave").onclick = async () => {
+  try {
+    await api(`products/${state.product}`, { method: "PATCH", body: { name: $("#productName").value } });
+    $("#dlgProduct").close(); toast("Enregistré"); await load();
+  } catch (err) { toast(err.message); }
+};
+$("#productUngroup").onclick = async () => {
+  if (!confirm("Dégrouper ce produit ? Ses offres restent suivies, chacune séparément.")) return;
+  await api(`products/${state.product}`, { method: "DELETE" });
+  $("#dlgProduct").close(); await load();
+};
 $("#chips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) { state.filter = c.dataset.f; render(); } });
 
 $("#itemSave").onclick = async () => {
   try {
     const category_id = await resolveCategory($("#itemCat"), $("#itemCatNew"));
     const body = { category_id, threshold: numOrNull($("#itemThreshold").value), active: $("#itemActive").checked };
+    if (state.current.kind !== "search") Object.assign(body, productFields($("#itemProduct"), $("#itemProductNew")));
     if (state.current.kind === "search") Object.assign(body, { min_price: numOrNull($("#wMin").value), max_price: numOrNull($("#wMax").value),
       exclude: $("#wExclude").value.trim(), sites: [...document.querySelectorAll("#wSites input:checked")].map((c) => c.value) });
     await api(`items/${state.current.id}`, { method: "PATCH", body });

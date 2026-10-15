@@ -4,14 +4,16 @@ name: Suivi de prix
 tagline: Cherchez un produit sur Amazon, eBay et Leboncoin et suivez son prix
 icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/suivi-prix/icon.svg
 category: finance
-version: "0.2.0"
+version: "0.3.0"
 port: 8770
 description: >-
   Tapez une référence ou une désignation : l'app interroge Amazon, Leboncoin et eBay et liste
   les offres par prix croissant, en écartant celles dont le titre ne contient pas tous les mots
   recherchés (filtres de prix et mots à exclure en plus). Suivez ensuite un résultat précis, ou
   créez une veille sur la recherche entière : elle est relancée régulièrement et garde
-  l'historique de la meilleure offre. Rangez vos suivis par catégorie et fixez un seuil.
+  l'historique de la meilleure offre. Regroupez sous un même produit les offres de plusieurs sites
+  pour comparer leurs prix sur une seule carte et un seul graphique. Rangez vos suivis par
+  catégorie et fixez un seuil.
 
 
   Vous recevez une notification (ntfy, Telegram, e-mail, Discord… via Apprise) quand le prix passe
@@ -30,9 +32,10 @@ repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/suivi-pr
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Barre de recherche sur Amazon, Leboncoin et eBay, avec filtres (prix, mots à exclure) ;
-  veilles sur une recherche, avec alertes sur la meilleure offre ; les articles Amazon suivis
-  sont relus via FlareSolverr quand Amazon bloque la fiche produit.
+  Regroupement par produit : les offres suivies sur plusieurs sites pour un même produit
+  s'affichent sur une seule carte, avec le prix de chaque site et un graphique comparatif. Les
+  résultats suivis depuis une même recherche sont regroupés par défaut. La page se met à jour
+  sans rafraîchissement forcé après une mise à jour de l'app.
 dependencies: []
 path: ""
 defaultUsername: ""
