@@ -4,7 +4,7 @@ name: Suivi de prix
 tagline: Cherchez un produit sur Amazon, eBay et Leboncoin et suivez son prix
 icon: https://raw.githubusercontent.com/youbs-dev/youbs-umbrel-app-store/main/src/suivi-prix/icon.svg
 category: finance
-version: "0.3.0"
+version: "0.4.0"
 port: 8770
 description: >-
   Tapez une référence ou une désignation : l'app interroge Amazon, Leboncoin et eBay et liste
@@ -32,10 +32,9 @@ repo: https://github.com/youbs-dev/youbs-umbrel-app-store/tree/main/src/suivi-pr
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Regroupement par produit : les offres suivies sur plusieurs sites pour un même produit
-  s'affichent sur une seule carte, avec le prix de chaque site et un graphique comparatif. Les
-  résultats suivis depuis une même recherche sont regroupés par défaut. La page se met à jour
-  sans rafraîchissement forcé après une mise à jour de l'app.
+  Écarter un résultat : le bouton ✕ d'un résultat de recherche (ou « Écarter cette offre » sur une
+  veille) retire une fausse correspondance de cette recherche et de sa veille, et efface les
+  relevés faux qu'elle avait donnés. Les résultats écartés peuvent être rétablis.
 dependencies: []
 path: ""
 defaultUsername: ""

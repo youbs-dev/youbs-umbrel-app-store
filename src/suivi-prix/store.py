@@ -74,6 +74,18 @@ def migrate():
         );
         CREATE INDEX IF NOT EXISTS alerts_item ON alerts(item_id, sent_at);
         CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+        -- Résultats écartés à la main d'une recherche (fausse correspondance, annonce trompeuse) :
+        -- ils n'apparaissent plus dans cette recherche ni dans la veille du même nom.
+        CREATE TABLE IF NOT EXISTS ignored (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            query_key TEXT NOT NULL,
+            url TEXT NOT NULL,
+            site TEXT,
+            title TEXT,
+            price REAL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(query_key, url)
+        );
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -91,6 +103,9 @@ def migrate():
                           ("product_id", "INTEGER REFERENCES products(id) ON DELETE SET NULL")]:
             if col not in existing:
                 conn.execute(f"ALTER TABLE items ADD COLUMN {col} {decl}")
+        # 0.4.0 : offre d'où vient chaque relevé d'une veille, pour effacer ceux d'une offre écartée.
+        if "url" not in {r["name"] for r in conn.execute("PRAGMA table_info(prices)")}:
+            conn.execute("ALTER TABLE prices ADD COLUMN url TEXT")
 
 
 def get_settings():
