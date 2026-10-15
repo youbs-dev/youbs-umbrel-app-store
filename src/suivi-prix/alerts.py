@@ -50,7 +50,13 @@ def evaluate(item_id, price):
     to_send = []
     with db() as conn:
         item = conn.execute("SELECT * FROM items WHERE id=?", (item_id,)).fetchone()
-        name = item["title"] or item["url"]
+        if item["kind"] == "search":
+            site = {"amazon": "Amazon", "ebay": "eBay", "leboncoin": "Leboncoin"}.get(item["best_site"], item["best_site"])
+            name = f"Meilleure offre pour « {item['query']} » ({site})"
+            link = item["best_url"]
+        else:
+            name = item["title"] or item["url"]
+            link = item["url"]
 
         # 1. Seuil fixé par l'utilisateur.
         threshold, alerted = item["threshold"], item["threshold_alerted"]
@@ -77,7 +83,7 @@ def evaluate(item_id, price):
 
     for kind, reference, body in to_send:
         title = "Prix sous le seuil" if kind == "seuil" else "Prix anormalement bas"
-        ok, error = send(title, f"{body}\n{item['url']}")
+        ok, error = send(title, f"{body}\n{link}")
         with db() as conn:
             conn.execute("INSERT INTO alerts(item_id, kind, price, reference, ok, error) VALUES(?, ?, ?, ?, ?, ?)",
                          (item_id, kind, price, reference, int(ok), error))
