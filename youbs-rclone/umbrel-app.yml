@@ -4,7 +4,7 @@ name: Rclone Seedbox
 tagline: Monte votre seedbox comme un dossier local
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/rclone.png
 category: files
-version: "1.75.1.3"
+version: "1.75.2"
 port: 8957
 description: >-
   Rclone Seedbox monte le remote `seedbox` défini dans votre fichier `rclone.conf` sur le dossier `/mnt/seedbox` de l'application, avec FUSE. Le point de montage est partagé (`shared`) pour que d'autres conteneurs puissent y accéder.
@@ -19,7 +19,7 @@ repo: https://github.com/rclone/rclone
 support: https://github.com/rclone/rclone/issues
 gallery: []
 releaseNotes: >-
-  Sécurité : l'API rclone exige désormais un identifiant (utilisateur `umbrel`, mot de passe généré par Umbrel). Le cache d'écriture est conservé dans le dossier de l'app et l'arrêt laisse le temps de démonter proprement.
+  Mise à jour vers rclone 1.75.2 (corrections).
 dependencies: []
 path: ""
 defaultUsername: "umbrel"

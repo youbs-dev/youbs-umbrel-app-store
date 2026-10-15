@@ -9,7 +9,7 @@ services:
       APP_PORT: 3000
 
   headscale:
-    image: headscale/headscale:0.29.4@sha256:8833f828b414c0907b7e5c71da76473216fe17cce0818a166b536ec552c0903f
+    image: headscale/headscale:0.29.5@sha256:780ed2f9e85719a2211277433f2c8afb45105d0d25031949a6848a485f9e216d
     restart: unless-stopped
     command: serve
     # Le reverse proxy nginx (TLS) redirige https://headscale.youbs.fr vers ce port
@@ -21,7 +21,7 @@ services:
       - ${APP_DATA_DIR}/data/headscale/lib:/var/lib/headscale
 
   headplane:
-    image: ghcr.io/tale/headplane:0.7.1@sha256:394483fd2336ce6b15df360c3e118ddfd45eb8140fe21df9f2611077f5d79d22
+    image: ghcr.io/tale/headplane:0.8.0@sha256:55cf7c926a6a222bafe8b97622f32cbe76e3a6b8012f4ea694ffd36d06a73b51
     restart: unless-stopped
     depends_on:
       - headscale

@@ -4,7 +4,7 @@ name: Carbure
 tagline: Le budget du foyer, enfin sous contrôle
 icon: https://raw.githubusercontent.com/ltoinel/Carbure/main/portal/icon.png
 category: finance
-version: "1.2.0"
+version: "1.3.0"
 port: 8489
 description: >-
   Carbure est une application de budget familial open-source et auto-hébergée. Elle synchronise vos comptes
@@ -27,7 +27,7 @@ repo: https://github.com/ltoinel/Carbure
 support: https://github.com/ltoinel/Carbure/issues
 gallery: []
 releaseNotes: >-
-  Première version dans le store : Carbure 1.2.0 avec MariaDB 13.
+  Mise à jour vers Carbure 1.3.0 : nom lisible pour une banque connectée, suppression d'une banque depuis la page Comptes, historique conservé quand une synchronisation échoue.
 dependencies: []
 path: ""
 defaultUsername: ""

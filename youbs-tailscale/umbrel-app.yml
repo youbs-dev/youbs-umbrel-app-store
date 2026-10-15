@@ -4,7 +4,7 @@ name: Tailscale (Headscale)
 tagline: Client Tailscale relié à votre serveur Headscale auto-hébergé
 icon: https://getumbrel.github.io/umbrel-apps-gallery/tailscale/icon.svg
 category: networking
-version: "1.102.5"
+version: "1.104.1"
 port: 8240
 description: >-
   Client Tailscale pour Umbrel, connecté à votre propre serveur Headscale (https://headscale.youbs.fr)
@@ -27,7 +27,7 @@ repo: https://github.com/tailscale/tailscale
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Première version : client Tailscale 1.102.5 configuré pour Headscale, avec routeur de sous-réseau.
+  Mise à jour vers le client Tailscale 1.104.1.
 dependencies: []
 path: ""
 defaultUsername: ""

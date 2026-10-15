@@ -28,5 +28,5 @@ services:
   # FlareSolverr : a declarer a la main dans Prowlarr (Settings > Indexers > Indexer
   # Proxies) avec l'adresse http://youbs-prowlarr_indexer_proxy_1:8191
   indexer_proxy:
-    image: flaresolverr/flaresolverr:v3.4.6@sha256:7962759d99d7e125e108e0f5e7f3cdbcd36161776d058d1d9b7153b92ef1af9e
+    image: flaresolverr/flaresolverr:v3.5.2@sha256:c80ae007ce2ccdcd217a12426e4f039ef763ff90738c808d38810c3e59323767
     restart: on-failure

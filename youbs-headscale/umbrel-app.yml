@@ -4,7 +4,7 @@ name: Headscale
 tagline: Votre propre serveur de coordination Tailscale, avec l'interface Headplane
 icon: https://raw.githubusercontent.com/juanfont/headscale/main/docs/assets/logo/headscale3-dots.png
 category: networking
-version: "0.29.4"
+version: "0.29.5"
 port: 8481
 description: >-
   Headscale est une implémentation open-source et auto-hébergée du serveur de coordination de Tailscale.
@@ -30,7 +30,7 @@ repo: https://github.com/juanfont/headscale
 support: https://github.com/juanfont/headscale/issues
 gallery: []
 releaseNotes: >-
-  Première version : Headscale 0.29.4 et Headplane 0.7.1.
+  Headscale 0.29.5 (corrections des routes, exit nodes et ACL) et Headplane 0.8.0 (éditeur visuel des règles d'accès, gestion des groupes depuis la page Utilisateurs).
 dependencies: []
 path: "/admin/"
 defaultUsername: ""

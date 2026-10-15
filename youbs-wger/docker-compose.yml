@@ -61,7 +61,7 @@ services:
     restart: on-failure
 
   powersync:
-    image: journeyapps/powersync-service:1.22.0@sha256:2d5084910f03a029174ebc7f7ce0c0d2c43e932ead63a2d87b919e90ebbb0e77
+    image: journeyapps/powersync-service:1.27.0@sha256:15b8e4dbbab17ba45d3abfef29df29b21489266e55ff9aa95bbfd56d9548c00f
     depends_on:
       db:
         condition: service_healthy

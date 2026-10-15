@@ -8,7 +8,7 @@ services:
       APP_PORT: 5572
 
   rclone:
-    image: rclone/rclone:1.75.1
+    image: rclone/rclone:1.75.2
     restart: unless-stopped
     # Laisse a rclone le temps de vider le cache d'ecriture et de demonter proprement
     stop_grace_period: 1m

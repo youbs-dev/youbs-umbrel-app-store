@@ -5,7 +5,7 @@ services:
     # Repris de l'app Tailscale officielle d'Umbrel : reseau de l'hote et mode TUN
     # du noyau, pour que l'interface tailscale0 et ses routes existent sur Umbrel.
     network_mode: "host"
-    image: tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
+    image: tailscale/tailscale:v1.104.1@sha256:87c55d6be56ad85b3d8bceca5f87f73de288c609131460dd1be1874c250cc41d
     restart: on-failure
     stop_grace_period: 1m
     environment:
