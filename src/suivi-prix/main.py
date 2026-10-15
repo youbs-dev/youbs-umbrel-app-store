@@ -159,8 +159,9 @@ def item_to_dict(row, prices):
 def load_items(where="", params=()):
     with db() as conn:
         rows = conn.execute(
-            "SELECT items.*, categories.name AS category FROM items "
-            "LEFT JOIN categories ON categories.id = items.category_id " + where +
+            "SELECT items.*, categories.name AS category, products.name AS product FROM items "
+            "LEFT JOIN categories ON categories.id = items.category_id "
+            "LEFT JOIN products ON products.id = items.product_id " + where +
             " ORDER BY items.created_at DESC", params).fetchall()
         out = []
         for r in rows:
@@ -181,6 +182,9 @@ class ItemIn(BaseModel):
     url: str
     category_id: int | None = None
     threshold: float | None = None
+    # Produit auquel rattacher l'article : un existant, ou un nouveau créé sous ce nom.
+    product_id: int | None = None
+    product_name: str | None = None
 
 
 class ItemPatch(BaseModel):
@@ -188,6 +192,8 @@ class ItemPatch(BaseModel):
     threshold: float | None = None
     active: bool | None = None
     title: str | None = None
+    product_id: int | None = None
+    product_name: str | None = None
     # Veilles uniquement
     min_price: float | None = None
     max_price: float | None = None
@@ -207,6 +213,21 @@ class SearchIn(BaseModel):
 class WatchIn(SearchIn):
     category_id: int | None = None
     threshold: float | None = None
+
+
+def resolve_product(conn, product_id, product_name):
+    """Renvoie l'identifiant du produit choisi, en le créant s'il est donné par son nom."""
+    name = (product_name or "").strip()
+    if name:
+        existing = conn.execute("SELECT id FROM products WHERE name=? COLLATE NOCASE", (name,)).fetchone()
+        return existing["id"] if existing else conn.execute("INSERT INTO products(name) VALUES(?)", (name,)).lastrowid
+    if product_id is not None and not conn.execute("SELECT 1 FROM products WHERE id=?", (product_id,)).fetchone():
+        raise HTTPException(400, "Produit introuvable")
+    return product_id
+
+
+def drop_empty_products(conn):
+    conn.execute("DELETE FROM products WHERE id NOT IN (SELECT product_id FROM items WHERE product_id IS NOT NULL)")
 
 
 def clean_sites(sites):
@@ -257,8 +278,9 @@ async def add_item(body: ItemIn):
     with db() as conn:
         if conn.execute("SELECT 1 FROM items WHERE url=?", (url,)).fetchone():
             raise HTTPException(409, "Cet article est déjà suivi")
-        item_id = conn.execute("INSERT INTO items(url, site, category_id, threshold) VALUES(?, ?, ?, ?)",
-                               (url, site, body.category_id, body.threshold)).lastrowid
+        product_id = resolve_product(conn, body.product_id, body.product_name)
+        item_id = conn.execute("INSERT INTO items(url, site, category_id, threshold, product_id) VALUES(?, ?, ?, ?, ?)",
+                               (url, site, body.category_id, body.threshold, product_id)).lastrowid
     async with check_lock:
         await check_item(item_id)
     return get_item(item_id)
@@ -273,6 +295,9 @@ def read_item(item_id: int):
 def update_item(item_id: int, body: ItemPatch):
     get_item(item_id)
     changes = body.model_dump(exclude_unset=True)
+    with db() as conn:
+        if "product_id" in changes or "product_name" in changes:
+            changes["product_id"] = resolve_product(conn, changes.get("product_id"), changes.pop("product_name", None))
     if changes:
         if "active" in changes:
             changes["active"] = int(changes["active"])
@@ -284,6 +309,7 @@ def update_item(item_id: int, body: ItemPatch):
         cols = ", ".join(f"{k}=?" for k in changes)
         with db() as conn:
             conn.execute(f"UPDATE items SET {cols} WHERE id=?", (*changes.values(), item_id))
+            drop_empty_products(conn)
     return get_item(item_id)
 
 
@@ -291,6 +317,7 @@ def update_item(item_id: int, body: ItemPatch):
 def delete_item(item_id: int):
     with db() as conn:
         conn.execute("DELETE FROM items WHERE id=?", (item_id,))
+        drop_empty_products(conn)
 
 
 @app.post("/api/items/{item_id}/check")
@@ -316,6 +343,40 @@ def item_alerts(item_id: int):
         return [dict(r) for r in conn.execute(
             "SELECT kind, price, reference, ok, error, sent_at FROM alerts WHERE item_id=? "
             "ORDER BY sent_at DESC, id DESC LIMIT 20", (item_id,))]
+
+
+# --- Produits --------------------------------------------------------------
+# Un produit regroupe les articles suivis sur plusieurs sites (même casque sur Amazon,
+# Leboncoin et eBay) pour comparer leurs prix. Il disparaît avec son dernier article.
+
+class ProductIn(BaseModel):
+    name: str
+
+
+@app.get("/api/products")
+def list_products():
+    with db() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT products.id, products.name, COUNT(items.id) AS count FROM products "
+            "JOIN items ON items.product_id = products.id GROUP BY products.id ORDER BY products.name COLLATE NOCASE")]
+
+
+@app.patch("/api/products/{product_id}")
+def rename_product(product_id: int, body: ProductIn):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(400, "Nom de produit vide")
+    with db() as conn:
+        conn.execute("UPDATE products SET name=? WHERE id=?", (name, product_id))
+    return {"id": product_id, "name": name}
+
+
+@app.delete("/api/products/{product_id}", status_code=204)
+def ungroup_product(product_id: int):
+    """Dissout le regroupement : les articles restent suivis, chacun pour soi."""
+    with db() as conn:
+        conn.execute("UPDATE items SET product_id=NULL WHERE product_id=?", (product_id,))
+        conn.execute("DELETE FROM products WHERE id=?", (product_id,))
 
 
 # --- Catégories ------------------------------------------------------------
@@ -416,7 +477,8 @@ async def notify_test(body: NotifyTest):
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    # Revalidée à chaque visite : une mise à jour de l'app s'affiche sans rafraîchissement forcé.
+    return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR), name="static")
