@@ -11,13 +11,14 @@ x-backend-env: &backend-env
   IS_SELF_HOST: "true"
   SYSTEM_DEMO_DISABLED: "true"
   # URL d'ouverture de l'app : les cookies, l'origine de confiance et les URLs
-  # OAuth du serveur MCP (/mcp) en dépendent. Le port est écrit en dur : Umbrel
-  # ne fournit pas de variable APP_<ID>_PORT (elle serait vide).
-  BETTER_AUTH_URL: http://${DEVICE_DOMAIN_NAME}:8490
-  AUTH_ORIGIN: http://${DEVICE_DOMAIN_NAME}:8490
+  # OAuth du serveur MCP (/mcp) en dépendent. Les clients MCP exigent du HTTPS
+  # pour l'OAuth : l'app passe par Nginx Proxy Manager (192.168.31.12) avec le
+  # certificat wildcard *.home.youbs.fr, qui relaie vers le port 8490.
+  BETTER_AUTH_URL: https://moneymatter.home.youbs.fr
+  AUTH_ORIGIN: https://moneymatter.home.youbs.fr
   # Autres adresses autorisées : nom d'hôte, URLs locales d'Umbrel, IP du réseau
   # local et du tailnet Headscale, noms MagicDNS en .ts.net.
-  ALLOWED_ORIGINS: http://${DEVICE_HOSTNAME}:8490,http://umbrel.local:8490,http://umbrel:8490,http://192.168.31.144:8490,http://192.168.31.145:8490,http://100.64.0.4:8490,http://*.ts.net:8490,https://*.ts.net
+  ALLOWED_ORIGINS: https://moneymatter.home.youbs.fr,http://${DEVICE_HOSTNAME}:8490,http://umbrel.local:8490,http://umbrel:8490,http://192.168.31.144:8490,http://192.168.31.145:8490,http://100.64.0.4:8490,http://*.ts.net:8490,https://*.ts.net
   APPLICATION_JWT_SECRET: ${APP_SEED}
   APP_SESSION_ID_SECRET: ${APP_SEED}
   BETTER_AUTH_SECRET: ${APP_SEED}
