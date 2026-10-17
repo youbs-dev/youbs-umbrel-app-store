@@ -4,7 +4,7 @@ name: MoneyMatter
 tagline: Vos finances personnelles, sur votre serveur
 icon: https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/frontend/public/web-app-manifest-512x512.png
 category: finance
-version: "f27fc49"
+version: "f27fc49-1"
 port: 8490
 description: >-
   MoneyMatter est une application open source de suivi de budget et de finances personnelles. Suivez vos soldes et vos transactions par saisie manuelle ou en connectant vos banques, catégorisez vos dépenses et vos revenus, et analysez où passe votre argent.
@@ -29,7 +29,7 @@ gallery:
   - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/cash-flow@2x.webp
   - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/budget@2x.webp
 releaseNotes: >-
-  Première version de MoneyMatter dans ce store (images upstream sha-f27fc49 du 16 octobre 2026).
+  Corrige le port manquant dans les URLs d'authentification : le connecteur MCP (http://umbrel.local:8490/mcp) peut maintenant se connecter. L'IP Tailscale autorisée devient celle du tailnet Headscale (100.64.0.4).
 dependencies: []
 path: ""
 defaultUsername: ""
