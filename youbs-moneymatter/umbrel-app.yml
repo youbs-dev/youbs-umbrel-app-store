@@ -1,0 +1,36 @@
+manifestVersion: 1
+id: youbs-moneymatter
+name: MoneyMatter
+tagline: Vos finances personnelles, sur votre serveur
+icon: https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/frontend/public/web-app-manifest-512x512.png
+category: finance
+version: "f27fc49"
+port: 8490
+description: >-
+  MoneyMatter est une application open source de suivi de budget et de finances personnelles. Suivez vos soldes et vos transactions par saisie manuelle ou en connectant vos banques, catégorisez vos dépenses et vos revenus, et analysez où passe votre argent.
+
+
+  L'application gère plusieurs devises (taux de change mis à jour automatiquement par un service intégré), les budgets, les paiements récurrents et leurs rappels, la valeur nette, ainsi que le suivi de portefeuilles d'investissement.
+
+
+  Vous pouvez importer votre historique depuis un fichier CSV, OFX ou QFX, ou directement depuis YNAB, Wallet (BudgetBakers) et Microsoft Money.
+
+
+  Au premier lancement, créez votre compte depuis la page d'inscription. Les fonctions optionnelles (synchronisation bancaire, IA, cours de bourse, e-mails) demandent des clés d'API à ajouter dans le docker-compose.
+developer: letehaha
+website: https://moneymatter.app/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/letehaha/budget-tracker
+support: https://github.com/letehaha/budget-tracker/issues
+gallery:
+  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/dashboard-screenshot/dashboard-desktop-v2@2x.webp
+  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/transactions@2x.webp
+  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/cash-flow@2x.webp
+  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/budget@2x.webp
+releaseNotes: >-
+  Première version de MoneyMatter dans ce store (images upstream sha-f27fc49 du 16 octobre 2026).
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
