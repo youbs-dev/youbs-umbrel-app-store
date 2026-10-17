@@ -21,6 +21,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Prowlarr | `youbs-prowlarr` | 2.6.5.5623-1 |
 | Carbure | `youbs-carbure` | 1.2.0 |
 | Suivi de prix | `youbs-suivi-prix` | 0.4.0 |
+| MoneyMatter | `youbs-moneymatter` | f27fc49 |
 
 ## Ajouter ce store dans Umbrel
 

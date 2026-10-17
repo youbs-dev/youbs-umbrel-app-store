@@ -1,0 +1,149 @@
+version: "3.7"
+
+# Adapté de self-hosting/docker-compose.yml du dépôt letehaha/budget-tracker.
+# Les noms d'hôte internes utilisent le nom complet du conteneur
+# (youbs-moneymatter_<service>_1) : sur Umbrel, toutes les apps partagent le
+# même réseau Docker, et des noms courts comme "db", "redis" ou "backend" y
+# sont aussi portés par d'autres apps.
+
+x-backend-env: &backend-env
+  NODE_ENV: production
+  IS_SELF_HOST: "true"
+  SYSTEM_DEMO_DISABLED: "true"
+  # URL d'ouverture de l'app : les cookies et l'origine de confiance en dépendent.
+  BETTER_AUTH_URL: http://${DEVICE_DOMAIN_NAME}:${APP_YOUBS_MONEYMATTER_PORT}
+  AUTH_ORIGIN: http://${DEVICE_DOMAIN_NAME}:${APP_YOUBS_MONEYMATTER_PORT}
+  # Autres adresses autorisées : nom d'hôte, URLs locales d'Umbrel, IP du réseau
+  # local et de Tailscale, noms MagicDNS en .ts.net.
+  ALLOWED_ORIGINS: http://${DEVICE_HOSTNAME}:${APP_YOUBS_MONEYMATTER_PORT},${APP_YOUBS_MONEYMATTER_LOCAL_URLS},http://umbrel.local:8490,http://umbrel:8490,http://192.168.31.144:8490,http://192.168.31.145:8490,http://100.107.61.84:8490,http://*.ts.net:8490,https://*.ts.net
+  APPLICATION_JWT_SECRET: ${APP_SEED}
+  APP_SESSION_ID_SECRET: ${APP_SEED}
+  BETTER_AUTH_SECRET: ${APP_SEED}
+  APPLICATION_DB_HOST: youbs-moneymatter_db_1
+  APPLICATION_DB_PORT: 5432
+  APPLICATION_DB_USERNAME: budget_tracker
+  APPLICATION_DB_PASSWORD: ${APP_SEED}
+  APPLICATION_DB_DATABASE: budget_tracker
+  APPLICATION_DB_DIALECT: postgres
+  APPLICATION_REDIS_HOST: youbs-moneymatter_redis_1
+  APPLICATION_HOST: 0.0.0.0
+  APPLICATION_PORT: 8081
+  CURRENCY_RATES_API_URL: http://youbs-moneymatter_currency_rates_1:8080
+  ATTACHMENTS_DIR: /app/packages/backend/data/attachments
+  # Fonctions optionnelles : décommenter et renseigner pour les activer.
+  # GEMINI_API_KEY: ""
+  # ENABLE_BANKING_REDIRECT_URL: ""
+  # POLYGON_API_KEY: ""
+  # COINGECKO_API_KEY: ""
+  # RESEND_API_KEY: ""
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: youbs-moneymatter_frontend_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: "false"
+
+  frontend:
+    image: letehaha/budget-tracker-fe:sha-f27fc49
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      IS_SELF_HOST: "true"
+      # Ouvre directement le tableau de bord au lieu de la page de présentation.
+      SKIP_LANDING: "true"
+      LISTEN_PORT: 80
+      # API servie sur la même origine : nginx du conteneur relaie /api vers le backend.
+      API_HTTP: ""
+      BACKEND_URL: http://youbs-moneymatter_backend_1:8081
+      API_VER: /api/v1
+
+  backend:
+    image: letehaha/budget-tracker-be:sha-f27fc49
+    restart: unless-stopped
+    depends_on:
+      permissions:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      currency_rates:
+        condition: service_healthy
+    environment: *backend-env
+    volumes:
+      - ${APP_DATA_DIR}/data/attachments:/app/packages/backend/data/attachments
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Les migrations de la base tournent avant le démarrage du serveur HTTP.
+      start_period: 120s
+
+  # Le backend tourne avec l'utilisateur 1001 et le service de taux avec
+  # l'utilisateur 1000 : on leur donne leurs dossiers, que Docker crée sinon
+  # au nom de root.
+  permissions:
+    image: busybox:1.37.0
+    restart: "no"
+    command: ["sh", "-c", "chown -R 1001:1001 /attachments && chown -R 1000:1000 /currency-rates"]
+    volumes:
+      - ${APP_DATA_DIR}/data/attachments:/attachments
+      - ${APP_DATA_DIR}/data/currency-rates:/currency-rates
+
+  db:
+    image: postgres:16.10
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: budget_tracker
+      POSTGRES_PASSWORD: ${APP_SEED}
+      POSTGRES_DB: budget_tracker
+    volumes:
+      - ${APP_DATA_DIR}/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budget_tracker -d budget_tracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    volumes:
+      - ${APP_DATA_DIR}/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Service de taux de change fourni par l'auteur de MoneyMatter (tourne en uid 1000).
+  currency_rates:
+    image: letehaha/currency-rates-api:v0.2.2
+    restart: unless-stopped
+    user: "1000:1000"
+    depends_on:
+      permissions:
+        condition: service_completed_successfully
+    volumes:
+      - ${APP_DATA_DIR}/data/currency-rates:/app/data
+    environment:
+      DATABASE_URL: sqlite:/app/data/currency_rates.db?mode=rwc
+      HOST: 0.0.0.0
+      PORT: 8080
+      DEFAULT_API_BASE: USD
+      SEED_ON_STARTUP: "true"
+      SYNC_ON_STARTUP: "true"
+      SYNC_CRON: "0 0 8,12,16,20 * * *"
+      RUST_LOG: currency_rates=info,tower_http=info
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
