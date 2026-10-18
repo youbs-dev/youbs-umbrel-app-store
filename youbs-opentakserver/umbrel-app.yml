@@ -1,0 +1,42 @@
+manifestVersion: 1
+id: youbs-opentakserver
+name: OpenTAKServer
+tagline: Serveur TAK open source pour ATAK, iTAK et WinTAK
+icon: https://raw.githubusercontent.com/brian7704/OpenTAKServer-UI/master/public/android-chrome-512x512.png
+category: networking
+version: "1.7.13"
+port: 8492
+description: >-
+  OpenTAKServer (OTS) est un serveur TAK (Team Awareness Kit) open source, compatible avec ATAK (Android), iTAK (iOS)
+  et WinTAK. Il partage en temps réel positions, marqueurs, messages, data packages et missions entre les membres
+  d'une équipe, avec une interface web en français : carte en direct, EUD connectés, alertes, CasEvac, missions,
+  gestion des utilisateurs et des certificats.
+
+
+  Connexion d'un client ATAK en clair : Paramètres > Préférences réseau > Connexions serveur TAK > ajouter un serveur,
+  adresse 192.168.31.144, port 8088, protocole TCP.
+
+
+  Connexion chiffrée (SSL, port 8089) : créez d'abord un utilisateur dans l'interface web, puis dans ATAK cochez
+  "Utiliser l'authentification" avec ses identifiants ; le certificat est récupéré automatiquement par le port 8446.
+
+
+  Ports ouverts sur l'Umbrel : 8088 (CoT TCP), 8089 (CoT SSL), 8080 et 8443 (API Marti / data packages) et 8446
+  (inscription des certificats). La vidéo (MediaMTX) n'est pas incluse.
+
+
+  L'interface web demande un second identifiant : administrator / password. Changez ce mot de passe dès la première
+  connexion.
+developer: brian7704
+website: https://opentakserver.io
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/brian7704/OpenTAKServer
+support: https://github.com/brian7704/OpenTAKServer/issues
+gallery: []
+releaseNotes: >-
+  Première version : OpenTAKServer 1.7.13, sans la vidéo (MediaMTX).
+dependencies: []
+path: ""
+defaultUsername: "administrator"
+defaultPassword: "password"

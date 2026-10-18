@@ -1,0 +1,148 @@
+version: "3.7"
+
+# D'après https://github.com/brian7704/OpenTAKServer-Docker, sans MediaMTX
+# (vidéo), certbot ni traefik. Les noms d'hôte internes utilisent le nom complet
+# du conteneur (youbs-opentakserver_<service>_1) : toutes les apps Umbrel
+# partagent le même réseau Docker.
+#
+# OTS écrit config.yml dans data/ots au premier démarrage, à partir des
+# variables ci-dessous ; ensuite c'est config.yml qui fait foi.
+
+x-ots-environment: &ots-environment
+  OTS_DATA_FOLDER: /app/ots
+  OTS_LISTENER_ADDRESS: 0.0.0.0
+  OTS_LISTENER_PORT: 8081
+  SQLALCHEMY_DATABASE_URI: postgresql+psycopg://ots:${APP_SEED}@youbs-opentakserver_db_1/ots
+  # RabbitMQ garde le compte guest/guest : la file de messages socket.io d'OTS
+  # s'y connecte sans identifiants. RabbitMQ n'expose aucun port sur l'hôte.
+  OTS_RABBITMQ_SERVER_ADDRESS: youbs-opentakserver_rabbitmq_1
+  OTS_MEDIAMTX_ENABLE: "False"
+  SECRET_KEY: ${APP_SEED}
+  SECURITY_PASSWORD_SALT: ${APP_SEED}
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: youbs-opentakserver_web_1
+      APP_PORT: 80
+
+  server:
+    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment: *ots-environment
+    volumes:
+      - ${APP_DATA_DIR}/data/ots:/app/ots
+    healthcheck:
+      test: curl --fail http://localhost:8081/api/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+    stop_signal: SIGINT
+    restart: on-failure
+
+  # cot_parser et eud_handler tournent avec l'image principale : les images
+  # séparées ots_cot_parser / ots_eud_handler (même en latest) embarquent OTS
+  # 1.5.14, incompatible avec le serveur 1.7.13.
+  cot_parser:
+    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    entrypoint: ["/app/venv/bin/cot_parser"]
+    healthcheck:
+      disable: true
+    depends_on:
+      server:
+        condition: service_healthy
+    environment: *ots-environment
+    volumes:
+      - ${APP_DATA_DIR}/data/ots:/app/ots
+    restart: on-failure
+
+  # Connexions CoT des clients TAK : TCP 8088 et SSL 8089
+  eud_handler:
+    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    entrypoint: ["/app/venv/bin/eud_handler", "--no-ssl"]
+    healthcheck:
+      disable: true
+    depends_on:
+      server:
+        condition: service_healthy
+    environment: *ots-environment
+    ports:
+      - "8088:8088"
+    volumes:
+      - ${APP_DATA_DIR}/data/ots:/app/ots
+    restart: on-failure
+
+  eud_handler_ssl:
+    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    entrypoint: ["/app/venv/bin/eud_handler", "--ssl"]
+    healthcheck:
+      disable: true
+    depends_on:
+      server:
+        condition: service_healthy
+    environment: *ots-environment
+    ports:
+      - "8089:8089"
+    volumes:
+      - ${APP_DATA_DIR}/data/ots:/app/ots
+    restart: on-failure
+
+  # Interface web (fichiers statiques de l'image) + proxy vers l'API OTS.
+  # Ports TAK : 8080 (API Marti), 8443 (API Marti avec certificat client),
+  # 8446 (inscription des certificats).
+  web:
+    image: ghcr.io/brian7704/opentakserver-ui:master@sha256:da740d87f1d8a67821bd051591a037abcf7c714c0a15be6f578eef25cda7b81d
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+      - "8446:8446"
+    volumes:
+      - ${APP_DATA_DIR}/config/nginx:/etc/nginx/conf.d:ro
+      - ${APP_DATA_DIR}/data/ots/ca:/app/ots/ca:ro
+    restart: on-failure
+
+  rabbitmq:
+    image: rabbitmq:4.1.4-alpine@sha256:b736d649308e1b3e1a116c3f36986b605ee3d03e88f10166be2900083d2e63f2
+    hostname: youbs-opentakserver-rabbitmq
+    volumes:
+      - ${APP_DATA_DIR}/config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - ${APP_DATA_DIR}/config/rabbitmq/99-opentakserver.conf:/etc/rabbitmq/conf.d/99-opentakserver.conf:ro
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    restart: on-failure
+
+  db:
+    image: postgis/postgis:18-3.6@sha256:ea49d706470cfe1215c4f1e074fcab66d5af52f80adaf90d5a9beace71cd5ce8
+    environment:
+      POSTGRES_USER: ots
+      POSTGRES_PASSWORD: ${APP_SEED}
+      POSTGRES_DB: ots
+      PGUSER: ots
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - max_connections=50
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql
+    healthcheck:
+      # En TCP : pendant l'initialisation, le serveur temporaire de Postgres
+      # n'écoute que sur le socket et pg_isready le verrait prêt trop tôt.
+      test: pg_isready -h 127.0.0.1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: on-failure
