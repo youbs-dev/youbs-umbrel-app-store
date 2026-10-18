@@ -109,6 +109,7 @@ services:
       FTS_UI_WSKEY: ${APP_SEED}
       # Jeton du compte système "admin" créé par FTS au premier démarrage
       FTS_API_KEY: "Bearer token"
+      # La page Webmap de l'interface affiche http://<ip>:8000/tak-map en iframe
       FTS_MAP_EXPOSED_IP: "192.168.31.144"
       FTS_MAP_PORT: 8000
       FTS_MAP_PROTO: http
@@ -117,4 +118,74 @@ services:
       - ${APP_DATA_DIR}/data/ui:/home/freetak/data
       # L'interface lit FTSConfig.yaml du serveur
       - ${APP_DATA_DIR}/data/fts:/opt/fts:ro
+    restart: on-failure
+
+  # Carte web (FreeTAKHub webmap) : binaire Node-RED autonome publié en release
+  # GitHub, sans image Docker. Il est téléchargé une fois (empreinte vérifiée)
+  # dans data/webmap.
+  webmap_download:
+    image: alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8
+    restart: "no"
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        cd /webmap
+        [ -x FTH-webmap-linux ] && exit 0
+        wget -q -O webmap.zip https://github.com/FreeTAKTeam/FreeTAKHub/releases/download/v0.2.5/FTH-webmap-linux-0.2.5.zip
+        echo "11afcde545cc4c2119c0ff7c89d23ebff286c99c6e0dfd214eae6e16760d6723  webmap.zip" | sha256sum -c -
+        unzip -o -q webmap.zip FTH-webmap-linux-0.2.5
+        rm webmap.zip
+        chmod 755 FTH-webmap-linux-0.2.5
+        mv FTH-webmap-linux-0.2.5 FTH-webmap-linux
+    volumes:
+      - ${APP_DATA_DIR}/data/webmap:/webmap
+
+  webmap:
+    image: debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
+    user: "1000:1000"
+    depends_on:
+      webmap_download:
+        condition: service_completed_successfully
+      server:
+        condition: service_started
+    working_dir: /webmap
+    # Le webmap ne se reconnecte pas tout seul à FTS : on attend que le port CoT
+    # réponde avant de le lancer, puis on arrête le conteneur (relancé par
+    # Docker) s'il n'a plus de connexion vers le port 8087 (1F97 en hexa).
+    command:
+      - bash
+      - -c
+      - |
+        until (exec 3<>/dev/tcp/youbs-freetakserver_server_1/8087) 2>/dev/null; do sleep 5; done
+        sleep 10
+        cat > /tmp/webMAP_config.json <<EOF
+        {
+          "BOT_TOKEN": "",
+          "FTH_FTS_URL": "youbs-freetakserver_server_1",
+          "ChatId": "",
+          "FTH_FTS_API_Auth": "token",
+          "FTH_FTS_API_Port": 19023,
+          "FTH_FTS_TCP_Port": 8087
+        }
+        EOF
+        /webmap/FTH-webmap-linux /tmp/webMAP_config.json &
+        pid=$$!
+        sleep 30
+        while kill -0 $$pid 2>/dev/null; do
+          if ! awk 'NR>1 && $$3 ~ /:1F97$$/ && $$4=="01" {found=1} END {exit !found}' /proc/net/tcp /proc/net/tcp6; then
+            echo "Connexion à FTS perdue, redémarrage du webmap"
+            kill $$pid
+            exit 1
+          fi
+          sleep 30
+        done
+        wait $$pid
+    environment:
+      HOME: /tmp
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${APP_DATA_DIR}/data/webmap:/webmap
     restart: on-failure
