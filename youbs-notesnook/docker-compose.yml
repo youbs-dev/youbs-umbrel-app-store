@@ -1,0 +1,205 @@
+version: "3.7"
+
+# Adapté de docker-compose.yml du dépôt streetwriters/notesnook-sync-server.
+#
+# Différences avec l'original :
+# - MongoDB 4.4 au lieu de 7.0 : le Celeron G4900T du serveur n'a pas d'AVX,
+#   exigé par MongoDB 5 et plus. Le serveur Notesnook fonctionne avec la 4.4.
+# - pgsty/minio et pgsty/mc (fork maintenu par Pigsty) : MinIO ne publie plus
+#   ses images minio/minio et minio/mc.
+# - Pas d'autoheal (il demande le socket Docker) ni de service "validate".
+# - Les hôtes internes passent par des alias réseau avec tirets
+#   (youbs-notesnook-<service>) : sur Umbrel toutes les apps partagent le même
+#   réseau Docker, et MinIO rejette les noms d'hôte contenant "_", comme ceux
+#   des conteneurs (youbs-notesnook_s3_1).
+#
+# Adresses publiques : les apps Notesnook exigent du HTTPS. Chaque service a un
+# hôte dans Nginx Proxy Manager (192.168.31.12, certificat wildcard
+# *.home.youbs.fr) qui relaie vers son port sur 192.168.31.144 :
+#   notesnook-auth.home.youbs.fr      -> 8493 (identity)
+#   notesnook-sync.home.youbs.fr      -> 8494 (sync, cocher Websockets Support)
+#   notesnook-events.home.youbs.fr    -> 8495 (sse)
+#   notesnook-monograph.home.youbs.fr -> 8496 (monograph)
+#   notesnook-files.home.youbs.fr     -> 8497 (s3, pièces jointes)
+
+x-notesnook-env: &notesnook-env
+  INSTANCE_NAME: youbs-notesnook
+  NOTESNOOK_API_SECRET: ${APP_SEED}
+  # Passer à "true" une fois vos comptes créés pour bloquer les inscriptions.
+  DISABLE_SIGNUPS: "false"
+  NOTESNOOK_CORS_ORIGINS: ""
+  KNOWN_PROXIES: 192.168.31.12
+  # Pas de SMTP : les e-mails (2FA par e-mail, mot de passe oublié) ne partent
+  # pas. Passer la 2FA sur une app d'authentification après l'inscription.
+  SMTP_USERNAME: ""
+  SMTP_PASSWORD: ""
+  SMTP_HOST: ""
+  SMTP_PORT: ""
+  NOTESNOOK_APP_PUBLIC_URL: https://app.notesnook.com
+  AUTH_SERVER_PUBLIC_URL: https://notesnook-auth.home.youbs.fr
+  NOTESNOOK_API_PUBLIC_URL: https://notesnook-sync.home.youbs.fr
+  MONOGRAPH_PUBLIC_URL: https://notesnook-monograph.home.youbs.fr
+  ATTACHMENTS_SERVER_PUBLIC_URL: https://notesnook-files.home.youbs.fr
+  # Découverte des services internes.
+  SELF_HOSTED: 1
+  IDENTITY_SERVER_HOST: youbs-notesnook-identity
+  IDENTITY_SERVER_PORT: 8264
+  NOTESNOOK_SERVER_HOST: youbs-notesnook-sync
+  NOTESNOOK_SERVER_PORT: 5264
+  SSE_SERVER_HOST: youbs-notesnook-sse
+  SSE_SERVER_PORT: 7264
+  IDENTITY_SERVER_URL: https://notesnook-auth.home.youbs.fr
+  NOTESNOOK_APP_HOST: https://app.notesnook.com
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: youbs-notesnook_web_1
+      APP_PORT: 8080
+      PROXY_AUTH_ADD: "false"
+
+  # Page d'accueil : adresses à configurer dans NPM et dans les apps Notesnook.
+  web:
+    image: busybox:1.37.0
+    restart: unless-stopped
+    command: ["httpd", "-f", "-p", "8080", "-h", "/www"]
+    volumes:
+      - ${APP_DATA_DIR}/www:/www:ro
+
+  db:
+    image: mongo:4.4.29
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.25"]
+    networks:
+      default:
+        aliases: [youbs-notesnook-db]
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/data/db
+    healthcheck:
+      # Initialise le replica set au premier démarrage (en 4.4, rs.status()
+      # ne lève pas d'erreur quand il n'est pas encore initialisé).
+      test: ["CMD", "mongo", "--quiet", "--eval", "if (rs.status().ok != 1) rs.initiate({_id:'rs0',members:[{_id:0,host:'youbs-notesnook-db:27017'}]}); quit(db.isMaster().ismaster ? 0 : 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  s3:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    restart: unless-stopped
+    command: ["server", "/data/s3"]
+    ports:
+      - 8497:9000
+    networks:
+      default:
+        aliases: [youbs-notesnook-s3]
+    environment:
+      MINIO_ROOT_USER: notesnook
+      MINIO_ROOT_PASSWORD: ${APP_SEED}
+      MINIO_BROWSER: "off"
+    volumes:
+      - ${APP_DATA_DIR}/data/s3:/data/s3
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # MinIO ne sait pas créer de bucket par défaut : on le crée ici.
+  setup-s3:
+    image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
+    restart: "no"
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["until mc alias set minio http://youbs-notesnook-s3:9000 notesnook ${APP_SEED}; do sleep 2; done; mc mb -p minio/attachments"]
+    depends_on:
+      s3:
+        condition: service_healthy
+
+  identity:
+    image: streetwriters/identity:v1.0-beta.38
+    restart: unless-stopped
+    ports:
+      - 8493:8264
+    networks:
+      default:
+        aliases: [youbs-notesnook-identity]
+    environment:
+      <<: *notesnook-env
+      MONGODB_CONNECTION_STRING: mongodb://youbs-notesnook-db:27017/identity?replSet=rs0
+      MONGODB_DATABASE_NAME: identity
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --tries=1 -nv -q http://localhost:8264/health -O- || exit 1"]
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  sync:
+    image: streetwriters/notesnook-sync:v1.0-beta.38
+    restart: unless-stopped
+    ports:
+      - 8494:5264
+    networks:
+      default:
+        aliases: [youbs-notesnook-sync]
+    environment:
+      <<: *notesnook-env
+      MONGODB_CONNECTION_STRING: mongodb://youbs-notesnook-db:27017/?replSet=rs0
+      MONGODB_DATABASE_NAME: notesnook
+      S3_INTERNAL_SERVICE_URL: http://youbs-notesnook-s3:9000
+      S3_INTERNAL_BUCKET_NAME: attachments
+      S3_ACCESS_KEY_ID: notesnook
+      S3_ACCESS_KEY: ${APP_SEED}
+      S3_SERVICE_URL: https://notesnook-files.home.youbs.fr
+      S3_REGION: us-east-1
+      S3_BUCKET_NAME: attachments
+    depends_on:
+      db:
+        condition: service_healthy
+      setup-s3:
+        condition: service_completed_successfully
+      identity:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --tries=1 -nv -q http://localhost:5264/health -O- || exit 1"]
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  sse:
+    image: streetwriters/sse:v1.0-beta.38
+    restart: unless-stopped
+    ports:
+      - 8495:7264
+    networks:
+      default:
+        aliases: [youbs-notesnook-sse]
+    environment:
+      <<: *notesnook-env
+    depends_on:
+      - identity
+      - sync
+    healthcheck:
+      test: ["CMD-SHELL", "wget --tries=1 -nv -q http://localhost:7264/health -O- || exit 1"]
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  monograph:
+    image: streetwriters/monograph:1.3.1
+    restart: unless-stopped
+    ports:
+      - 8496:3000
+    environment:
+      <<: *notesnook-env
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      API_HOST: https://notesnook-sync.home.youbs.fr
+      PUBLIC_URL: https://notesnook-monograph.home.youbs.fr
+    depends_on:
+      - sync

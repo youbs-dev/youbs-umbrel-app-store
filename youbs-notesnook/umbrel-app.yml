@@ -1,0 +1,34 @@
+manifestVersion: 1
+id: youbs-notesnook
+name: Notesnook
+tagline: Serveur de synchro pour vos notes chiffrées de bout en bout
+icon: https://raw.githubusercontent.com/streetwriters/notesnook/87a058e3c0fcd8d084065513ecbcd4fff48f7f7d/apps/web/public/android-chrome-512x512.png
+category: files
+version: "1.0-beta.38"
+port: 8492
+description: >-
+  Notesnook est une application de prise de notes open source, chiffrée de bout en bout : vos notes sont chiffrées sur vos appareils avant d'être envoyées, le serveur ne voit jamais leur contenu.
+
+
+  Cette app installe le serveur de synchronisation de Notesnook (authentification, synchro, notifications temps réel, pièces jointes et publication de notes via Monograph). Elle n'inclut pas d'interface web : on utilise les apps officielles Notesnook (Windows, macOS, Linux, Android, iOS) en les pointant vers ce serveur.
+
+
+  Les apps exigent du HTTPS : chaque service passe par Nginx Proxy Manager avec le certificat wildcard *.home.youbs.fr. La page d'accueil de l'app liste les adresses à créer dans NPM et à saisir dans Notesnook.
+
+
+  Aucun serveur SMTP n'est configuré : juste après avoir créé votre compte, passez la double authentification sur une app d'authentification (Paramètres > Authentification), sinon vous ne pourrez pas vous connecter depuis un autre appareil.
+developer: Streetwriters
+website: https://notesnook.com/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/streetwriters/notesnook-sync-server
+support: https://github.com/streetwriters/notesnook-sync-server/issues
+gallery:
+  - https://raw.githubusercontent.com/streetwriters/notesnook/87a058e3c0fcd8d084065513ecbcd4fff48f7f7d/resources/screenshots/web.jpg
+  - https://raw.githubusercontent.com/streetwriters/notesnook/87a058e3c0fcd8d084065513ecbcd4fff48f7f7d/resources/screenshots/mobile.jpg
+releaseNotes: >-
+  Première version : serveur de synchro Notesnook v1.0-beta.38 et Monograph 1.3.1. MongoDB 4.4 remplace MongoDB 7 (le processeur du serveur n'a pas d'AVX) et le fork pgsty/minio remplace MinIO, dont les images Docker ne sont plus publiées.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

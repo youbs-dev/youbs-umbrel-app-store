@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Serveur Notesnook</title>
+<style>
+  :root { --bg: #fafafa; --fg: #1d1d1f; --muted: #6b6b70; --card: #fff; --line: #e3e3e6; --accent: #008837; --code: #f1f1f3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161618; --fg: #ececee; --muted: #9a9aa0; --card: #1f1f22; --line: #2e2e33; --accent: #3ccf6e; --code: #2a2a2e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { color: var(--muted); width: 38%; padding-right: 12px; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 5px; font-size: 13.5px; word-break: break-all; }
+  ol { padding-left: 20px; } li { margin: 6px 0; }
+  .warn { border-left: 3px solid var(--accent); padding: 8px 14px; background: var(--card); border-radius: 0 8px 8px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Serveur Notesnook</h1>
+  <p class="lead">Ce serveur n'a pas d'interface web : utilisez les apps officielles Notesnook (bureau et mobile) en les pointant vers les adresses ci-dessous.</p>
+
+  <h2>1. Adresses à saisir dans Notesnook</h2>
+  <p>Avant de vous connecter : écran de connexion &gt; <em>Configurer le serveur</em> (ou Paramètres &gt; Serveurs).</p>
+  <div class="card"><table>
+    <tr><td>Serveur de synchro</td><td><code>https://notesnook-sync.home.youbs.fr</code></td></tr>
+    <tr><td>Serveur d'authentification</td><td><code>https://notesnook-auth.home.youbs.fr</code></td></tr>
+    <tr><td>Serveur d'événements</td><td><code>https://notesnook-events.home.youbs.fr</code></td></tr>
+    <tr><td>Serveur Monograph</td><td><code>https://notesnook-monograph.home.youbs.fr</code></td></tr>
+  </table></div>
+
+  <h2>2. Hôtes à créer dans Nginx Proxy Manager</h2>
+  <p>Chaque hôte relaie vers <code>http://192.168.31.144:&lt;port&gt;</code>, avec le certificat wildcard <code>*.home.youbs.fr</code>.</p>
+  <div class="card"><table>
+    <tr><td><code>notesnook-auth</code></td><td>port 8493</td></tr>
+    <tr><td><code>notesnook-sync</code></td><td>port 8494, cocher <em>Websockets Support</em></td></tr>
+    <tr><td><code>notesnook-events</code></td><td>port 8495</td></tr>
+    <tr><td><code>notesnook-monograph</code></td><td>port 8496</td></tr>
+    <tr><td><code>notesnook-files</code></td><td>port 8497 (pièces jointes)</td></tr>
+  </table></div>
+
+  <h2>3. Après l'inscription</h2>
+  <div class="warn">Aucun serveur d'e-mails n'est configuré : la double authentification par e-mail ne peut pas fonctionner.</div>
+  <ol>
+    <li>Créez votre compte dans l'app : vous êtes connecté directement.</li>
+    <li>Tout de suite, allez dans Paramètres &gt; Authentification &gt; <em>Changer de méthode 2FA</em> et choisissez une app d'authentification. Sauvegardez les codes de récupération.</li>
+    <li>Sans cette étape, la connexion depuis un autre appareil demandera un code par e-mail qui n'arrivera jamais.</li>
+    <li>Une fois vos comptes créés, bloquez les inscriptions : <code>DISABLE_SIGNUPS: "true"</code> dans le docker-compose, puis redémarrez l'app.</li>
+  </ol>
+</main>
+</body>
+</html>
