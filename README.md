@@ -22,7 +22,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | Carbure | `youbs-carbure` | 1.2.0 |
 | Suivi de prix | `youbs-suivi-prix` | 0.4.0 |
 | MoneyMatter | `youbs-moneymatter` | f27fc49 |
-| OpenTAKServer | `youbs-opentakserver` | 1.7.13 |
+| OpenTAKServer | `youbs-opentakserver` | 1.7.13-1 |
 | Notesnook (serveur de synchro) | `youbs-notesnook` | 1.0-beta.38 |
 
 ## Ajouter ce store dans Umbrel

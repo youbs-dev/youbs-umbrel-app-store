@@ -4,8 +4,8 @@ name: OpenTAKServer
 tagline: Serveur TAK open source pour ATAK, iTAK et WinTAK
 icon: https://raw.githubusercontent.com/brian7704/OpenTAKServer-UI/master/public/android-chrome-512x512.png
 category: networking
-version: "1.7.13"
-port: 8492
+version: "1.7.13-1"
+port: 8491
 description: >-
   OpenTAKServer (OTS) est un serveur TAK (Team Awareness Kit) open source, compatible avec ATAK (Android), iTAK (iOS)
   et WinTAK. Il partage en temps réel positions, marqueurs, messages, data packages et missions entre les membres
@@ -35,7 +35,7 @@ repo: https://github.com/brian7704/OpenTAKServer
 support: https://github.com/brian7704/OpenTAKServer/issues
 gallery: []
 releaseNotes: >-
-  Première version : OpenTAKServer 1.7.13, sans la vidéo (MediaMTX).
+  Interface web déplacée sur le port 8491 (le 8492 est pris par Notesnook).
 dependencies: []
 path: ""
 defaultUsername: "administrator"
