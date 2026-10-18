@@ -1,0 +1,37 @@
+manifestVersion: 1
+id: youbs-freetakserver
+name: FreeTAKServer
+tagline: Serveur TAK open source pour ATAK, iTAK et WinTAK
+icon: https://raw.githubusercontent.com/FreeTAKTeam/FreeTAKServer-User-Docs/main/resources/FTSLOGOSquare.png
+category: networking
+version: "2.2.1"
+port: 8491
+description: >-
+  FreeTAKServer (FTS) est un serveur TAK (Team Awareness Kit) open source, compatible avec ATAK (Android), iTAK (iOS), WinTAK et WebTAK.
+  Il partage en temps réel les positions, marqueurs, messages, data packages et missions entre les membres d'une équipe.
+
+
+  Connexion d'un client ATAK : Paramètres > Préférences réseau > Connexions serveur TAK > ajouter un serveur,
+  adresse 192.168.31.144, port 8087, protocole TCP. Le port 8089 (SSL) demande un certificat client, à générer
+  dans l'interface web (menu Connect).
+
+
+  Ports ouverts sur l'Umbrel : 8087 (CoT TCP), 8089 (CoT SSL), 8080 et 8443 (data packages), 9000 (fédération)
+  et 19023 (API, utilisée par l'interface web).
+
+
+  L'interface web demande un second identifiant : admin / password. Le compte système "admin" de FTS a pour jeton
+  d'API "token" : n'exposez pas le port 19023 sur Internet.
+developer: FreeTAKTeam
+website: https://freetakteam.github.io/FreeTAKServer-User-Docs/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/FreeTAKTeam/FreeTakServer
+support: https://github.com/FreeTAKTeam/FreeTakServer/issues
+gallery: []
+releaseNotes: >-
+  Première version : FreeTAKServer 2.2.1 et son interface web.
+dependencies: []
+path: ""
+defaultUsername: "admin"
+defaultPassword: "password"

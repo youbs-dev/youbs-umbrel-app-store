@@ -1,0 +1,120 @@
+version: "3.7"
+
+# Les noms d'hôte internes utilisent le nom complet du conteneur
+# (youbs-freetakserver_<service>_1) : toutes les apps Umbrel partagent le même
+# réseau Docker.
+#
+# FTS_IP / FTS_USER_ADDRESS : adresse de l'Umbrel vue par les clients TAK et par
+# le navigateur (l'interface web se connecte directement à l'API sur le port
+# 19023). 192.168.31.144 est aussi joignable hors de la maison via la route de
+# sous-réseau Tailscale/Headscale.
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: youbs-freetakserver_ui_1
+      APP_PORT: 5000
+
+  # Les images FTS tournent avec l'utilisateur freetak (999) et ne peuvent pas
+  # tourner avec un autre UID (dossiers du paquet Python illisibles) : on lui
+  # donne ses dossiers de données.
+  permissions:
+    image: busybox:1.37.0
+    restart: "no"
+    command: ["sh", "-c", "chown -R 999:999 /fts /ui"]
+    volumes:
+      - ${APP_DATA_DIR}/data/fts:/fts
+      - ${APP_DATA_DIR}/data/ui:/ui
+
+  server:
+    image: ghcr.io/freetakteam/freetakserver:latest@sha256:cc6147ba031c03406ff63abe35641cd2f9efb6f507b88617a1c099e0ff87a866
+    depends_on:
+      permissions:
+        condition: service_completed_successfully
+    # Au premier démarrage, le service Data Package plante souvent (course à la
+    # création des tables SQLite). Si le port 8080 ne répond pas au bout de
+    # 2 minutes, le conteneur s'arrête et Docker le relance.
+    command:
+      - bash
+      - -c
+      - |
+        /home/freetak/docker-run.sh &
+        pid=$$!
+        sleep 120
+        if ! python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/Marti/api/version', timeout=10)"; then
+          echo "Service Data Package injoignable, redémarrage du conteneur"
+          kill $$pid
+          exit 1
+        fi
+        wait $$pid
+    ports:
+      # CoT TCP (connexion ATAK/iTAK/WinTAK par défaut)
+      - "8087:8087"
+      # CoT SSL
+      - "8089:8089"
+      # Data packages HTTP / HTTPS
+      - "8080:8080"
+      - "8443:8443"
+      # Fédération
+      - "9000:9000"
+      # API REST + websocket, utilisée par l'interface web depuis le navigateur
+      - "19023:19023"
+    environment:
+      FTS_USER_ADDRESS: "192.168.31.144"
+      FTS_DP_ADDRESS: "0.0.0.0"
+      FTS_API_ADDRESS: "0.0.0.0"
+      FTS_COT_PORT: 8087
+      FTS_SSLCOT_PORT: 8089
+      FTS_API_PORT: 19023
+      FTS_FED_PORT: 9000
+      FTS_FED_PASSWORD: ${APP_SEED}
+      FTS_CLIENT_CERT_PASSWORD: ${APP_SEED}
+      FTS_WEBSOCKET_KEY: ${APP_SEED}
+      FTS_SECRET_KEY: ${APP_SEED}
+      FTS_CONNECTION_MESSAGE: "Bienvenue sur FreeTAKServer"
+      FTS_ROUTING_PROXY_SUBSCRIBE_IP: youbs-freetakserver_server_1
+      FTS_ROUTING_PROXY_SUBSCRIBE_PORT: 19030
+      FTS_ROUTING_PROXY_SERVER_IP: youbs-freetakserver_server_1
+      FTS_ROUTING_PROXY_SERVER_PORT: 19031
+      FTS_ROUTING_PROXY_PUBLISHER_IP: youbs-freetakserver_server_1
+      FTS_ROUTING_PROXY_PUBLISHER_PORT: 19032
+      FTS_INTEGRATION_MANAGER_PULLER_ADDRESS: youbs-freetakserver_server_1
+      FTS_INTEGRATION_MANAGER_PULLER_PORT: 19033
+      FTS_INTEGRATION_MANAGER_PUBLISHER_ADDRESS: youbs-freetakserver_server_1
+      FTS_INTEGRATION_MANAGER_PUBLISHER_PORT: 19034
+      FTS_OPTIMIZE_API: "True"
+      FTS_COT_TO_DB: "True"
+      FTS_NUM_ROUTING_WORKERS: 2
+      FTS_MAINLOOP_DELAY: 100
+      FTS_LOG_LEVEL: info
+    volumes:
+      - ${APP_DATA_DIR}/data/fts:/opt/fts
+    restart: on-failure
+
+  ui:
+    # La version "latest" de l'interface (mars 2024) embarque un client
+    # socket.io 1.x incompatible avec FTS 2.2 : on prend master (mai 2025).
+    image: ghcr.io/freetakteam/ui:master@sha256:eeaf23ef435068ac90f05a18fbad58db6d350fdc204b4bae4f6f98a42a51b004
+    depends_on:
+      permissions:
+        condition: service_completed_successfully
+      server:
+        condition: service_started
+    environment:
+      FTS_IP: "192.168.31.144"
+      FTS_API_PORT: 19023
+      FTS_API_PROTO: http
+      FTS_UI_EXPOSED_IP: "0.0.0.0"
+      FTS_UI_PORT: 5000
+      FTS_UI_WSKEY: ${APP_SEED}
+      # Jeton du compte système "admin" créé par FTS au premier démarrage
+      FTS_API_KEY: "Bearer token"
+      FTS_MAP_EXPOSED_IP: "192.168.31.144"
+      FTS_MAP_PORT: 8000
+      FTS_MAP_PROTO: http
+      FTS_UI_SQLALCHEMY_DATABASE_URI: sqlite:////home/freetak/data/FTSServer-UI.db
+    volumes:
+      - ${APP_DATA_DIR}/data/ui:/home/freetak/data
+      # L'interface lit FTSConfig.yaml du serveur
+      - ${APP_DATA_DIR}/data/fts:/opt/fts:ro
+    restart: on-failure
