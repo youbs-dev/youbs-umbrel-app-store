@@ -4,7 +4,7 @@ name: Dawarich
 tagline: Votre historique de localisation, en privé
 icon: https://raw.githubusercontent.com/dennysubke/dennys-umbrel-app-gallery/main/denny-dawarich/logo.png
 category: files
-version: "1.15.3"
+version: "1.15.3.1"
 port: 8955
 description: >-
   Dawarich permet d'enregistrer, d'explorer et de revivre votre historique de localisation, de façon privée. Vos déplacements sont collectés en continu et transformés en une chronologie interactive : chaque lieu visité y apparaît, et vous pouvez naviguer vers n'importe quelle date pour retrouver vos trajets.
@@ -26,7 +26,9 @@ support: https://github.com/Freika/dawarich/issues
 gallery:
   - https://i.imgur.com/yyVG0Jb.jpeg
 releaseNotes: >-
-  Mise à jour vers Dawarich 1.15.3 (corrections). Identifiants par défaut : demo@dawarich.app / safepassword (à changer après la première connexion).
+  L'API (/api/*) reste accessible quand la connexion Umbrel est activée sur l'app : les applis mobiles
+  (OwnTracks, Overland, Dawarich iOS) peuvent de nouveau envoyer vos positions. Adresses autorisées mises à jour
+  pour le tailnet Headscale (100.64.0.4 et *.tailnet.youbs.fr).
 dependencies: []
 path: ""
 defaultUsername: "demo@dawarich.app"
