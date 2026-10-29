@@ -1,0 +1,276 @@
+diff --git a/server/media/tmdb/tmdb.go b/server/media/tmdb/tmdb.go
+index 3c55f2e..ad150dc 100644
+--- a/server/media/tmdb/tmdb.go
++++ b/server/media/tmdb/tmdb.go
+@@ -43,7 +43,21 @@ func (t *TMDB) GetKey() string {
+ }
+ 
+ func (t *TMDB) apiRequest(ep string, p map[string]string) ([]byte, error) {
+-	slog.Debug("tmdbAPIRequest", "endpoint", ep, "params", p)
++	body, err := t.apiRequestLang(ep, p, metadataLang)
++	if err != nil || metadataLang == fallbackLang || !needsFallback(body) {
++		return body, err
++	}
++	// TMDB laisse vides les champs non traduits : on les complete en anglais.
++	fb, err := t.apiRequestLang(ep, p, fallbackLang)
++	if err != nil {
++		slog.Warn("tmdbAPIRequest: fallback request failed", "endpoint", ep, "error", err)
++		return body, nil
++	}
++	return mergeFallback(body, fb), nil
++}
++
++func (t *TMDB) apiRequestLang(ep string, p map[string]string, lang string) ([]byte, error) {
++	slog.Debug("tmdbAPIRequest", "endpoint", ep, "params", p, "language", lang)
+ 	base, err := url.Parse("https://api.themoviedb.org/3")
+ 	if err != nil {
+ 		return nil, errors.New("failed to parse api uri")
+@@ -55,7 +69,12 @@ func (t *TMDB) apiRequest(ep string, p map[string]string) ([]byte, error) {
+ 	// Query params
+ 	params := url.Values{}
+ 	params.Add("api_key", t.GetKey())
+-	params.Add("language", "en-US")
++	params.Add("language", lang)
++	if lang != fallbackLang {
++		// Sans ce parametre, TMDB ne renvoie que les videos dans la langue demandee
++		// (les bandes-annonces anglaises disparaitraient).
++		params.Add("include_video_language", videoLanguages(lang))
++	}
+ 	for k, v := range p {
+ 		params.Add(k, v)
+ 	}
+diff --git a/server/media/tmdb/tmdb_lang.go b/server/media/tmdb/tmdb_lang.go
+new file mode 100644
+index 0000000..02566ec
+--- /dev/null
++++ b/server/media/tmdb/tmdb_lang.go
+@@ -0,0 +1,157 @@
++package tmdb
++
++import (
++	"bytes"
++	"encoding/json"
++	"os"
++	"strings"
++)
++
++// Language used for content metadata (titles, overviews...).
++// Set with the TMDB_LANG environment variable (e.g. fr-FR), defaults to en-US.
++var metadataLang = metadataLanguage(os.Getenv("TMDB_LANG"))
++
++const fallbackLang = "en-US"
++
++// Text fields that TMDB leaves empty when no translation exists.
++var fallbackKeys = map[string]bool{
++	"overview":    true,
++	"title":       true,
++	"name":        true,
++	"tagline":     true,
++	"biography":   true,
++}
++
++func metadataLanguage(v string) string {
++	if v = strings.TrimSpace(v); v != "" {
++		return v
++	}
++	return fallbackLang
++}
++
++// videoLanguages returns the include_video_language value for lang,
++// e.g. "fr,en,null" for fr-FR.
++func videoLanguages(lang string) string {
++	iso := strings.ToLower(strings.SplitN(lang, "-", 2)[0])
++	if iso == "" || iso == "en" {
++		return "en,null"
++	}
++	return iso + ",en,null"
++}
++
++func decodeJSON(b []byte) (interface{}, bool) {
++	d := json.NewDecoder(bytes.NewReader(b))
++	d.UseNumber()
++	var v interface{}
++	if err := d.Decode(&v); err != nil {
++		return nil, false
++	}
++	return v, true
++}
++
++func isEmptyValue(v interface{}) bool {
++	if v == nil {
++		return true
++	}
++	s, ok := v.(string)
++	return ok && s == ""
++}
++
++// needsFallback reports whether a TMDB response has an empty translatable field.
++func needsFallback(body []byte) bool {
++	v, ok := decodeJSON(body)
++	return ok && hasEmptyField(v)
++}
++
++func hasEmptyField(v interface{}) bool {
++	switch t := v.(type) {
++	case map[string]interface{}:
++		for k, c := range t {
++			if fallbackKeys[k] && isEmptyValue(c) {
++				return true
++			}
++			if hasEmptyField(c) {
++				return true
++			}
++		}
++	case []interface{}:
++		for _, c := range t {
++			if hasEmptyField(c) {
++				return true
++			}
++		}
++	}
++	return false
++}
++
++// mergeFallback fills empty translatable fields of body with the values
++// found at the same place in fb (the same request in English). Array
++// items are matched by their "id" when they have one, otherwise by index.
++func mergeFallback(body, fb []byte) []byte {
++	v, ok := decodeJSON(body)
++	if !ok {
++		return body
++	}
++	f, ok := decodeJSON(fb)
++	if !ok {
++		return body
++	}
++	fill(v, f)
++	out, err := json.Marshal(v)
++	if err != nil {
++		return body
++	}
++	return out
++}
++
++func fill(v, f interface{}) {
++	switch t := v.(type) {
++	case map[string]interface{}:
++		fm, ok := f.(map[string]interface{})
++		if !ok {
++			return
++		}
++		for k, c := range t {
++			fc, ok := fm[k]
++			if !ok {
++				continue
++			}
++			if fallbackKeys[k] && isEmptyValue(c) && !isEmptyValue(fc) {
++				t[k] = fc
++				continue
++			}
++			fill(c, fc)
++		}
++	case []interface{}:
++		fa, ok := f.([]interface{})
++		if !ok {
++			return
++		}
++		byID := map[string]interface{}{}
++		for _, fc := range fa {
++			if m, ok := fc.(map[string]interface{}); ok {
++				if id, ok := m["id"]; ok {
++					byID[idKey(id)] = fc
++				}
++			}
++		}
++		for i, c := range t {
++			if m, ok := c.(map[string]interface{}); ok {
++				if id, ok := m["id"]; ok {
++					if fc, ok := byID[idKey(id)]; ok {
++						fill(c, fc)
++					}
++					continue
++				}
++			}
++			if len(fa) == len(t) {
++				fill(c, fa[i])
++			}
++		}
++	}
++}
++
++func idKey(id interface{}) string {
++	b, _ := json.Marshal(id)
++	return string(b)
++}
+diff --git a/server/media/tmdb/tmdb_lang_test.go b/server/media/tmdb/tmdb_lang_test.go
+new file mode 100644
+index 0000000..6a406ef
+--- /dev/null
++++ b/server/media/tmdb/tmdb_lang_test.go
+@@ -0,0 +1,66 @@
++package tmdb
++
++import (
++	"encoding/json"
++	"testing"
++)
++
++func TestVideoLanguages(t *testing.T) {
++	cases := map[string]string{"fr-FR": "fr,en,null", "de": "de,en,null", "en-US": "en,null", "": "en,null"}
++	for in, want := range cases {
++		if got := videoLanguages(in); got != want {
++			t.Errorf("videoLanguages(%q) = %q, want %q", in, got, want)
++		}
++	}
++}
++
++func TestMetadataLanguage(t *testing.T) {
++	if got := metadataLanguage("  "); got != "en-US" {
++		t.Errorf("default = %q", got)
++	}
++	if got := metadataLanguage(" fr-FR "); got != "fr-FR" {
++		t.Errorf("trim = %q", got)
++	}
++}
++
++func TestNeedsFallback(t *testing.T) {
++	if needsFallback([]byte(`{"title":"Le Film","overview":"Résumé","genres":[{"id":1,"name":"Drame"}]}`)) {
++		t.Error("complete response should not need fallback")
++	}
++	if !needsFallback([]byte(`{"results":[{"id":1,"overview":""}]}`)) {
++		t.Error("empty nested overview should need fallback")
++	}
++	if needsFallback([]byte(`not json`)) {
++		t.Error("invalid json should not need fallback")
++	}
++}
++
++func TestMergeFallback(t *testing.T) {
++	fr := []byte(`{"id":603,"title":"Matrix","overview":"","tagline":"","vote_average":8.2,"budget":63000000,
++		"results":[{"id":2,"overview":""},{"id":1,"overview":"Un"}],
++		"seasons":[{"overview":""},{"overview":"Deux"}]}`)
++	en := []byte(`{"id":603,"title":"The Matrix","overview":"Neo...","tagline":"Welcome","vote_average":8.2,"budget":63000000,
++		"results":[{"id":1,"overview":"One"},{"id":2,"overview":"Two"}],
++		"seasons":[{"overview":"S1"},{"overview":"S2"}]}`)
++	var got map[string]interface{}
++	if err := json.Unmarshal(mergeFallback(fr, en), &got); err != nil {
++		t.Fatal(err)
++	}
++	if got["title"] != "Matrix" {
++		t.Errorf("translated title must be kept, got %v", got["title"])
++	}
++	if got["overview"] != "Neo..." || got["tagline"] != "Welcome" {
++		t.Errorf("empty fields not filled: %v / %v", got["overview"], got["tagline"])
++	}
++	if got["budget"].(float64) != 63000000 {
++		t.Errorf("numbers changed: %v", got["budget"])
++	}
++	res := got["results"].([]interface{})
++	if res[0].(map[string]interface{})["overview"] != "Two" || res[1].(map[string]interface{})["overview"] != "Un" {
++		t.Errorf("array items must be matched by id: %v", res)
++	}
++	seas := got["seasons"].([]interface{})
++	if seas[0].(map[string]interface{})["overview"] != "S1" || seas[1].(map[string]interface{})["overview"] != "Deux" {
++		t.Errorf("array items without id must be matched by index: %v", seas)
++	}
++}

@@ -4,7 +4,7 @@ name: Watcharr
 tagline: Suivez tout ce que vous regardez et jouez, au même endroit
 icon: https://raw.githubusercontent.com/sbondCo/Watcharr/dev/static/logo-col.png
 category: media
-version: "4.2.2"
+version: "4.3.0.1"
 port: 3080
 description: >-
   Watcharr est un carnet de bord multimédia open-source et auto-hébergé. Il permet de suivre vos films, séries, animés et jeux vidéo en un seul endroit, de planifier vos prochains visionnages et de noter vos œuvres favorites, en gardant un contrôle total sur vos données.
@@ -19,7 +19,10 @@ repo: https://github.com/sbondCo/Watcharr
 support: https://github.com/sbondCo/Watcharr/issues
 gallery: []
 releaseNotes: >-
-  Mise à jour vers Watcharr 4.2.2 : compatibilité avec Jellyfin 12 (nouvel en-tête d'authentification). Jellyfin 10.11 ou plus récent est désormais requis.
+  Mise à jour vers Watcharr 4.3.0 (suivi automatique via le webhook Jellyfin, synchronisation programmée
+  Jellyfin/Plex, historique d'activité enrichi). Les titres et résumés des films et séries sont désormais
+  en français, avec l'anglais en secours quand la traduction n'existe pas. Les titres déjà présents se
+  mettent à jour à l'ouverture de leur fiche. L'interface de Watcharr reste en anglais.
 dependencies: []
 path: ""
 defaultUsername: ""

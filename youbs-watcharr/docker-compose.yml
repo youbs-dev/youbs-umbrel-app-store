@@ -8,7 +8,12 @@ services:
       APP_PORT: 3080
 
   server:
-    image: ghcr.io/sbondco/watcharr:v4.2.2
+    # Image Watcharr 4.3.0 + correctifs youbs (src/watcharr/patches), construite par
+    # le workflow "Image watcharr" : resumes et titres TMDB dans la langue TMDB_LANG
+    image: ghcr.io/youbs-dev/watcharr:4.3.0.1
     restart: unless-stopped
+    environment:
+      # Langue des metadonnees TMDB ; repli sur l'anglais si la traduction manque
+      TMDB_LANG: fr-FR
     volumes:
       - ${APP_DATA_DIR}/data:/data
