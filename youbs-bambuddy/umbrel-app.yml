@@ -4,13 +4,13 @@ name: Bambuddy
 tagline: Gérez vos imprimantes Bambu Lab, sans cloud
 icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/bambuddy_logo_dark.png
 category: automation
-version: "1.2.5.7.2"
+version: "1.2.5.7.3"
 port: 8956
 description: >-
   Bambuddy est un centre de contrôle open-source et auto-hébergé pour les imprimantes 3D Bambu Lab. Il permet de suivre vos impressions, d'archiver vos fichiers, de gérer une file d'attente et de surveiller vos imprimantes en local, sans passer par le cloud de Bambu.
 
 
-  Chaque imprimante doit être sur le même réseau local que votre Umbrel, avec le mode développeur activé. La découverte automatique (SSDP) ne fonctionne pas depuis un conteneur Umbrel : ajoutez vos imprimantes manuellement à partir de leur adresse IP. L'interface est protégée par la connexion Umbrel.
+  Chaque imprimante doit être sur le même réseau local que votre Umbrel, avec le mode développeur activé. L'app tourne dans le réseau de l'hôte, pour que son imprimante virtuelle soit visible de Bambu Studio sur l'IP d'Umbrel. L'interface passe par la connexion Umbrel sur le port 8956 ; elle répond aussi directement sur le port 8958, protégée par l'authentification de Bambuddy.
 
 
   L'API (/api/*) ne passe pas par la connexion Umbrel, pour que l'intégration BamBuddy de Home Assistant puisse s'y connecter avec une clé API. Activez l'authentification dans les réglages de Bambuddy : sans elle, l'API est accessible à tout le réseau local.
@@ -22,7 +22,7 @@ repo: https://github.com/maziggy/bambuddy
 support: https://github.com/maziggy/bambuddy/issues
 gallery: []
 releaseNotes: >-
-  L'API (/api/*) et l'adresse /health sont joignables sans la connexion Umbrel, pour l'intégration BamBuddy de Home Assistant. Activez l'authentification de Bambuddy avant de mettre à jour. Bambuddy reste en version 1.2.5.7.
+  L'app passe dans le réseau de l'hôte pour que l'imprimante virtuelle fonctionne avec Bambu Studio. Après la mise à jour, réglez l'IP de l'imprimante virtuelle sur celle d'Umbrel dans les réglages de Bambuddy. Bambuddy reste en version 1.2.5.7.
 dependencies: []
 path: ""
 defaultUsername: ""

@@ -4,8 +4,10 @@ services:
   app_proxy:
     environment:
       # Format : <id-app>_<nom-du-service>_1
-      APP_HOST: youbs-bambuddy_server_1
-      APP_PORT: 8000
+      # Bambuddy tourne dans le reseau de l'hote : le proxy le joint par la
+      # passerelle du reseau Docker d'Umbrel (10.21.0.1), sur le port 8958.
+      APP_HOST: 10.21.0.1
+      APP_PORT: 8958
       # L'API (/api/*) ne passe pas par la connexion Umbrel, pour que
       # l'integration BamBuddy de Home Assistant puisse l'interroger avec une cle
       # API. Elle n'est alors protegee que par l'authentification de Bambuddy,
@@ -15,13 +17,21 @@ services:
 
   server:
     image: ghcr.io/maziggy/bambuddy:1.2.5.7@sha256:807f67511fa8c2b644b09de50a5d41794372214d00bd04fda59f576d9958d280
+    # Reseau de l'hote : l'imprimante virtuelle doit ecouter sur l'IP d'Umbrel
+    # (192.168.31.144) pour que Bambu Studio la trouve (SSDP) et s'y connecte
+    # (MQTT 8883, FTPS 990 + ports passifs, bind 3000/3002, camera 6000).
+    network_mode: "host"
+    # Ports < 1024 (FTPS 990) apres l'abandon des droits root par l'entrypoint
+    cap_add:
+      - NET_BIND_SERVICE
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
       TZ: Europe/Paris
       PUID: 1000
       PGID: 1000
-      PORT: 8000
+      # 8000 est trop courant sur l'hote ; 8958 est libre
+      PORT: 8958
     volumes:
       - ${APP_DATA_DIR}/data/data:/app/data
       - ${APP_DATA_DIR}/data/logs:/app/logs
