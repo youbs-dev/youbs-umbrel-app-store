@@ -29,6 +29,11 @@ services:
         bind:
           propagation: rshared
           create_host_path: true
+    # --contimeout/--timeout/--retries : si la seedbox ne repond plus, la lecture
+    # echoue au bout de quelques minutes au lieu de rester bloquee indefiniment
+    # (panne du 2026-10-31 : une lecture bloquee figeait Radarr et l'interface Umbrel).
+    # --vfs-cache-mode full : les fichiers lus sont gardes sur le disque interne
+    # (20 Go maximum, 6 h), Radarr/Sonarr ne relisent pas la seedbox a chaque passe.
     command: >
       mount seedbox:/ /mnt/seedbox
       --config /config/rclone/rclone.conf
@@ -37,9 +42,15 @@ services:
       --uid 1000
       --gid 1000
       --umask 002
-      --vfs-cache-mode writes
+      --vfs-cache-mode full
+      --vfs-cache-max-size 20G
+      --vfs-cache-max-age 6h
       --cache-dir /config/rclone/cache
       --dir-cache-time 1m
+      --contimeout 30s
+      --timeout 1m
+      --low-level-retries 3
+      --retries 3
       --rc
       --rc-addr :5572
       --rc-user umbrel
