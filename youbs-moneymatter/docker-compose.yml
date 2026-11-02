@@ -1,6 +1,6 @@
 version: "3.7"
 
-# Adapté de self-hosting/docker-compose.yml du dépôt letehaha/budget-tracker.
+# Adapté de self-hosting/docker-compose.yml du dépôt letehaha/moneymatter.
 # Les noms d'hôte internes utilisent le nom complet du conteneur
 # (youbs-moneymatter_<service>_1) : sur Umbrel, toutes les apps partagent le
 # même réseau Docker, et des noms courts comme "db", "redis" ou "backend" y
@@ -48,7 +48,7 @@ services:
       PROXY_AUTH_ADD: "false"
 
   frontend:
-    image: letehaha/budget-tracker-fe:sha-f27fc49
+    image: letehaha/budget-tracker-fe:v0.33.8
     restart: unless-stopped
     depends_on:
       backend:
@@ -64,7 +64,7 @@ services:
       API_VER: /api/v1
 
   backend:
-    image: letehaha/budget-tracker-be:sha-f27fc49
+    image: letehaha/budget-tracker-be:v0.33.8
     restart: unless-stopped
     depends_on:
       permissions:

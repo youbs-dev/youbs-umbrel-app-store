@@ -2,9 +2,9 @@ manifestVersion: 1
 id: youbs-moneymatter
 name: MoneyMatter
 tagline: Vos finances personnelles, sur votre serveur
-icon: https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/frontend/public/web-app-manifest-512x512.png
+icon: https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/frontend/public/web-app-manifest-512x512.png
 category: finance
-version: "f27fc49-2"
+version: "0.33.8"
 port: 8490
 description: >-
   MoneyMatter est une application open source de suivi de budget et de finances personnelles. Suivez vos soldes et vos transactions par saisie manuelle ou en connectant vos banques, catégorisez vos dépenses et vos revenus, et analysez où passe votre argent.
@@ -21,15 +21,15 @@ developer: letehaha
 website: https://moneymatter.app/
 submitter: youbs
 submission: https://github.com/youbs-dev/youbs-umbrel-app-store
-repo: https://github.com/letehaha/budget-tracker
-support: https://github.com/letehaha/budget-tracker/issues
+repo: https://github.com/letehaha/moneymatter
+support: https://github.com/letehaha/moneymatter/issues
 gallery:
-  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/dashboard-screenshot/dashboard-desktop-v2@2x.webp
-  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/transactions@2x.webp
-  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/cash-flow@2x.webp
-  - https://raw.githubusercontent.com/letehaha/budget-tracker/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/budget@2x.webp
+  - https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/dashboard-screenshot/dashboard-desktop-v2@2x.webp
+  - https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/transactions@2x.webp
+  - https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/cash-flow@2x.webp
+  - https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/budget@2x.webp
 releaseNotes: >-
-  L'app s'ouvre maintenant en HTTPS sur https://moneymatter.home.youbs.fr (via Nginx Proxy Manager), ce qui permet la connexion OAuth du connecteur MCP. L'adresse http://umbrel.local:8490 ne permet plus de se connecter.
+  Mise à jour vers MoneyMatter v0.33.8 : correctifs de sécurité (connexion, droits d'accès aux transactions), messages du serveur traduits en français, objectifs financiers, suivis repensés, paiement depuis plusieurs comptes et connexion OpenID Connect en option. Les migrations de la base se font automatiquement au premier démarrage.
 dependencies: []
 path: ""
 defaultUsername: ""
