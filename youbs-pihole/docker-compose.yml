@@ -6,7 +6,7 @@ services:
     # eno1 seulement. Avec un port publie par Docker (53:53), le DNS repondrait sur
     # toutes les cartes.
     network_mode: "host"
-    image: pihole/pihole:2026.09.0@sha256:5b9c8cf51de7d6d3f2240dbe72baf5f06e1fd39cb4d77a99fab4fa13e23bd1be
+    image: pihole/pihole:2026.10.1@sha256:30f803ad5dd60ff96cc0a63008a2e9271af481c1b0399a182192b2e91152c1f9
     restart: unless-stopped
     environment:
       - TZ=Europe/Paris

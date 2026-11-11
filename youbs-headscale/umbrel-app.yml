@@ -30,7 +30,7 @@ repo: https://github.com/juanfont/headscale
 support: https://github.com/juanfont/headscale/issues
 gallery: []
 releaseNotes: >-
-  Headscale 0.29.5 (corrections des routes, exit nodes et ACL) et Headplane 0.8.0 (éditeur visuel des règles d'accès, gestion des groupes depuis la page Utilisateurs).
+  Mise à jour vers Headscale 0.29.7 et Headplane 0.8.2 (correctifs).
 dependencies: []
 path: "/admin/"
 defaultUsername: ""

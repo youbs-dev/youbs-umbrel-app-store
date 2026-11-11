@@ -29,7 +29,7 @@ gallery:
   - https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/cash-flow@2x.webp
   - https://raw.githubusercontent.com/letehaha/moneymatter/2ce70208d5a88e9e372bc2dbeae2f6367c9d6a11/packages/landing/public/img/landing/screenshots/budget@2x.webp
 releaseNotes: >-
-  Mise à jour vers MoneyMatter v0.33.8 : correctifs de sécurité (connexion, droits d'accès aux transactions), messages du serveur traduits en français, objectifs financiers, suivis repensés, paiement depuis plusieurs comptes et connexion OpenID Connect en option. Les migrations de la base se font automatiquement au premier démarrage.
+  Mise à jour vers MoneyMatter 0.33.14 : les transactions supprimées passent par une corbeille, avec un bouton Annuler juste après la suppression.
 dependencies: []
 path: ""
 defaultUsername: ""

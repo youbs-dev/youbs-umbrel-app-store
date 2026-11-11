@@ -27,7 +27,7 @@ repo: https://github.com/tailscale/tailscale
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Mise à jour vers le client Tailscale 1.104.1.
+  Mise à jour vers Tailscale 1.104.4 (correctifs).
 dependencies: []
 path: ""
 defaultUsername: ""

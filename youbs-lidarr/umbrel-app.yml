@@ -4,7 +4,7 @@ name: Lidarr
 tagline: Gestionnaire de collection musicale, sans Transmission
 icon: https://getumbrel.github.io/umbrel-apps-gallery/lidarr/icon.svg
 category: media
-version: "3.1.0.4875-1"
+version: "3.1.6.5079"
 port: 8486
 description: >-
   Lidarr est un gestionnaire de collection musicale. Il surveille les nouveaux albums de vos artistes, envoie les téléchargements au client de votre choix, puis range et renomme les fichiers dans votre bibliothèque.
@@ -25,7 +25,7 @@ gallery:
   - https://getumbrel.github.io/umbrel-apps-gallery/lidarr/2.jpg
   - https://getumbrel.github.io/umbrel-apps-gallery/lidarr/3.jpg
 releaseNotes: >-
-  Le dossier /seedbox (montage rclone de /Home/Downloads/ftp_share) est maintenant déclaré dans le paquet avec une propagation de montage : il apparaît dans l'app dès que rclone est prêt, même si l'app a démarré avant lui. L'application s'appelle désormais simplement « Lidarr ».
+  Mise à jour vers Lidarr 3.1.6.5079.
 dependencies: []
 path: ""
 defaultUsername: ""

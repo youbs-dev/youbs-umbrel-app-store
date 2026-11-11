@@ -11,7 +11,7 @@ services:
   # Paquet officiel Umbrel sans la dependance a Transmission ni le conteneur
   # "mac" (media-app-configurator) : rien n'est configure automatiquement.
   server:
-    image: linuxserver/lidarr:3.1.0@sha256:f2a186ce04ec5adb133f92a08dd3efbc918fc71b33077426ef099d94350dfa1b
+    image: linuxserver/lidarr:3.1.6@sha256:d5707cfe084da21a3864c7ef0edd9c0543b5e26c79c551f84dad5ef8683af8c7
     restart: on-failure
     environment:
       - PUID=1000

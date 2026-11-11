@@ -13,7 +13,7 @@ services:
       PROXY_AUTH_WHITELIST: "/api/*,/.well-known/*"
 
   server:
-    image: ltoinel/carbure:1.3.0@sha256:a9458580c02c9a4e3ea3b889ab56236154f01b34aa1bdb68e003db2178fb8181
+    image: ltoinel/carbure:1.12.0@sha256:5e359cdb7b4b6b444a9adc5ec0e741f90a80787efbd76969c5ed6d8d9549ed7d
     restart: unless-stopped
     environment:
       TZ: Europe/Paris

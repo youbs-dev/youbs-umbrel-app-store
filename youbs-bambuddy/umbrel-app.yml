@@ -4,7 +4,7 @@ name: Bambuddy
 tagline: Gérez vos imprimantes Bambu Lab, sans cloud
 icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/bambuddy_logo_dark.png
 category: automation
-version: "1.2.5.7.3"
+version: "1.3.0"
 port: 8956
 description: >-
   Bambuddy est un centre de contrôle open-source et auto-hébergé pour les imprimantes 3D Bambu Lab. Il permet de suivre vos impressions, d'archiver vos fichiers, de gérer une file d'attente et de surveiller vos imprimantes en local, sans passer par le cloud de Bambu.
@@ -22,7 +22,7 @@ repo: https://github.com/maziggy/bambuddy
 support: https://github.com/maziggy/bambuddy/issues
 gallery: []
 releaseNotes: >-
-  L'app passe dans le réseau de l'hôte pour que l'imprimante virtuelle fonctionne avec Bambu Studio. Après la mise à jour, réglez l'IP de l'imprimante virtuelle sur celle d'Umbrel dans les réglages de Bambuddy. Bambuddy reste en version 1.2.5.7.
+  Mise à jour vers Bambuddy 1.3.0.
 dependencies: []
 path: ""
 defaultUsername: ""

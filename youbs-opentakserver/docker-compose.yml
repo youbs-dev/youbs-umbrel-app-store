@@ -27,7 +27,7 @@ services:
       APP_PORT: 80
 
   server:
-    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    image: ghcr.io/brian7704/opentakserver:1.8.2@sha256:da14594f3f31e305de02519ac88abe1545ad40f454e842d920b2dd7b2ce4d76e
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
   # séparées ots_cot_parser / ots_eud_handler (même en latest) embarquent OTS
   # 1.5.14, incompatible avec le serveur 1.7.13.
   cot_parser:
-    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    image: ghcr.io/brian7704/opentakserver:1.8.2@sha256:da14594f3f31e305de02519ac88abe1545ad40f454e842d920b2dd7b2ce4d76e
     entrypoint: ["/app/venv/bin/cot_parser"]
     healthcheck:
       disable: true
@@ -63,7 +63,7 @@ services:
 
   # Connexions CoT des clients TAK : TCP 8088 et SSL 8089
   eud_handler:
-    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    image: ghcr.io/brian7704/opentakserver:1.8.2@sha256:da14594f3f31e305de02519ac88abe1545ad40f454e842d920b2dd7b2ce4d76e
     entrypoint: ["/app/venv/bin/eud_handler", "--no-ssl"]
     healthcheck:
       disable: true
@@ -78,7 +78,7 @@ services:
     restart: on-failure
 
   eud_handler_ssl:
-    image: ghcr.io/brian7704/opentakserver:latest@sha256:96190757acb799fa9d1e3be50469706610b64fbc9c5c1ed280e55fa6f0b06e4d
+    image: ghcr.io/brian7704/opentakserver:1.8.2@sha256:da14594f3f31e305de02519ac88abe1545ad40f454e842d920b2dd7b2ce4d76e
     entrypoint: ["/app/venv/bin/eud_handler", "--ssl"]
     healthcheck:
       disable: true

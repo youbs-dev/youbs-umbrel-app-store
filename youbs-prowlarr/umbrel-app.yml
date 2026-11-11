@@ -25,7 +25,7 @@ gallery:
   - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/2.jpg
   - https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/3.jpg
 releaseNotes: >-
-  FlareSolverr mis à jour en 3.5.2.
+  Mise à jour vers Prowlarr 2.7.0.5723.
 dependencies: []
 path: ""
 defaultUsername: ""
