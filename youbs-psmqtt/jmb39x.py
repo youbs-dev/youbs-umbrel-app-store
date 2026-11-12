@@ -9,8 +9,8 @@ Commandes relevees dans le logiciel JMicron HW RAID Manager 0.10.30 (Windows),
 octets 8 a 11 de la requete : 00, groupe, commande, ff ; octet 12 : parametre ;
 octets 16 et suivants : arguments.
   (2, 2, port)  identification du disque branche sur le port (smartmontools)
-  (3, 2, port)  informations du port : disque, appartenance au RAID,
-                reconstruction (lecture seule, reponse de 0x1a4 octets)
+  (3, 2, n)     informations du volume RAID n (0 a 4) : nom, niveau, etat,
+                disques membres (lecture seule, reponse de 0x1a4 octets)
 Aucune commande de configuration n'est envoyee par ce module.
 """
 
@@ -187,10 +187,10 @@ class Session:
         self.cmd_id += 1
         return rep
 
-    def info_port(self, port):
-        """Commande (3, 2, port) de HW RAID Manager : charge utile de 0x1a4
+    def info_raid(self, n):
+        """Commande (3, 2, n) de HW RAID Manager : charge utile de 0x1a4
         octets a partir de l'octet 12 de la reponse."""
-        rep = self.commande(3, 2, port, bytes([port]))
+        rep = self.commande(3, 2, n, bytes([n]))
         return rep[12:12 + 0x1a4]
 
 
@@ -198,27 +198,33 @@ def texte(b):
     return b.split(b"\0")[0].decode("ascii", "replace").strip()
 
 
-def decoder_port(p):
-    """Champs releves dans HW RAID Manager (fonction de lecture des ports).
-    Les chaines ATA ont leurs octets inverses deux a deux."""
-    def ata(b):
-        return texte(bytes(x for i in range(0, len(b) - 1, 2) for x in (b[i + 1], b[i])))
-    drapeaux = struct.unpack_from("<H", p, 0x64)[0]
-    reconstruction = 0
-    for bit, val in ((0x4000, 1), (0x2000, 2), (0x1000, 3), (0x800, 4), (0x400, 5)):
-        if drapeaux & bit:
-            reconstruction = val
-            break
+def ata(b):
+    """Chaine ATA : octets inverses deux a deux."""
+    return texte(bytes(x for i in range(0, len(b) - 1, 2) for x in (b[i + 1], b[i])))
+
+
+# Tables de HW RAID Manager (0x1082620 et 0x1082640 dans HWRaidManager.exe)
+NIVEAUX = ["RAID 0", "RAID 1", "LARGE", "RAID 3", "CLONE", "RAID 5", "RAID 10"]
+ETATS = ["Cassé", "Dégradé", "En reconstruction", "Normal", "Extension", "Sauvegarde"]
+ETAT_NORMAL = 3
+
+
+def decoder_raid(p):
+    """Volume RAID decrit par la commande (3, 2, n), ou None si absent.
+    Offsets releves dans HW RAID Manager et verifies sur le boitier Orico
+    (RAID 5 de 5 disques, etat Normal)."""
+    if p[1] == 0x0f:
+        return None
+    etat, niveau = p[0x46], p[0x54]
+    membres = [p[0xa0 + 0x20 * i + 0xb] + 1 for i in range(5) if p[0xa0 + 0x20 * i + 4]]
     return {
-        "modele": ata(p[4:4 + 40]),
-        "modele_brut": texte(p[4:4 + 40]),
+        "nom": ata(p[4:4 + 40]),
         "serie": ata(p[0x2c:0x2c + 20]),
-        "serie_brut": texte(p[0x2c:0x2c + 20]),
-        "secteurs": struct.unpack_from("<Q", p, 0x7c)[0],
-        "octet_44": p[0x44], "octet_46": p[0x46], "octet_54": p[0x54], "octet_55": p[0x55],
-        "drapeaux_64": drapeaux, "reconstruction": reconstruction,
-        "progression_66": struct.unpack_from("<H", p, 0x66)[0],
-        "octet_124": p[0x124], "octet_125": p[0x125],
+        "etat": ETATS[etat] if etat < len(ETATS) else f"Inconnu ({etat})",
+        "etat_code": etat,
+        "niveau": NIVEAUX[niveau] if niveau < len(NIVEAUX) else f"Inconnu ({niveau})",
+        "nb_disques": p[0x55],
+        "disques": membres,
     }
 
 

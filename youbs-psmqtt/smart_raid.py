@@ -66,17 +66,19 @@ def trouver_volume():
     return None
 
 
-def lire_ports(dev):
-    """Etat de chaque port vu par la puce RAID (commande de HW RAID Manager).
-    Les reponses brutes sont journalisees pour finir le decodage des champs."""
-    ports = {}
+def lire_raids(dev):
+    """Volumes RAID vus par la puce (commande de HW RAID Manager)."""
+    raids = {}
     with jmb39x.Session(dev) as s:
         for n in range(NB_DISQUES):
-            p = s.info_port(n)
-            ports[n] = jmb39x.decoder_port(p)
-            log(f"port {n} : {ports[n]}")
-            log(f"port {n} brut : {p.hex()}")
-    return ports
+            p = s.info_raid(n)
+            r = jmb39x.decoder_raid(p)
+            if r:
+                raids[n] = r
+                log(f"RAID {n + 1} : {r}")
+                if r["etat_code"] != jmb39x.ETAT_NORMAL:
+                    log(f"RAID {n + 1} brut : {p.hex()}")
+    return raids
 
 
 def attribut(data, ident):
@@ -152,7 +154,7 @@ def publier_decouverte(client, conf, n, d):
     client.publish(f"{conf['ha']}/binary_sensor/{uid}/sante/config", json.dumps(cfg), retain=True)
 
 
-def publier_boitier(client, conf, disques):
+def publier_boitier(client, conf, disques, raids):
     etat = f"{conf['prefixe']}raid/boitier"
     device = {"identifiers": ["orico-raid"], "name": "Boîtier RAID Orico",
               "manufacturer": "Orico", "model": "RAID5 USB (JMicron JMS567 + JMB39x)"}
@@ -163,9 +165,26 @@ def publier_boitier(client, conf, disques):
     client.publish(f"{conf['ha']}/binary_sensor/orico-raid/probleme/config", json.dumps(dict(
         base, name="Problème disque", unique_id="orico-raid-probleme", device_class="problem",
         value_template="{{ 'ON' if value_json.probleme else 'OFF' }}")), retain=True)
-    probleme = any(d["sante"] != "OK" or (d["realloues"] or 0) > 0 or (d["en_attente"] or 0) > 0
-                   or (d["non_corrigibles"] or 0) > 0 for d in disques.values())
-    client.publish(etat, json.dumps({"disques": len(disques), "probleme": probleme}), retain=True)
+    for cle, nom, icone in (("etat_raid", "État du RAID", "mdi:shield-check"),
+                            ("niveau_raid", "Niveau RAID", "mdi:layers"),
+                            ("disques_raid", "Disques membres", "mdi:harddisk-plus")):
+        client.publish(f"{conf['ha']}/sensor/orico-raid/{cle}/config", json.dumps(dict(
+            base, name=nom, unique_id=f"orico-raid-{cle}", icon=icone,
+            value_template=f"{{{{ value_json.{cle} }}}}")), retain=True)
+    client.publish(f"{conf['ha']}/binary_sensor/orico-raid/raid_ok/config", json.dumps(dict(
+        base, name="RAID dégradé", unique_id="orico-raid-degrade", device_class="problem",
+        value_template="{{ 'ON' if value_json.raid_degrade else 'OFF' }}")), retain=True)
+    r = raids.get(0)
+    raid_degrade = r is None or r["etat_code"] != jmb39x.ETAT_NORMAL
+    probleme = raid_degrade or any(
+        d["sante"] != "OK" or (d["realloues"] or 0) > 0 or (d["en_attente"] or 0) > 0
+        or (d["non_corrigibles"] or 0) > 0 for d in disques.values())
+    client.publish(etat, json.dumps({
+        "disques": len(disques), "probleme": probleme, "raid_degrade": raid_degrade,
+        "etat_raid": r["etat"] if r else "Introuvable",
+        "niveau_raid": r["niveau"] if r else None,
+        "disques_raid": r["nb_disques"] if r else None,
+    }), retain=True)
 
 
 def connecter(conf):
@@ -188,25 +207,22 @@ def cycle():
     if not dev:
         log("boîtier RAID USB introuvable")
         return
-    # Un seul dialogue a la fois avec la puce : les ports d'abord, puis smartctl
+    # Un seul dialogue a la fois avec la puce : l'etat du RAID, puis smartctl
     try:
-        ports = lire_ports(dev)
+        raids = lire_raids(dev)
     except jmb39x.SecteurNonVide as e:
         log(f"{e} : lecture jmb39x abandonnée pour ne rien écraser")
         return
     except Exception as e:
-        log(f"lecture des ports impossible : {e!r}")
-        ports = {}
+        log(f"lecture de l'état du RAID impossible : {e!r}")
+        raids = {}
     disques = {}
     for n in range(NB_DISQUES):
         d = lire_disque(dev, n)
         if d:
-            if n in ports:
-                d["reconstruction"] = ports[n]["reconstruction"]
-                d["progression_reconstruction"] = ports[n]["progression_66"]
             disques[n] = d
             log(f"disque {n + 1} : {d}")
-    if not disques:
+    if not disques and not raids:
         return
     conf = lire_conf()
     client = connecter(conf)
@@ -214,7 +230,7 @@ def cycle():
         for n, d in disques.items():
             publier_decouverte(client, conf, n, d)
             client.publish(f"{conf['prefixe']}raid/disque{n + 1}", json.dumps(d), retain=True)
-        publier_boitier(client, conf, disques)
+        publier_boitier(client, conf, disques, raids)
     finally:
         time.sleep(2)
         client.loop_stop()
