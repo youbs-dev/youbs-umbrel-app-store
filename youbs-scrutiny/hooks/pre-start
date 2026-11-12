@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DATA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+conf_dir="${APP_DIR}/data/config"
+
+mkdir -p "${conf_dir}" "${APP_DIR}/data/influxdb" "${APP_DIR}/data/sonde"
+
+# Boitier RAID USB Orico : retrouve par son nom /dev/disk/by-id puis traduit
+# en /dev/sdX (le conteneur n'a pas les liens by-id). Repli sur /dev/sda.
+raid_dev="/dev/sda"
+for link in /dev/disk/by-id/usb-*USB3.0_DISK*; do
+  if [[ -e "${link}" && "${link}" != *-part* ]]; then
+    raid_dev="$(readlink -f "${link}")"
+    break
+  fi
+done
+
+# collector.yaml est regenere a chaque demarrage : le mode jmb39x (lecture des
+# disques physiques derriere la puce RAID) n'est active que si le dossier
+# autoriser-jmb39x existe. Ne pas modifier ce fichier a la main.
+{
+  echo "# Genere par hooks/pre-start a chaque demarrage : ne pas modifier."
+  echo "version: 1"
+  echo "host:"
+  echo "  id: umbrel"
+  echo "devices:"
+  echo "  - device: ${raid_dev}"
+  if [[ -e "${conf_dir}/autoriser-jmb39x" ]]; then
+    echo "    type: ['jmb39x,0', 'jmb39x,1', 'jmb39x,2', 'jmb39x,3', 'jmb39x,4']"
+  else
+    echo "    type: 'sat'"
+  fi
+} > "${conf_dir}/collector.yaml"
+chmod 644 "${conf_dir}/collector.yaml"
+echo "collector.yaml : boitier RAID sur ${raid_dev}"
