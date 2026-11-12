@@ -37,12 +37,12 @@ services:
     stop_grace_period: 10s
     user: "0:0"
     privileged: true
-    command: ["python", "/opt/psmqtt/smart_raid.py"]
+    command: ["python", "/opt/psmqtt/scripts/smart_raid.py"]
     environment:
       - TZ=Europe/Paris
       # Lecture toutes les 10 minutes
       - PERIODE_SEC=600
     volumes:
       - ${APP_DATA_DIR}/data/conf:/opt/psmqtt/conf:ro
-      - ${APP_DATA_DIR}/smart_raid.py:/opt/psmqtt/smart_raid.py:ro
-      - ${APP_DATA_DIR}/jmb39x.py:/opt/psmqtt/jmb39x.py:ro
+      # smart_raid.py et jmb39x.py, copies par hooks/pre-start
+      - ${APP_DATA_DIR}/data/scripts:/opt/psmqtt/scripts:ro

@@ -7,6 +7,26 @@ conf_file="${conf_dir}/psmqtt.yaml"
 
 mkdir -p "${conf_dir}"
 
+# Scripts du service smart-raid. Une mise a jour d'Umbrel ne recopie que
+# docker-compose.yml, umbrel-app.yml et hooks/ : les scripts sont donc pris a
+# chaque demarrage dans la copie locale du store youbs (app-stores/).
+scripts_dir="${APP_DIR}/data/scripts"
+mkdir -p "${scripts_dir}"
+umbrel_root="$(cd "${APP_DIR}/../.." && pwd)"
+for store in "${umbrel_root}"/app-stores/*youbs-umbrel-app-store*/youbs-psmqtt; do
+  if [[ -f "${store}/smart_raid.py" ]]; then
+    cp "${store}/smart_raid.py" "${store}/jmb39x.py" "${scripts_dir}/"
+    break
+  fi
+done
+chmod 755 "${scripts_dir}"
+chmod 644 "${scripts_dir}"/*.py 2>/dev/null || true
+# Dossiers vides crees par Docker quand la version 2.6.1.3 montait ces
+# fichiers depuis le dossier de l'app, ou ils n'etaient pas copies
+for vide in smart_raid.py jmb39x.py; do
+  [[ -d "${APP_DIR}/${vide}" ]] && rmdir "${APP_DIR}/${vide}" 2>/dev/null || true
+done
+
 # La configuration n'est ecrite qu'au premier demarrage : l'identifiant MQTT et
 # les reglages faits ensuite a la main sont conserves lors des mises a jour.
 if [[ ! -f "${conf_file}" ]]; then
