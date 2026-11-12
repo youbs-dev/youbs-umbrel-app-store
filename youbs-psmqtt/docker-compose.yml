@@ -26,3 +26,22 @@ services:
         read_only: true
         bind:
           propagation: rslave
+
+  # SMART des disques du boitier RAID USB Orico (voir smart_raid.py), publie
+  # sur le meme broker MQTT. Root et privileged : smartctl envoie des commandes
+  # brutes au boitier. Ne lit rien tant que data/conf/autoriser-jmb39x n'existe pas.
+  smart-raid:
+    network_mode: "host"
+    image: ghcr.io/eschava/psmqtt:2.6.1@sha256:afdb9974cee62b81b317af35124c7523f57975bcd727a7ffa737bd8d5878da26
+    restart: unless-stopped
+    stop_grace_period: 10s
+    user: "0:0"
+    privileged: true
+    command: ["python", "/opt/psmqtt/smart_raid.py"]
+    environment:
+      - TZ=Europe/Paris
+      # Lecture toutes les 10 minutes
+      - PERIODE_SEC=600
+    volumes:
+      - ${APP_DATA_DIR}/data/conf:/opt/psmqtt/conf:ro
+      - ${APP_DATA_DIR}/smart_raid.py:/opt/psmqtt/smart_raid.py:ro

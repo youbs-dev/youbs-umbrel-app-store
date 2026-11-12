@@ -4,7 +4,7 @@ name: PSMQTT
 tagline: Envoie les mesures d'Umbrel (processeur, mémoire, disque, température) à Home Assistant par MQTT
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/mqtt.png
 category: networking
-version: "2.6.1.1"
+version: "2.6.1.2"
 port: 8488
 description: >-
   PSMQTT mesure l'activité de la machine (processeur, mémoire, disque, réseau, température) et la publie
@@ -20,6 +20,13 @@ description: >-
 
 
   Les mesures publiées et leur fréquence se règlent dans ce même fichier. Il n'est jamais écrasé par une mise à jour.
+
+
+  Un second service publie toutes les 10 minutes la santé SMART des disques du boîtier RAID USB Orico
+  (température, heures, secteurs réalloués, en attente ou non corrigibles) : un appareil « Disque RAID N »
+  par disque et un appareil « Boîtier RAID Orico » dans Home Assistant. Pour lire les disques derrière la
+  puce RAID, smartctl écrit des commandes dans le secteur 33 du volume puis l'efface. Ce service ne lit
+  donc rien tant que le dossier data/conf/autoriser-jmb39x n'existe pas dans les fichiers de l'app.
 developer: eschava
 website: https://github.com/eschava/psmqtt
 submitter: youbs
@@ -28,7 +35,8 @@ repo: https://github.com/eschava/psmqtt
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Ajout de la mesure du disque externe Media (/External/Media). Pour une installation existante, les nouvelles mesures sont à ajouter à la main dans data/conf/psmqtt.yaml (voir psmqtt.modele.yaml).
+  Nouveau : santé SMART des disques du boîtier RAID USB Orico dans Home Assistant. Le service reste inactif
+  tant que le dossier data/conf/autoriser-jmb39x n'est pas créé dans les fichiers de l'app.
 dependencies: []
 path: ""
 defaultUsername: ""
