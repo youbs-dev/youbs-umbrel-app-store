@@ -45,3 +45,4 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data/conf:/opt/psmqtt/conf:ro
       - ${APP_DATA_DIR}/smart_raid.py:/opt/psmqtt/smart_raid.py:ro
+      - ${APP_DATA_DIR}/jmb39x.py:/opt/psmqtt/jmb39x.py:ro

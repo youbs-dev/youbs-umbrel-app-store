@@ -7,6 +7,10 @@ Linux qu'un disque virtuel. smartctl lit chaque disque physique avec le mode
 dossier conf/autoriser-jmb39x existe ; il est verifie a chaque cycle, sans
 redemarrage.
 
+Avant smartctl, le service lit aussi l'etat de chaque port avec la commande du
+logiciel JMicron HW RAID Manager (module jmb39x.py) et journalise la reponse
+brute, pour decoder l'etat du RAID.
+
 Seul ce service doit interroger la puce RAID : deux programmes qui utilisent le
 secteur 33 en meme temps melangeraient leurs commandes.
 
@@ -21,6 +25,8 @@ import time
 
 import paho.mqtt.client as mqtt
 import yaml
+
+import jmb39x
 
 CONF_DIR = "/opt/psmqtt/conf"
 FLAG = os.path.join(CONF_DIR, "autoriser-jmb39x")
@@ -60,11 +66,17 @@ def trouver_volume():
     return None
 
 
-def secteur33_vide(dev):
-    """Lecture seule du secteur 33 : smartctl jmb39x exige qu'il soit vide."""
-    with open(dev, "rb") as f:
-        f.seek(33 * 512)
-        return f.read(512) == bytes(512)
+def lire_ports(dev):
+    """Etat de chaque port vu par la puce RAID (commande de HW RAID Manager).
+    Les reponses brutes sont journalisees pour finir le decodage des champs."""
+    ports = {}
+    with jmb39x.Session(dev) as s:
+        for n in range(NB_DISQUES):
+            p = s.info_port(n)
+            ports[n] = jmb39x.decoder_port(p)
+            log(f"port {n} : {ports[n]}")
+            log(f"port {n} brut : {p.hex()}")
+    return ports
 
 
 def attribut(data, ident):
@@ -176,13 +188,22 @@ def cycle():
     if not dev:
         log("boîtier RAID USB introuvable")
         return
-    if not secteur33_vide(dev):
-        log(f"{dev} : secteur 33 non vide, lecture jmb39x abandonnée pour ne rien écraser")
+    # Un seul dialogue a la fois avec la puce : les ports d'abord, puis smartctl
+    try:
+        ports = lire_ports(dev)
+    except jmb39x.SecteurNonVide as e:
+        log(f"{e} : lecture jmb39x abandonnée pour ne rien écraser")
         return
+    except Exception as e:
+        log(f"lecture des ports impossible : {e!r}")
+        ports = {}
     disques = {}
     for n in range(NB_DISQUES):
         d = lire_disque(dev, n)
         if d:
+            if n in ports:
+                d["reconstruction"] = ports[n]["reconstruction"]
+                d["progression_reconstruction"] = ports[n]["progression_66"]
             disques[n] = d
             log(f"disque {n + 1} : {d}")
     if not disques:

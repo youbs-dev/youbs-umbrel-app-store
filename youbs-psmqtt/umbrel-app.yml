@@ -4,7 +4,7 @@ name: PSMQTT
 tagline: Envoie les mesures d'Umbrel (processeur, mémoire, disque, température) à Home Assistant par MQTT
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/mqtt.png
 category: networking
-version: "2.6.1.2"
+version: "2.6.1.3"
 port: 8488
 description: >-
   PSMQTT mesure l'activité de la machine (processeur, mémoire, disque, réseau, température) et la publie
@@ -35,7 +35,8 @@ repo: https://github.com/eschava/psmqtt
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Nouveau : santé SMART des disques du boîtier RAID USB Orico dans Home Assistant. Le service reste inactif
+  Nouveau : santé SMART des disques du boîtier RAID USB Orico dans Home Assistant, et première lecture de
+  l'état des ports de la puce RAID (reconstruction en cours). Le service reste inactif
   tant que le dossier data/conf/autoriser-jmb39x n'est pas créé dans les fichiers de l'app.
 dependencies: []
 path: ""
