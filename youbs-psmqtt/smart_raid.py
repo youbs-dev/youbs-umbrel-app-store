@@ -140,7 +140,9 @@ def config(client, conf, composant, objet, cfg):
 def publier_disque(client, conf, n, d):
     num = n + 1
     etat = f"{conf['prefixe']}orico/disque{num}"
-    base = {"state_topic": etat, "device": appareil(conf), "expire_after": PERIODE * 3}
+    base = {"state_topic": etat, "device": appareil(conf), "expire_after": PERIODE * 3,
+            # Section "Diagnostic" de l'appareil Umbrel, a part des capteurs PSMQTT
+            "entity_category": "diagnostic"}
     for cle, nom, unite, classe, icone in CAPTEURS:
         cfg = dict(base, name=f"ORICO Disque {num} {nom}", unique_id=f"umbrel-orico-disque{num}-{cle}",
                    icon=icone, value_template=f"{{{{ value_json.{cle} }}}}", state_class="measurement")
@@ -164,7 +166,9 @@ def publier_disque(client, conf, n, d):
 
 def publier_raid(client, conf, disques, raids):
     etat = f"{conf['prefixe']}orico/raid"
-    base = {"state_topic": etat, "device": appareil(conf), "expire_after": PERIODE * 3}
+    base = {"state_topic": etat, "device": appareil(conf), "expire_after": PERIODE * 3,
+            # Section "Diagnostic" de l'appareil Umbrel, a part des capteurs PSMQTT
+            "entity_category": "diagnostic"}
     for cle, nom, icone in (("etat_raid", "État du RAID", "mdi:shield-check"),
                             ("niveau_raid", "Niveau RAID", "mdi:layers"),
                             ("disques_raid", "Disques dans le RAID", "mdi:harddisk-plus"),
