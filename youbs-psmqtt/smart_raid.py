@@ -51,6 +51,7 @@ def lire_conf():
         "password": m["broker"].get("password"),
         "prefixe": m.get("publish_topic_prefix", "psmqtt/umbrel/"),
         "ha": (m.get("ha_discovery") or {}).get("topic", "homeassistant"),
+        "appareil": (m.get("ha_discovery") or {}).get("device_name", "Umbrel"),
     }
 
 
@@ -127,53 +128,56 @@ CAPTEURS = [
 ]
 
 
-def publier_decouverte(client, conf, n, d):
-    uid = f"orico-raid-{d['serie']}"
-    etat = f"{conf['prefixe']}raid/disque{n + 1}"
-    device = {
-        "identifiers": [uid],
-        "name": f"Disque RAID {n + 1}",
-        "model": d["modele"],
-        "sw_version": d["firmware"],
-        "serial_number": d["serie"],
-        "via_device": "orico-raid",
-    }
-    base = {"state_topic": etat, "device": device, "expire_after": PERIODE * 3}
+def appareil(conf):
+    """Appareil Home Assistant de PSMQTT (memes identifiants : "ids" = device_name)."""
+    return {"identifiers": [conf["appareil"]], "name": conf["appareil"]}
+
+
+def config(client, conf, composant, objet, cfg):
+    client.publish(f"{conf['ha']}/{composant}/umbrel-orico/{objet}/config", json.dumps(cfg), retain=True)
+
+
+def publier_disque(client, conf, n, d):
+    num = n + 1
+    etat = f"{conf['prefixe']}orico/disque{num}"
+    base = {"state_topic": etat, "device": appareil(conf), "expire_after": PERIODE * 3}
     for cle, nom, unite, classe, icone in CAPTEURS:
-        cfg = dict(base, name=nom, unique_id=f"{uid}-{cle}", icon=icone,
-                   value_template=f"{{{{ value_json.{cle} }}}}", state_class="measurement")
+        cfg = dict(base, name=f"ORICO Disque {num} {nom}", unique_id=f"umbrel-orico-disque{num}-{cle}",
+                   icon=icone, value_template=f"{{{{ value_json.{cle} }}}}", state_class="measurement")
         if unite:
             cfg["unit_of_measurement"] = unite
         if classe:
             cfg["device_class"] = classe
         if cle in ("heures", "cycles"):
             cfg["state_class"] = "total_increasing"
-        client.publish(f"{conf['ha']}/sensor/{uid}/{cle}/config", json.dumps(cfg), retain=True)
-    cfg = dict(base, name="Problème SMART", unique_id=f"{uid}-sante", device_class="problem",
-               value_template="{{ 'ON' if value_json.sante != 'OK' else 'OFF' }}")
-    client.publish(f"{conf['ha']}/binary_sensor/{uid}/sante/config", json.dumps(cfg), retain=True)
+        config(client, conf, "sensor", f"disque{num}_{cle}", cfg)
+    config(client, conf, "sensor", f"disque{num}_modele", dict(
+        base, name=f"ORICO Disque {num} Modèle", unique_id=f"umbrel-orico-disque{num}-modele",
+        icon="mdi:harddisk", value_template="{{ value_json.modele }}",
+        json_attributes_topic=etat, json_attributes_template=(
+            "{{ {'serie': value_json.serie, 'firmware': value_json.firmware} | tojson }}")))
+    config(client, conf, "binary_sensor", f"disque{num}_sante", dict(
+        base, name=f"ORICO Disque {num} Problème SMART", unique_id=f"umbrel-orico-disque{num}-sante",
+        device_class="problem", value_template="{{ 'ON' if value_json.sante != 'OK' else 'OFF' }}"))
+    client.publish(etat, json.dumps(d), retain=True)
 
 
-def publier_boitier(client, conf, disques, raids):
-    etat = f"{conf['prefixe']}raid/boitier"
-    device = {"identifiers": ["orico-raid"], "name": "Boîtier RAID Orico",
-              "manufacturer": "Orico", "model": "RAID5 USB (JMicron JMS567 + JMB39x)"}
-    base = {"state_topic": etat, "device": device, "expire_after": PERIODE * 3}
-    client.publish(f"{conf['ha']}/sensor/orico-raid/disques/config", json.dumps(dict(
-        base, name="Disques détectés", unique_id="orico-raid-disques", icon="mdi:harddisk",
-        value_template="{{ value_json.disques }}", state_class="measurement")), retain=True)
-    client.publish(f"{conf['ha']}/binary_sensor/orico-raid/probleme/config", json.dumps(dict(
-        base, name="Problème disque", unique_id="orico-raid-probleme", device_class="problem",
-        value_template="{{ 'ON' if value_json.probleme else 'OFF' }}")), retain=True)
+def publier_raid(client, conf, disques, raids):
+    etat = f"{conf['prefixe']}orico/raid"
+    base = {"state_topic": etat, "device": appareil(conf), "expire_after": PERIODE * 3}
     for cle, nom, icone in (("etat_raid", "État du RAID", "mdi:shield-check"),
                             ("niveau_raid", "Niveau RAID", "mdi:layers"),
-                            ("disques_raid", "Disques membres", "mdi:harddisk-plus")):
-        client.publish(f"{conf['ha']}/sensor/orico-raid/{cle}/config", json.dumps(dict(
-            base, name=nom, unique_id=f"orico-raid-{cle}", icon=icone,
-            value_template=f"{{{{ value_json.{cle} }}}}")), retain=True)
-    client.publish(f"{conf['ha']}/binary_sensor/orico-raid/raid_ok/config", json.dumps(dict(
-        base, name="RAID dégradé", unique_id="orico-raid-degrade", device_class="problem",
-        value_template="{{ 'ON' if value_json.raid_degrade else 'OFF' }}")), retain=True)
+                            ("disques_raid", "Disques dans le RAID", "mdi:harddisk-plus"),
+                            ("disques", "Disques détectés", "mdi:harddisk")):
+        config(client, conf, "sensor", cle, dict(
+            base, name=f"ORICO {nom}", unique_id=f"umbrel-orico-{cle}", icon=icone,
+            value_template=f"{{{{ value_json.{cle} }}}}"))
+    config(client, conf, "binary_sensor", "raid_degrade", dict(
+        base, name="ORICO RAID dégradé", unique_id="umbrel-orico-raid-degrade", device_class="problem",
+        value_template="{{ 'ON' if value_json.raid_degrade else 'OFF' }}"))
+    config(client, conf, "binary_sensor", "probleme", dict(
+        base, name="ORICO Problème disque", unique_id="umbrel-orico-probleme", device_class="problem",
+        value_template="{{ 'ON' if value_json.probleme else 'OFF' }}"))
     r = raids.get(0)
     raid_degrade = r is None or r["etat_code"] != jmb39x.ETAT_NORMAL
     probleme = raid_degrade or any(
@@ -185,6 +189,20 @@ def publier_boitier(client, conf, disques, raids):
         "niveau_raid": r["niveau"] if r else None,
         "disques_raid": r["nb_disques"] if r else None,
     }), retain=True)
+
+
+def nettoyer_anciens(client, conf, disques):
+    """Supprime de Home Assistant les appareils "Disque RAID N" et "Boitier RAID
+    Orico" publies par les versions 2.6.1.2 a 2.6.1.5 (message vide retenu)."""
+    vides = [f"binary_sensor/orico-raid/{o}" for o in ("probleme", "raid_ok")]
+    vides += [f"sensor/orico-raid/{o}" for o in ("disques", "etat_raid", "niveau_raid", "disques_raid")]
+    for d in disques.values():
+        uid = f"orico-raid-{d['serie']}"
+        vides += [f"sensor/{uid}/{c[0]}" for c in CAPTEURS] + [f"binary_sensor/{uid}/sante"]
+    for t in vides:
+        client.publish(f"{conf['ha']}/{t}/config", "", retain=True)
+    for t in ["boitier"] + [f"disque{n}" for n in range(1, NB_DISQUES + 1)]:
+        client.publish(f"{conf['prefixe']}raid/{t}", "", retain=True)
 
 
 def connecter(conf):
@@ -227,10 +245,10 @@ def cycle():
     conf = lire_conf()
     client = connecter(conf)
     try:
+        nettoyer_anciens(client, conf, disques)
         for n, d in disques.items():
-            publier_decouverte(client, conf, n, d)
-            client.publish(f"{conf['prefixe']}raid/disque{n + 1}", json.dumps(d), retain=True)
-        publier_boitier(client, conf, disques, raids)
+            publier_disque(client, conf, n, d)
+        publier_raid(client, conf, disques, raids)
     finally:
         time.sleep(2)
         client.loop_stop()
