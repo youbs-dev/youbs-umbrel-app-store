@@ -4,7 +4,7 @@ name: Rclone Seedbox
 tagline: Monte votre seedbox comme un dossier local
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/rclone.png
 category: files
-version: "1.75.2.2"
+version: "1.76.0.1"
 port: 8957
 description: >-
   Rclone Seedbox monte le remote `seedbox` défini dans votre fichier `rclone.conf` sur le dossier `/mnt/seedbox` de l'application, avec FUSE. Le point de montage est partagé (`shared`) pour que d'autres conteneurs puissent y accéder.
@@ -19,7 +19,7 @@ repo: https://github.com/rclone/rclone
 support: https://github.com/rclone/rclone/issues
 gallery: []
 releaseNotes: >-
-  Retour à rclone 1.75.2 : la 1.76.0 a supprimé l'option de l'interface web utilisée par l'app, et le conteneur redémarrait en boucle (montage seedbox coupé).
+  Retour à rclone 1.75.2 (numéroté 1.76.0.1 pour qu'Umbrel propose la mise à jour) : la 1.76.0 a supprimé l'option de l'interface web utilisée par l'app, et le conteneur redémarrait en boucle (montage seedbox coupé).
 dependencies: []
 path: ""
 defaultUsername: "umbrel"
