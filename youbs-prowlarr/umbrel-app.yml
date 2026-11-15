@@ -4,7 +4,7 @@ name: Prowlarr
 tagline: Gestionnaire d'indexeurs pour les apps *arr, sans Transmission
 icon: https://getumbrel.github.io/umbrel-apps-gallery/prowlarr/icon.svg
 category: media
-version: "2.6.5.5623-2"
+version: "2.7.0.5723"
 port: 8487
 description: >-
   Prowlarr est un gestionnaire d'indexeurs : vous y ajoutez vos indexeurs une seule fois et il les synchronise vers Radarr, Sonarr et Lidarr.

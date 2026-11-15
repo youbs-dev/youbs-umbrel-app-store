@@ -4,7 +4,7 @@ name: Carbure
 tagline: Le budget du foyer, enfin sous contrôle
 icon: https://raw.githubusercontent.com/ltoinel/Carbure/main/portal/icon.png
 category: finance
-version: "1.3.0"
+version: "1.12.0"
 port: 8489
 description: >-
   Carbure est une application de budget familial open-source et auto-hébergée. Elle synchronise vos comptes
