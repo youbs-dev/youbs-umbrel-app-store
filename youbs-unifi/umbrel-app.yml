@@ -4,7 +4,7 @@ name: UniFi Network
 tagline: Contrôleur UniFi pour gérer vos bornes Wi-Fi, switchs et passerelles Ubiquiti
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ubiquiti-unifi.svg
 category: networking
-version: "10.6.109.1"
+version: "10.6.109.2"
 port: 8493
 description: >-
   UniFi Network Application est le contrôleur d'Ubiquiti : il adopte, configure et surveille
@@ -12,7 +12,8 @@ description: >-
   (MongoDB 5 et plus exigent l'AVX, absent du Celeron de cet Umbrel).
 
 
-  Ports : l'interface s'ouvre depuis Umbrel (port 8493, en HTTP) ou en direct sur https://<ip-umbrel>:8944.
+  Interface : en ouvrant l'app depuis Umbrel, le navigateur est renvoyé vers https://<adresse-umbrel>:8944
+  (certificat auto-signé : accepter l'avertissement la première fois).
   Les appareils parlent au contrôleur sur le port 8093 (au lieu de 8080, déjà pris par OpenTAKServer)
   et sur 3478/UDP (STUN).
 
@@ -32,8 +33,8 @@ repo: https://github.com/linuxserver/docker-unifi-network-application
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Correction de la connexion depuis Umbrel : l'assistant et la connexion (UI Account compris) échouaient
-  à cause des cookies sécurisés et du contrôle d'origine d'UniFi derrière le proxy HTTP.
+  L'app ouverte depuis Umbrel redirige maintenant vers l'interface HTTPS du contrôleur (port 8944) :
+  derrière le proxy HTTP d'Umbrel, la connexion UI Account revenait à l'écran de connexion après le code reçu par e-mail.
 dependencies: []
 path: ""
 defaultUsername: ""

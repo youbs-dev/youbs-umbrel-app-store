@@ -3,8 +3,8 @@ version: "3.7"
 services:
   app_proxy:
     environment:
-      # Le proxy d'Umbrel ne parle qu'en HTTP : il passe par le service "web" qui
-      # relaie vers l'interface HTTPS (certificat auto-signe) du controleur
+      # Le proxy d'Umbrel ne parle qu'en HTTP, ce qui casse la connexion a UniFi :
+      # le service "web" renvoie le navigateur vers l'interface HTTPS (port 8944)
       APP_HOST: youbs-unifi_web_1
       APP_PORT: 8000
 
@@ -14,8 +14,6 @@ services:
     volumes:
       # Caddyfile ecrit par hooks/pre-start a chaque demarrage
       - ${APP_DATA_DIR}/data/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-    depends_on:
-      - unifi
 
   unifi:
     image: linuxserver/unifi-network-application:10.6.109@sha256:f782b39e005d4c104b2cfa3185594ce93b3c9bd4b0622cc6559d417844d2d037
@@ -36,7 +34,7 @@ services:
       # Inform des appareils : 8093 des deux cotes, car 8080 est pris par OpenTAKServer.
       # unifi.http.port=8093 est ecrit dans system.properties par les hooks.
       - "8093:8093"
-      # Interface en HTTPS direct (appli mobile UniFi, acces sans le proxy Umbrel)
+      # Interface en HTTPS (ouverte depuis Umbrel par redirection, appli mobile UniFi)
       - "8944:8443"
       # STUN
       - "3478:3478/udp"

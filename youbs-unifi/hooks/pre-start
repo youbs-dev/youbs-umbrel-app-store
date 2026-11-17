@@ -9,11 +9,12 @@ INFORM_PORT=8093
 
 mkdir -p "${data_dir}/mongo" "${data_dir}/mongo-init" "${data_dir}/unifi" "${data_dir}/caddy"
 
-# Relais HTTP (proxy Umbrel) -> HTTPS du controleur. Reecrit a chaque demarrage.
-# - Host et Origin : UniFi refuse (403) les POST dont l'Origin n'est pas en https
-#   et egal a l'hote ; on presente au controleur sa propre adresse.
-# - Set-Cookie : UniFi pose ses cookies (session, csrf) en "Secure", que le
-#   navigateur ignore sur une page en http ; on retire ce drapeau.
+# Page ouverte par Umbrel : redirige vers l'interface HTTPS du controleur (port 8944),
+# sur le meme nom d'hote que celui du navigateur (umbrel.local, IP locale ou Tailscale).
+# UniFi ne fonctionne pas derriere un proxy HTTP : cookies "Secure", controle
+# d'origine, puis session perdue apres la validation par code de l'UI Account.
+# Reecrit a chaque demarrage. Pas d'accolades dans la page : Caddy les lirait
+# comme des variables.
 cat > "${data_dir}/caddy/Caddyfile" <<'CADDY'
 {
 	admin off
@@ -21,14 +22,23 @@ cat > "${data_dir}/caddy/Caddyfile" <<'CADDY'
 }
 
 :8000 {
-	reverse_proxy https://unifi:8443 {
-		transport http {
-			tls_insecure_skip_verify
-		}
-		header_up Host unifi:8443
-		header_up Origin https://unifi:8443
-		header_down Set-Cookie "; Secure" ""
-	}
+	header Content-Type "text/html; charset=utf-8"
+	header Cache-Control "no-store"
+	respond `<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>UniFi Network</title></head>
+<body style="font-family:sans-serif;padding:2em">
+<p>Ouverture de UniFi Network en HTTPS...</p>
+<p>Si rien ne se passe : <a id="lien" href="#">ouvrir le contrôleur</a>
+(accepter l'avertissement de certificat, il est auto-signé).</p>
+<script>
+var url = "https://" + location.hostname + ":8944/manage/";
+document.getElementById("lien").href = url;
+if (window.top !== window.self) window.top.location.href = url;
+else location.replace(url);
+</script>
+</body>
+</html>` 200
 }
 CADDY
 
