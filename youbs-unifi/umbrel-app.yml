@@ -4,7 +4,7 @@ name: UniFi Network
 tagline: Contrôleur UniFi pour gérer vos bornes Wi-Fi, switchs et passerelles Ubiquiti
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ubiquiti-unifi.svg
 category: networking
-version: "10.6.109"
+version: "10.6.109.1"
 port: 8493
 description: >-
   UniFi Network Application est le contrôleur d'Ubiquiti : il adopte, configure et surveille
@@ -32,7 +32,8 @@ repo: https://github.com/linuxserver/docker-unifi-network-application
 support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
 gallery: []
 releaseNotes: >-
-  Première version : UniFi Network Application 10.6.109 avec MongoDB 4.4.29.
+  Correction de la connexion depuis Umbrel : l'assistant et la connexion (UI Account compris) échouaient
+  à cause des cookies sécurisés et du contrôle d'origine d'UniFi derrière le proxy HTTP.
 dependencies: []
 path: ""
 defaultUsername: ""

@@ -7,7 +7,30 @@ init_script="${data_dir}/mongo-init/init-mongo.sh"
 properties="${data_dir}/unifi/data/system.properties"
 INFORM_PORT=8093
 
-mkdir -p "${data_dir}/mongo" "${data_dir}/mongo-init" "${data_dir}/unifi"
+mkdir -p "${data_dir}/mongo" "${data_dir}/mongo-init" "${data_dir}/unifi" "${data_dir}/caddy"
+
+# Relais HTTP (proxy Umbrel) -> HTTPS du controleur. Reecrit a chaque demarrage.
+# - Host et Origin : UniFi refuse (403) les POST dont l'Origin n'est pas en https
+#   et egal a l'hote ; on presente au controleur sa propre adresse.
+# - Set-Cookie : UniFi pose ses cookies (session, csrf) en "Secure", que le
+#   navigateur ignore sur une page en http ; on retire ce drapeau.
+cat > "${data_dir}/caddy/Caddyfile" <<'CADDY'
+{
+	admin off
+	auto_https off
+}
+
+:8000 {
+	reverse_proxy https://unifi:8443 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up Host unifi:8443
+		header_up Origin https://unifi:8443
+		header_down Set-Cookie "; Secure" ""
+	}
+}
+CADDY
 
 # Script de creation de l'utilisateur MongoDB du controleur (fourni par linuxserver).
 # Les variables sont lues dans le conteneur mongo : heredoc entre quotes.
