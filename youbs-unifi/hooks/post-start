@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DATA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+properties="${APP_DIR}/data/unifi/data/system.properties"
+container="youbs-unifi_unifi_1"
+INFORM_PORT=8093
+
+# Premier lancement : le controleur vient de creer system.properties avec le port
+# inform par defaut (8080). On le passe a 8093 (port publie) puis on redemarre le
+# controleur, avant toute adoption d'appareil.
+if [[ -f "${properties}" ]] && grep -qx "unifi.http.port=${INFORM_PORT}" "${properties}"; then
+  exit 0
+fi
+
+for attempt in $(seq 1 60); do
+  if [[ -f "${properties}" ]]; then
+    sed -i '/^unifi\.http\.port=/d' "${properties}"
+    echo "unifi.http.port=${INFORM_PORT}" >> "${properties}"
+    docker restart "${container}" > /dev/null
+    echo "Port inform UniFi regle sur ${INFORM_PORT}"
+    exit 0
+  fi
+  sleep 5
+done
+
+echo "system.properties introuvable : port inform non regle (redemarrer l'app)" >&2

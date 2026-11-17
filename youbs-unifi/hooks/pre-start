@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DATA_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+data_dir="${APP_DIR}/data"
+init_script="${data_dir}/mongo-init/init-mongo.sh"
+properties="${data_dir}/unifi/data/system.properties"
+INFORM_PORT=8093
+
+mkdir -p "${data_dir}/mongo" "${data_dir}/mongo-init" "${data_dir}/unifi"
+
+# Script de creation de l'utilisateur MongoDB du controleur (fourni par linuxserver).
+# Les variables sont lues dans le conteneur mongo : heredoc entre quotes.
+if [[ ! -f "${init_script}" ]]; then
+  cat > "${init_script}" <<'SH'
+#!/bin/bash
+
+if which mongosh > /dev/null 2>&1; then
+  mongo_init_bin='mongosh'
+else
+  mongo_init_bin='mongo'
+fi
+"${mongo_init_bin}" <<EOF
+use ${MONGO_AUTHSOURCE}
+db.auth("${MONGO_INITDB_ROOT_USERNAME}", "${MONGO_INITDB_ROOT_PASSWORD}")
+db.createUser({
+  user: "${MONGO_USER}",
+  pwd: "${MONGO_PASS}",
+  roles: [
+    "clusterMonitor",
+    { db: "${MONGO_DBNAME}", role: "dbOwner" },
+    { db: "${MONGO_DBNAME}_stat", role: "dbOwner" },
+    { db: "${MONGO_DBNAME}_audit", role: "dbOwner" },
+    { db: "${MONGO_DBNAME}_restore", role: "dbOwner" }
+  ]
+})
+EOF
+SH
+  chmod 755 "${init_script}"
+fi
+
+# Port inform : system.properties n'existe qu'apres le premier demarrage du
+# controleur (cree par l'image avec les reglages MongoDB). Au premier lancement,
+# c'est hooks/post-start qui ajoute le port puis redemarre le controleur.
+if [[ -f "${properties}" ]] && ! grep -qx "unifi.http.port=${INFORM_PORT}" "${properties}"; then
+  sed -i '/^unifi\.http\.port=/d' "${properties}"
+  echo "unifi.http.port=${INFORM_PORT}" >> "${properties}"
+fi

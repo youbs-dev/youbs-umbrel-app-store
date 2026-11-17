@@ -1,0 +1,72 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Le proxy d'Umbrel ne parle qu'en HTTP : il passe par le service "web" qui
+      # relaie vers l'interface HTTPS (certificat auto-signe) du controleur
+      APP_HOST: youbs-unifi_web_1
+      APP_PORT: 8000
+
+  web:
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    restart: unless-stopped
+    command: caddy reverse-proxy --from :8000 --to https://unifi:8443 --insecure
+    depends_on:
+      - unifi
+
+  unifi:
+    image: linuxserver/unifi-network-application:10.6.109@sha256:f782b39e005d4c104b2cfa3185594ce93b3c9bd4b0622cc6559d417844d2d037
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+      - MONGO_USER=unifi
+      - MONGO_PASS=${APP_SEED}
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - MONGO_DBNAME=unifi
+      - MONGO_AUTHSOURCE=admin
+      # Memoire Java maximale (Mo)
+      - MEM_LIMIT=1024
+    ports:
+      # Inform des appareils : 8093 des deux cotes, car 8080 est pris par OpenTAKServer.
+      # unifi.http.port=8093 est ecrit dans system.properties par les hooks.
+      - "8093:8093"
+      # Interface en HTTPS direct (appli mobile UniFi, acces sans le proxy Umbrel)
+      - "8944:8443"
+      # STUN
+      - "3478:3478/udp"
+      # Decouverte L2 : sans effet a travers le reseau Docker, mais utile pour
+      # les outils qui envoient la requete directement a l'IP d'Umbrel
+      - "10001:10001/udp"
+    volumes:
+      - ${APP_DATA_DIR}/data/unifi:/config
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    # 4.4 : derniere version sans instructions AVX (absentes du Celeron G4900T)
+    image: mongo:4.4.29@sha256:52c42cbab240b3c5b1748582cc13ef46d521ddacae002bbbda645cebed270ec0
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=${APP_SEED}
+      - MONGO_USER=unifi
+      - MONGO_PASS=${APP_SEED}
+      - MONGO_DBNAME=unifi
+      - MONGO_AUTHSOURCE=admin
+    # Pas de port publie : la base n'est joignable que par le controleur
+    volumes:
+      - ${APP_DATA_DIR}/data/mongo:/data/db
+      # init-mongo.sh est ecrit par hooks/pre-start ; il ne s'execute qu'au premier
+      # demarrage (base vide)
+      - ${APP_DATA_DIR}/data/mongo-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s

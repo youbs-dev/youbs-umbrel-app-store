@@ -1,0 +1,39 @@
+manifestVersion: 1
+id: youbs-unifi
+name: UniFi Network
+tagline: Contrôleur UniFi pour gérer vos bornes Wi-Fi, switchs et passerelles Ubiquiti
+icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ubiquiti-unifi.svg
+category: networking
+version: "10.6.109"
+port: 8493
+description: >-
+  UniFi Network Application est le contrôleur d'Ubiquiti : il adopte, configure et surveille
+  les bornes Wi-Fi, switchs et passerelles UniFi du réseau. Image linuxserver avec une base MongoDB 4.4
+  (MongoDB 5 et plus exigent l'AVX, absent du Celeron de cet Umbrel).
+
+
+  Ports : l'interface s'ouvre depuis Umbrel (port 8493, en HTTP) ou en direct sur https://<ip-umbrel>:8944.
+  Les appareils parlent au contrôleur sur le port 8093 (au lieu de 8080, déjà pris par OpenTAKServer)
+  et sur 3478/UDP (STUN).
+
+
+  Adoption : dans les réglages du contrôleur, activer « Inform Host Override » avec l'adresse IP d'Umbrel
+  (192.168.31.144). La découverte automatique ne traverse pas Docker et le port n'est pas celui par défaut :
+  pour un appareil neuf ou réinitialisé, s'y connecter en SSH (ubnt / ubnt) puis lancer
+  set-inform http://192.168.31.144:8093/inform
+
+
+  Au premier lancement, l'assistant UniFi demande de créer le compte administrateur.
+developer: Ubiquiti / linuxserver.io
+website: https://ui.com/download/releases/network-server
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/linuxserver/docker-unifi-network-application
+support: https://github.com/youbs-dev/youbs-umbrel-app-store/issues
+gallery: []
+releaseNotes: >-
+  Première version : UniFi Network Application 10.6.109 avec MongoDB 4.4.29.
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
