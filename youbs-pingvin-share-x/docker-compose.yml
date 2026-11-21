@@ -1,0 +1,24 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-pingvin-share-x_server_1
+      APP_PORT: 3000
+      # Pingvin Share X a ses propres comptes, et les liens de partage doivent
+      # s'ouvrir sans connexion Umbrel pour les personnes qui les recoivent
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: ghcr.io/smp46/pingvin-share-x:v2.1.1
+    restart: unless-stopped
+    stop_grace_period: 1m
+    environment:
+      PUID: 1000
+      PGID: 1000
+      # Derriere le proxy d'Umbrel et Nginx Proxy Manager : faire confiance a X-Forwarded-For
+      TRUST_PROXY: "true"
+    volumes:
+      - ${APP_DATA_DIR}/data:/opt/app/backend/data
+      - ${APP_DATA_DIR}/data/images:/opt/app/frontend/public/img

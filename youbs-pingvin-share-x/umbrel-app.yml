@@ -1,0 +1,34 @@
+manifestVersion: 1
+id: youbs-pingvin-share-x
+name: Pingvin Share X
+tagline: Partagez des fichiers par lien, comme WeTransfer, depuis votre Umbrel
+icon: https://raw.githubusercontent.com/smp46/pingvin-share-x/main/frontend/public/img/logo.png
+category: files
+version: "2.1.1"
+port: 8958
+description: >-
+  Pingvin Share X est une plateforme de partage de fichiers auto-hébergée, alternative à WeTransfer. C'est le fork
+  maintenu de Pingvin Share, dont le projet d'origine est archivé.
+
+
+  Déposez des fichiers et envoyez un lien : vous choisissez sa durée de validité, un mot de passe et un nombre
+  maximal de consultations. Les liens de dépôt (« reverse shares ») permettent aussi à quelqu'un de vous envoyer
+  des fichiers. Pas de limite de taille, hormis l'espace disque.
+
+
+  Le premier compte créé devient administrateur : créez-le dès l'installation. Pour que les liens fonctionnent depuis
+  l'extérieur, publiez l'app en HTTPS via votre reverse proxy (par exemple https://partage.youbs.fr) et indiquez
+  cette adresse dans Administration > Configuration > Général > « App URL ».
+developer: smp46
+website: https://smp46.github.io/pingvin-share-x/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/smp46/pingvin-share-x
+support: https://github.com/smp46/pingvin-share-x/issues
+gallery: []
+releaseNotes: >-
+  Première version dans le store youbs (Pingvin Share X 2.1.1).
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

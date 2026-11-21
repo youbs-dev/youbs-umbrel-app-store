@@ -25,6 +25,7 @@ App store communautaire pour umbrelOS, pour installer des applications absentes 
 | OpenTAKServer | `youbs-opentakserver` | 1.7.13-1 |
 | Notesnook (serveur de synchro) | `youbs-notesnook` | 1.0-beta.38 |
 | UniFi Network | `youbs-unifi` | 10.6.109.2 |
+| Pingvin Share X | `youbs-pingvin-share-x` | 2.1.1 |
 
 ## Ajouter ce store dans Umbrel
 
