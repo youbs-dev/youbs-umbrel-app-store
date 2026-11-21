@@ -1,0 +1,39 @@
+manifestVersion: 1
+id: youbs-filebrowser
+storage:
+  dataRoot: data
+name: File Browser (partage)
+tagline: Partagez un dossier de votre Umbrel ou d'un disque externe par un lien temporaire
+icon: https://raw.githubusercontent.com/filebrowser/filebrowser/master/frontend/public/img/logo.svg
+category: files
+version: "2.63.23"
+port: 8959
+description: >-
+  File Browser permet de parcourir, envoyer, renommer et prévisualiser les fichiers de votre Umbrel. Cette version
+  reprend l'app officielle, avec une différence : les liens de partage s'ouvrent sans connexion Umbrel, pour que
+  vous puissiez les envoyer à quelqu'un.
+
+
+  L'interface reste protégée par votre connexion Umbrel. Seules les pages de partage sont publiques.
+
+
+  Pour voir un disque externe : réglages de l'app > Storage > « Access to your folders », puis choisissez le dossier
+  du disque.
+
+
+  Pour partager : sélectionnez un dossier, cliquez sur Partager, choisissez une durée et un mot de passe si besoin.
+  Pour que le lien marche depuis l'extérieur, publiez l'app en HTTPS (par exemple https://fichiers.youbs.fr) et
+  remplacez le début du lien par cette adresse.
+developer: File Browser
+website: https://filebrowser.org/
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/filebrowser/filebrowser
+support: https://github.com/filebrowser/filebrowser/issues
+gallery: []
+releaseNotes: >-
+  Première version dans le store youbs : File Browser 2.63.23 avec liens de partage publics.
+dependencies: []
+path: "/files/"
+defaultUsername: ""
+defaultPassword: ""
