@@ -1,0 +1,33 @@
+manifestVersion: 1
+id: youbs-pocket-id
+name: Pocket ID
+tagline: Connexion unique (SSO) à vos applis, par passkey et sans mot de passe
+icon: https://raw.githubusercontent.com/pocket-id/pocket-id/main/frontend/static/img/static-logo.svg
+category: networking
+version: "2.19.3"
+port: 8494
+description: >-
+  Pocket ID est un fournisseur d'identité OpenID Connect (OIDC) léger. Vous vous identifiez une seule fois, avec une
+  passkey (Windows Hello, empreinte, Face ID, clé de sécurité), puis vos applis compatibles OIDC vous connectent
+  automatiquement : Immich, Paperless, Mealie, Open WebUI, Headplane, Jellyfin (avec plugin)…
+
+
+  Il n'y a pas de mot de passe : chaque personne enregistre une ou plusieurs passkeys. Enregistrez-en au moins deux
+  par personne (PC et téléphone, par exemple) pour ne pas perdre l'accès.
+
+
+  Les passkeys exigent HTTPS : publiez l'app via votre reverse proxy à l'adresse https://auth.youbs.fr. Au premier
+  lancement, ouvrez https://auth.youbs.fr/setup pour créer le compte administrateur et sa première passkey.
+developer: Pocket ID
+website: https://pocket-id.org
+submitter: youbs
+submission: https://github.com/youbs-dev/youbs-umbrel-app-store
+repo: https://github.com/pocket-id/pocket-id
+support: https://github.com/pocket-id/pocket-id/issues
+gallery: []
+releaseNotes: >-
+  Première version dans le store youbs (Pocket ID 2.19.3).
+dependencies: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""

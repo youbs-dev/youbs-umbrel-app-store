@@ -1,0 +1,32 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      # Format : <id-app>_<nom-du-service>_1
+      APP_HOST: youbs-pocket-id_server_1
+      APP_PORT: 1411
+      # Pocket ID est lui-meme la page de connexion : il doit rester joignable
+      # sans connexion Umbrel, depuis https://auth.youbs.fr
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: ghcr.io/pocket-id/pocket-id:v2.19.3
+    restart: unless-stopped
+    environment:
+      # Adresse publique (HTTPS obligatoire pour les passkeys)
+      APP_URL: https://auth.youbs.fr
+      # Derriere le proxy d'Umbrel et Nginx Proxy Manager : faire confiance a X-Forwarded-For
+      TRUST_PROXY: "true"
+      # Cle de chiffrement propre a cette installation, derivee du secret Umbrel de l'app
+      ENCRYPTION_KEY: ${APP_SEED}
+      PUID: 1000
+      PGID: 1000
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data
+    healthcheck:
+      test: ["CMD", "/app/pocket-id", "healthcheck"]
+      interval: 1m30s
+      timeout: 5s
+      retries: 2
+      start_period: 10s
